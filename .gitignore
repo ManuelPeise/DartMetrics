@@ -1,55 +1,92 @@
-# Prerequisites
-*.d
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+[Bb]uild/
+out/
 
-# Linker output
-*.ilk
-*.map
-*.exp
+.env
+.env.*
+!.env.example
 
-# Precompiled Headers
-*.gch
-*.pch
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# Visual Studio Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# JetBrains Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!packages/build/
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# Logs
+*.log
+logs/
+[Ll]ogs/
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]enchmarkDotNet.Artifacts/
 
-# debug information files
-*.dwo
+# Coverage
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+
+# Publish
+publish/
+*.pubxml.user
+*.publishsettings
+
+# Local configuration / secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.local.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Generated files
+Generated/

@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/01 Web/">
+    <Project Path="Web.Core/Web.Core.csproj" Id="8ba94e5e-7c07-46e7-aa0b-654aeac1b9d1" />
+  </Folder>
+  <Folder Name="/02 Service/">
+    <Project Path="Service.Api/Service.Api.csproj" Id="37ff367a-1647-4199-af68-c7f538e83b10" />
+  </Folder>
+  <Folder Name="/03 Logic/">
+    <Project Path="Logic.Authentication/Logic.Authentication.csproj" Id="35a7aaf9-c2df-425d-85d9-834e5efb5315" />
+    <Project Path="Logic.Shared/Logic.Shared.csproj" Id="537fad96-5606-4f25-8fbd-a9fa3602404f" />
+  </Folder>
+  <Folder Name="/04 Data/">
+    <Project Path="Data.DartContext/Data.DartContext.csproj" Id="d8d659d5-2abb-4846-87dd-9ca774ffd5a5" />
+  </Folder>
+  <Folder Name="/05 Shared/">
+    <Project Path="Shared.Enums/Shared.Enums.csproj" Id="c17d4261-42b0-404c-b23f-270ad333d025" />
+    <Project Path="Shared.Interfaces/Shared.Interfaces.csproj" Id="7ce445ad-d589-416f-90b8-48b20cf863e1" />
+    <Project Path="Shared.Models/Shared.Models.csproj" Id="45e1cc2d-02d4-4630-a780-fd763ed7e443" />
+  </Folder>
+</Solution>
