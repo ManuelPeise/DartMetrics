@@ -10,6 +10,7 @@ namespace Logic.Authentication.DI
         {
             services.AddScoped<IUserAuthentication, UserAuthentication>();
             services.AddScoped<IClaimsHelper, ClaimsHelper>();
+            services.AddScoped<IUserRegistration, UserRegistration>();
         }
     }
 }

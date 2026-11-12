@@ -7,5 +7,6 @@ namespace Shared.Interfaces.Authentication
     {
         CurrentUser GetCurrentUserFromClaims();
         List<Claim> GetUserClaims(UserEntity userEntity);
+        List<Claim> GetUserClaimsFromToken(string token);
     }
 }

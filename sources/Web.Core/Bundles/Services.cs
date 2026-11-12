@@ -53,7 +53,6 @@ namespace Web.Core.Bundles
                 throw new InvalidOperationException("JWT options are not configured.");
             }
 
-            // HS256 requires a key of at least 256 bits (32 bytes).
             if (Encoding.UTF8.GetByteCount(jwtOptions.Key) < 32)
             {
                 throw new InvalidOperationException("Jwt:Key must be at least 32 characters long.");
@@ -80,8 +79,6 @@ namespace Web.Core.Bundles
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.FromSeconds(30),
 
-                        // User.Identity.Name -> email (used by UnitOfWork for CreatedBy/UpdatedBy),
-                        // [Authorize(Roles = "Admin")] -> UserRole claims.
                         NameClaimType = ClaimsHelper.UserEmailClaimType,
                         RoleClaimType = ClaimsHelper.UserRoleClaimType
                     };
@@ -104,6 +101,16 @@ namespace Web.Core.Bundles
 
             services.AddOptions<JwtOptions>()
                 .Bind(configuration.GetSection("Jwt"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            services.AddOptions<EmailOptions>()
+                .Bind(configuration.GetSection("Email"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            services.AddOptions<ServerOptions>()
+                .Bind(configuration.GetSection("Server"))
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
         }

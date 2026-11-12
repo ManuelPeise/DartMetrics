@@ -24,5 +24,10 @@
                 return false;
             }
         }
+
+        public static bool IsMatchingPassword(string password, string passwordReplication)
+        {
+            return password.Equals(passwordReplication, StringComparison.Ordinal);
+        }
     }
 }

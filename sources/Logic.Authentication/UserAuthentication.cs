@@ -34,6 +34,11 @@ namespace Logic.Authentication
                     throw new UnauthorizedAccessException("Invalid email address or password.");
                 }
 
+                if(!userEntity.IsActive || userEntity.EmailVerifiedAt == null)
+                {
+                    throw new UnauthorizedAccessException("User account is not active or email is not verified.");
+                }
+
                 var isValidPassword = PasswordHasher.VerifyPassword(authenticationRequest.Password, userEntity.UserCredentials.PasswordHash);
 
                 if (!isValidPassword)

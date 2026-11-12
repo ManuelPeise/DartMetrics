@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Data.DartContext\Data.DartContext.csproj" />
     <ProjectReference Include="..\Shared.Interfaces\Shared.Interfaces.csproj" />
   </ItemGroup>

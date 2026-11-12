@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Shared.Enums.User;
 using Shared.Interfaces.Authentication;
 using Shared.Models.Authentication;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace Logic.Shared.Helpers
@@ -66,6 +67,20 @@ namespace Logic.Shared.Helpers
 
             // One claim per role, so [Authorize(Roles = "Admin")] works.
             claims.AddRange(roles.Select(role => new Claim(UserRoleClaimType, role.ToString())));
+
+            return claims;
+        }
+
+        public List<Claim> GetUserClaimsFromToken(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new ArgumentException("Token cannot be null or empty.", nameof(token));
+            }
+            var handler = new JwtSecurityTokenHandler();
+
+            var jwtToken = handler.ReadJwtToken(token);
+            var claims = jwtToken.Claims.ToList();
 
             return claims;
         }
