@@ -81,7 +81,7 @@ namespace Web.Core.Bundles
                         ClockSkew = TimeSpan.FromSeconds(30),
 
                         NameClaimType = ClaimsHelper.UserEmailClaimType,
-                        RoleClaimType = ClaimsHelper.UserRoleClaimType
+                        RoleClaimType = ClaimsHelper.UserRolesClaimType
                     };
                 });
 

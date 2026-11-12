@@ -1,0 +1,31 @@
+@page "/"
+@layout PublicLayout
+
+<PageTitle>DartMetrics – Jeder Wurf zählt</PageTitle>
+
+<p class="pl-eyebrow">Steel- &amp; Softdart Statistiken</p>
+
+<h1 class="pl-title">Jeder Wurf<br /><em>zählt.</em></h1>
+
+<p class="pl-lead">
+    Erfasse deine Spiele, verfolge Averages, Checkout-Quoten und Trefferbilder –
+    und sieh schwarz auf weiß, wie du besser wirst.
+</p>
+
+<AuthorizeView>
+    <Authorized>
+        <p class="pl-lead">Willkommen zurück, <strong>@context.User.Identity?.Name</strong>.</p>
+    </Authorized>
+    <NotAuthorized>
+        <div class="pl-actions">
+            <AreaLink Href="/register" Class="pl-btn pl-btn--primary">Kostenlos registrieren</AreaLink>
+            <AreaLink Href="/login" Class="pl-btn pl-btn--ghost">Anmelden</AreaLink>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<ul class="pl-features">
+    <li><strong>Statistiken</strong><span>3-Dart-Average, Doppelquote und Höchstwerte pro Spiel.</span></li>
+    <li><strong>Spiele</strong><span>501, Cricket &amp; Training – Wurf für Wurf erfasst.</span></li>
+    <li><strong>Fortschritt</strong><span>Deine Entwicklung über Wochen und Monate im Blick.</span></li>
+</ul>

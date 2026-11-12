@@ -20,7 +20,7 @@ namespace Service.Api.Controllers.Authentication
 
         [AllowAnonymous]
         [HttpPost(Name = "UserLogin")]
-        public async Task<IActionResult> UserLogin([FromBody] AuthenticationRequest request)
+        public async Task<TokenResponse?> UserLogin([FromBody] AuthenticationRequest request)
         {
             var tokenResponse = await _userAuthentication.AuthenticateUser(request, _jwtOptions);
 
@@ -28,12 +28,27 @@ namespace Service.Api.Controllers.Authentication
             {
                 ClearTokensFromHeader();
                 Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return null;
+            }
+
+            return tokenResponse;
+        }
+
+        // Anonymous on purpose: the refresh token is the credential. The access token may already be expired.
+        [AllowAnonymous]
+        [HttpPost(Name = "RefreshToken")]
+        public async Task<ActionResult<TokenResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var tokenResponse = await _userAuthentication.RefreshToken(request, _jwtOptions);
+
+            if (tokenResponse == null)
+            {
+                ClearTokensFromHeader();
+
                 return Unauthorized();
             }
 
-            AddTokensAsReadOnlyHeader(tokenResponse.Token, tokenResponse.RefreshToken);
-
-            return Ok();
+            return Ok(tokenResponse);
         }
 
         [HttpPost(Name = "UserLogout")]

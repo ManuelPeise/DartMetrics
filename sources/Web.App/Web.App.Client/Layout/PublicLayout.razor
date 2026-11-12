@@ -1,0 +1,40 @@
+@inherits LayoutComponentBase
+
+@* Layout for the public pages (landing, login, register): full-bleed photo, content in the right half. *@
+<div class="pl-root">
+    <header class="pl-header">
+        <AreaLink Href="/" Class="pl-brand">
+            <img src="img/dart_board.png" alt="" width="38" height="38" />
+            <span>Dart<span class="pl-brand-accent">Metrics</span></span>
+        </AreaLink>
+
+        <nav class="pl-nav" aria-label="Konto">
+            <AuthorizeView>
+                <Authorized>
+                    <AuthorizeView Roles="Admin" Context="adminContext">
+                        <AreaLink Href="/admin" Class="pl-btn pl-btn--link">Admin</AreaLink>
+                    </AuthorizeView>
+                    <AreaLink Href="/logout" Class="pl-btn pl-btn--ghost">Abmelden</AreaLink>
+                </Authorized>
+                <NotAuthorized>
+                    <AreaLink Href="/login" Class="pl-btn pl-btn--link">Anmelden</AreaLink>
+                    <AreaLink Href="/register" Class="pl-btn pl-btn--ghost">Registrieren</AreaLink>
+                </NotAuthorized>
+            </AuthorizeView>
+        </nav>
+    </header>
+
+    <main class="pl-stage">
+        <div class="pl-content">
+            @Body
+        </div>
+    </main>
+
+    <footer class="pl-footer">© @DateTime.Now.Year DartMetrics</footer>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ein unerwarteter Fehler ist aufgetreten.
+    <a href="." class="reload">Neu laden</a>
+    <span class="dismiss">🗙</span>
+</div>

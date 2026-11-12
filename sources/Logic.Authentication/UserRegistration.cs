@@ -1,6 +1,8 @@
 ﻿using Data.DartContext.Entities.User;
 using Data.DartContext.Security;
 using Logic.Shared;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Logic.Shared.Helpers;
 using Logic.Shared.Mail;
 using Org.BouncyCastle.Pkcs;
@@ -43,14 +45,26 @@ namespace Logic.Authentication
                     throw new ArgumentException("Password and PasswordReplication do not match.");
                 }
 
-                var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.EmailAddress == registrationRequestModel.EmailAddress);
+                var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
+                    u => u.EmailAddress == registrationRequestModel.EmailAddress,
+                    include: u => u.Include(x => x.UserCredentials));
+
+                var hashedPassword = PasswordHasher.HashPassword(registrationRequestModel.UserCredentials.Password);
 
                 if (userEntity != null)
                 {
-                    throw new ArgumentException($"User with email {registrationRequestModel.EmailAddress} already exists in database.");
+                    if (userEntity.EmailVerifiedAt != null)
+                    {
+                        throw new ArgumentException($"User with email {registrationRequestModel.EmailAddress} already exists in database.");
+                    }
+
+                    await UpdateUnverifiedUser(userEntity, registrationRequestModel, hashedPassword);
+
+                    await SendVerificationMail(userEntity, jwtOptions, serverOptions);
+
+                    return true;
                 }
 
-                var hashedPassword = PasswordHasher.HashPassword(registrationRequestModel.UserCredentials.Password);
                 var roleId = await GetDefaultRoleId();
 
                 var newUserEntity = new UserEntity
@@ -63,7 +77,8 @@ namespace Logic.Authentication
                     IsActive = false,
                     UserCredentials = new UserCredentialsEntity
                     {
-                        PasswordHash = hashedPassword
+                        PasswordHash = hashedPassword,
+                        PasswordChangedAt = DateTime.UtcNow
                     },
                     UserRoles = new List<UserRoleEntity>
                     {
@@ -84,12 +99,10 @@ namespace Logic.Authentication
                     await SendVerificationMail(newUserEntity, jwtOptions, serverOptions);
 
                     return true;
-
                 }
                 else
                 {
                     throw new InvalidOperationException("Failed to save the new user to the database.");
-
                 }
             }
             catch (Exception exception)
@@ -100,13 +113,17 @@ namespace Logic.Authentication
             }
         }
 
-        public async Task VerifyEmail(string token, ServerOptions serverOptions)
+        public async Task<bool> VerifyEmail(string token, JwtOptions jwtOptions, ServerOptions serverOptions)
         {
             try
             {
-                var claims = _claimsHelper.GetUserClaimsFromToken(token);
-                
-                var emailClaim = claims.FirstOrDefault(c => c.Type == ClaimsHelper.UserEmailClaimType)?.Value;
+                var principal = new JwtTokenGenerator().ValidateToken(
+                    token,
+                    jwtOptions.Key,
+                    jwtOptions.Issuer,
+                    JwtTokenGenerator.GetEmailVerificationAudience(jwtOptions.Audience));
+
+                var emailClaim = principal.FindFirst(ClaimsHelper.UserEmailClaimType)?.Value;
 
                 if (emailClaim == null)
                 {
@@ -114,23 +131,55 @@ namespace Logic.Authentication
                 }
 
                 var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.EmailAddress == emailClaim);
-                
+
                 if (userEntity == null)
                 {
                     throw new InvalidOperationException("User not found in the database.");
                 }
 
+                if (userEntity.EmailVerifiedAt != null)
+                {
+                    return true;
+                }
+
                 userEntity.EmailVerifiedAt = DateTime.UtcNow;
                 userEntity.IsActive = true;
-               
+
                 await UnitOfWork.SaveChangesAsync();
 
                 await SendAccountActivationMail(userEntity, serverOptions);
+
+                return true;
             }
             catch (Exception exception)
             {
                 await MessageLog.LogMessage($"Error occurred during email verification", nameof(UserRegistration), exception);
+
+                return false;
             }
+        }
+
+        private async Task UpdateUnverifiedUser(UserEntity userEntity, UserRegistrationRequestModel registrationRequestModel, string hashedPassword)
+        {
+            userEntity.FirstName = registrationRequestModel.FirstName;
+            userEntity.LastName = registrationRequestModel.LastName;
+            userEntity.DisplayName = registrationRequestModel.DisplayName;
+
+            if (userEntity.UserCredentials == null)
+            {
+                userEntity.UserCredentials = new UserCredentialsEntity
+                {
+                    PasswordHash = hashedPassword,
+                    PasswordChangedAt = DateTime.UtcNow
+                };
+            }
+            else
+            {
+                userEntity.UserCredentials.PasswordHash = hashedPassword;
+                userEntity.UserCredentials.PasswordChangedAt = DateTime.UtcNow;
+            }
+
+            await UnitOfWork.SaveChangesAsync();
         }
 
         private async Task<int> GetDefaultRoleId()
@@ -159,12 +208,21 @@ namespace Logic.Authentication
 
         private string GetEmailBody(UserEntity entity, JwtOptions jwtOptions, ServerOptions serverOptions)
         {
-            var claims = _claimsHelper.GetUserClaims(entity);
+            // The verification token only needs id + e-mail. Do NOT use GetUserClaims here: it reads
+            // UserRoles[].Role, which is not loaded for a freshly created user (only RoleId is set) -> NullReferenceException.
+            var claims = new List<Claim>
+            {
+                new(ClaimsHelper.UserIdClaimType, entity.Id.ToString()),
+                new(ClaimsHelper.UserEmailClaimType, entity.EmailAddress)
+            };
+
             var jwtTokenGenerator = new JwtTokenGenerator();
 
-            var jwtToken = jwtTokenGenerator.GenerateToken(claims, jwtOptions.Key, jwtOptions.Issuer, jwtOptions.Audience, 1440);
+            // Separate audience: the API's JwtBearer handler rejects this token, so it is not usable as an access token.
+            var jwtToken = jwtTokenGenerator.GenerateToken(claims, jwtOptions.Key, jwtOptions.Issuer,
+                JwtTokenGenerator.GetEmailVerificationAudience(jwtOptions.Audience), 1440);
 
-            var verificationLink = $"{serverOptions.Host}:{serverOptions.Port}/registration/verify?token={jwtToken}";
+            var verificationLink = $"{serverOptions.Host}:{serverOptions.Port}/registration/verify?token={Uri.EscapeDataString(jwtToken)}";
 
             return EmailBodyFactory.GetEmailBody(EmailBodyTypeEnum.EmailVerification, verificationLink);
         }
@@ -183,8 +241,6 @@ namespace Logic.Authentication
 
         private string GetAccountActivationEmailBody(UserEntity entity, ServerOptions serverOptions)
         {
-            var claims = _claimsHelper.GetUserClaims(entity);
-           
             var applicationUrl = $"{serverOptions.Host}:{serverOptions.Port}/login";
 
             return EmailBodyFactory.GetEmailBody(EmailBodyTypeEnum.AccountActivation, applicationUrl);

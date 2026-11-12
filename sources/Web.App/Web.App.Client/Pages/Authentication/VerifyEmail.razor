@@ -1,0 +1,81 @@
+@page "/registration/verify"
+@layout PublicLayout
+@inject IAccountService AccountService
+
+@* Target of the link in the verification e-mail: /registration/verify?token=... *@
+
+<PageTitle>E-Mail bestätigen – DartMetrics</PageTitle>
+
+<section class="pl-card" aria-labelledby="verify-title" aria-live="polite">
+    @switch (_state)
+    {
+        case VerifyState.Verifying:
+            <p class="pl-eyebrow">Einen Moment</p>
+            <h1 id="verify-title" class="pl-title">E-Mail wird bestätigt</h1>
+            <p class="pl-lead pl-loading"><span class="pl-spinner" aria-hidden="true"></span>Dein Bestätigungslink wird geprüft …</p>
+            break;
+
+        case VerifyState.Success:
+            <p class="pl-eyebrow">Alles erledigt</p>
+            <h1 id="verify-title" class="pl-title">Konto <em>aktiviert</em></h1>
+            <p class="pl-alert pl-alert--success" role="status">
+                Deine E-Mail-Adresse ist bestätigt. Du kannst dich jetzt anmelden.
+            </p>
+            <div class="pl-actions pl-actions--spaced">
+                <a href="login" class="pl-btn pl-btn--primary pl-btn--block">Zur Anmeldung</a>
+            </div>
+            break;
+
+        case VerifyState.Unavailable:
+            <p class="pl-eyebrow">Hoppla</p>
+            <h1 id="verify-title" class="pl-title">Server nicht erreichbar</h1>
+            <p class="pl-alert" role="alert">Bitte versuche es in ein paar Minuten noch einmal.</p>
+            <div class="pl-actions pl-actions--spaced">
+                <button type="button" class="pl-btn pl-btn--primary pl-btn--block" @onclick="VerifyAsync">Erneut versuchen</button>
+            </div>
+            break;
+
+        default:
+            <p class="pl-eyebrow">Bestätigung fehlgeschlagen</p>
+            <h1 id="verify-title" class="pl-title">Link ungültig</h1>
+            <p class="pl-alert" role="alert">
+                Der Bestätigungslink ist ungültig oder abgelaufen (er ist 24 Stunden gültig).
+                Falls dein Konto bereits bestätigt ist, kannst du dich einfach anmelden.
+            </p>
+            <div class="pl-actions pl-actions--spaced">
+                <a href="login" class="pl-btn pl-btn--primary">Zur Anmeldung</a>
+                <a href="register" class="pl-btn pl-btn--ghost">Neu registrieren</a>
+            </div>
+            break;
+    }
+</section>
+
+@code {
+    private enum VerifyState { Verifying, Success, Invalid, Unavailable }
+
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+
+    private VerifyState _state = VerifyState.Verifying;
+
+    protected override Task OnInitializedAsync() => VerifyAsync();
+
+    private async Task VerifyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            _state = VerifyState.Invalid;
+            return;
+        }
+
+        _state = VerifyState.Verifying;
+
+        try
+        {
+            _state = await AccountService.VerifyEmailAsync(Token) ? VerifyState.Success : VerifyState.Invalid;
+        }
+        catch (HttpRequestException)
+        {
+            _state = VerifyState.Unavailable;
+        }
+    }
+}

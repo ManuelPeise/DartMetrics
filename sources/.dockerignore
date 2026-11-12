@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.user
+**/node_modules/
+_backup*/
+.env
+.git/
+Web.App/
+Web.Shared/
+docker-compose*.yml
+**/Dockerfile*

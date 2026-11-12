@@ -7,6 +7,6 @@ namespace Shared.Interfaces.Authentication
     public interface IUserRegistration
     {
         Task<bool> RegisterUser(UserRegistrationRequestModel registrationRequestModel, JwtOptions jwtOptions, ServerOptions serverOptions);
-        Task VerifyEmail(string token, ServerOptions serverOptions);
+        Task<bool> VerifyEmail(string token, JwtOptions jwtOptions, ServerOptions serverOptions);
     }
 }

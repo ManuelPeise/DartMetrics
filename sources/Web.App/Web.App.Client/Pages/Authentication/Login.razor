@@ -1,0 +1,77 @@
+@page "/login"
+@layout PublicLayout
+@using Web.App.Client.Routing
+@inject IAccountService AccountService
+@inject NavigationManager Navigation
+
+<PageTitle>Anmelden – DartMetrics</PageTitle>
+
+<section class="pl-card" aria-labelledby="login-title">
+    <p class="pl-eyebrow">Willkommen zurück</p>
+    <h1 id="login-title" class="pl-title">Anmelden</h1>
+    <p class="pl-lead">Melde dich an, um deine Spiele und Statistiken zu sehen.</p>
+
+    <EditForm Model="_model" OnValidSubmit="LoginAsync" FormName="login" class="pl-form">
+        <DataAnnotationsValidator />
+
+        @if (_error != null)
+        {
+            <p class="pl-alert" role="alert">@_error</p>
+        }
+
+        <div class="pl-field">
+            <label for="email">E-Mail</label>
+            <InputText id="email" type="email" class="pl-input" autocomplete="username"
+                       placeholder="name@beispiel.de" @bind-Value="_model.EmailAddress" />
+            <ValidationMessage For="() => _model.EmailAddress" />
+        </div>
+
+        <div class="pl-field">
+            <label for="password">Passwort</label>
+            <InputText id="password" type="password" class="pl-input" autocomplete="current-password"
+                       @bind-Value="_model.Password" />
+            <ValidationMessage For="() => _model.Password" />
+        </div>
+
+        <button type="submit" class="pl-btn pl-btn--primary pl-btn--block" disabled="@_busy">
+            @(_busy ? "Anmelden …" : "Anmelden")
+        </button>
+    </EditForm>
+
+    <p class="pl-switch">Noch kein Konto? <a href="register">Jetzt registrieren</a></p>
+</section>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
+    private readonly LoginModel _model = new();
+    private string? _error;
+    private bool _busy;
+
+    private async Task LoginAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            if (!await AccountService.LoginAsync(_model))
+            {
+                _error = "E-Mail oder Passwort ist falsch – oder das Konto ist noch nicht bestätigt.";
+                return;
+            }
+
+            var target = AppAreas.SafeReturnUrl(ReturnUrl);
+
+            Navigation.NavigateTo(target, forceLoad: AppAreas.IsServerArea(target));
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Der Server ist nicht erreichbar. Bitte später erneut versuchen.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

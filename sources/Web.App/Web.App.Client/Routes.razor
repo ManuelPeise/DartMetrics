@@ -1,0 +1,34 @@
+@using System.Reflection
+@using Web.App.Client.Routing
+
+@*
+    Renderer-dependent routing:
+    - WebAssembly : client pages only
+    - Server      : admin pages only (switching areas always does a full page load)
+    - Static SSR  : both (needed e.g. for the error page and the auth challenge)
+*@
+<Router AppAssembly="AppAssembly" AdditionalAssemblies="AdditionalAssemblies" NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin IsAuthenticated="@(context.User.Identity?.IsAuthenticated == true)" />
+            </NotAuthorized>
+            <Authorizing>
+                <p>Anmeldung wird geprüft …</p>
+            </Authorizing>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>
+
+@code {
+    private Assembly AppAssembly =>
+        RendererInfo.Name == "Server" && AppAreas.ServerAssembly != null
+            ? AppAreas.ServerAssembly
+            : typeof(Routes).Assembly;
+
+    private IEnumerable<Assembly> AdditionalAssemblies =>
+        RendererInfo.Name == "Static" && AppAreas.ServerAssembly != null
+            ? new[] { AppAreas.ServerAssembly }
+            : Array.Empty<Assembly>();
+}

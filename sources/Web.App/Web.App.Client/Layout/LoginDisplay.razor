@@ -1,0 +1,14 @@
+<nav class="login-display">
+    <AuthorizeView>
+        <Authorized>
+            <span>@context.User.Identity?.Name</span>
+            <AuthorizeView Roles="Admin" Context="adminContext">
+                <AreaLink Href="/admin">Admin</AreaLink>
+            </AuthorizeView>
+            <AreaLink Href="/logout">Abmelden</AreaLink>
+        </Authorized>
+        <NotAuthorized>
+            <AreaLink Href="/login">Anmelden</AreaLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</nav>

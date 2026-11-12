@@ -1,0 +1,112 @@
+@page "/register"
+@layout PublicLayout
+@inject IAccountService AccountService
+
+<PageTitle>Registrieren – DartMetrics</PageTitle>
+
+<section class="pl-card" aria-labelledby="register-title">
+    @if (_registeredEmail != null)
+    {
+        <p class="pl-eyebrow">Fast geschafft</p>
+        <h1 id="register-title" class="pl-title">Bitte E-Mail bestätigen</h1>
+        <p class="pl-alert pl-alert--success" role="status">
+            Wir haben einen Bestätigungslink an <strong>@_registeredEmail</strong> geschickt.
+            Nach der Bestätigung kannst du dich anmelden.
+        </p>
+        <p class="pl-switch"><a href="login">Zur Anmeldung</a></p>
+    }
+    else
+    {
+        <p class="pl-eyebrow">Neues Konto</p>
+        <h1 id="register-title" class="pl-title">Registrieren</h1>
+        <p class="pl-lead">In einer Minute startklar – kostenlos.</p>
+
+        <EditForm Model="_model" OnValidSubmit="RegisterAsync" FormName="register" class="pl-form">
+            <DataAnnotationsValidator />
+
+            @if (_error != null)
+            {
+                <p class="pl-alert" role="alert">@_error</p>
+            }
+
+            <div class="pl-row">
+                <div class="pl-field">
+                    <label for="firstName">Vorname</label>
+                    <InputText id="firstName" class="pl-input" autocomplete="given-name" @bind-Value="_model.FirstName" />
+                    <ValidationMessage For="() => _model.FirstName" />
+                </div>
+                <div class="pl-field">
+                    <label for="lastName">Nachname</label>
+                    <InputText id="lastName" class="pl-input" autocomplete="family-name" @bind-Value="_model.LastName" />
+                    <ValidationMessage For="() => _model.LastName" />
+                </div>
+            </div>
+
+            <div class="pl-field">
+                <label for="displayName">Spielername <span class="pl-optional">(optional)</span></label>
+                <InputText id="displayName" class="pl-input" autocomplete="nickname"
+                           placeholder="So sehen dich andere Spieler" @bind-Value="_model.DisplayName" />
+                <ValidationMessage For="() => _model.DisplayName" />
+            </div>
+
+            <div class="pl-field">
+                <label for="email">E-Mail</label>
+                <InputText id="email" type="email" class="pl-input" autocomplete="email"
+                           placeholder="name@beispiel.de" @bind-Value="_model.EmailAddress" />
+                <ValidationMessage For="() => _model.EmailAddress" />
+            </div>
+
+            <div class="pl-row">
+                <div class="pl-field">
+                    <label for="password">Passwort</label>
+                    <InputText id="password" type="password" class="pl-input" autocomplete="new-password" @bind-Value="_model.Password" />
+                    <ValidationMessage For="() => _model.Password" />
+                </div>
+                <div class="pl-field">
+                    <label for="passwordReplication">Wiederholen</label>
+                    <InputText id="passwordReplication" type="password" class="pl-input" autocomplete="new-password" @bind-Value="_model.PasswordReplication" />
+                    <ValidationMessage For="() => _model.PasswordReplication" />
+                </div>
+            </div>
+
+            <button type="submit" class="pl-btn pl-btn--primary pl-btn--block" disabled="@_busy">
+                @(_busy ? "Konto wird erstellt …" : "Konto erstellen")
+            </button>
+        </EditForm>
+
+        <p class="pl-switch">Schon registriert? <a href="login">Anmelden</a></p>
+    }
+</section>
+
+@code {
+    private readonly RegisterModel _model = new();
+    private string? _error;
+    private string? _registeredEmail;
+    private bool _busy;
+
+    private async Task RegisterAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            if (await AccountService.RegisterAsync(_model))
+            {
+                _registeredEmail = _model.EmailAddress;
+                return;
+            }
+
+            // The API does not tell why (e.g. e-mail already in use) - deliberately, to avoid account enumeration.
+            _error = "Die Registrierung ist fehlgeschlagen. Falls du mit dieser E-Mail-Adresse bereits ein bestätigtes Konto hast, melde dich einfach an.";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Der Server ist nicht erreichbar. Bitte später erneut versuchen.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

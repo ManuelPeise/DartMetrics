@@ -1,6 +1,7 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 
 namespace Logic.Authentication
 {
@@ -29,22 +30,25 @@ namespace Logic.Authentication
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public ClaimsPrincipal ValidateToken(string token, string secretKey)
+        public ClaimsPrincipal ValidateToken(string token, string secretKey, string issuer, string audience)
         {
             ArgumentException.ThrowIfNullOrEmpty(token, nameof(token));
             ArgumentException.ThrowIfNullOrEmpty(secretKey, nameof(secretKey));
 
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenHandler = new JwtSecurityTokenHandler { MapInboundClaims = false };
             
-            var key = System.Text.Encoding.UTF8.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey);
             
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ClockSkew = TimeSpan.Zero // Optional: Adjust for clock skew if needed
+                ValidateIssuer = true,
+                ValidIssuer = issuer,
+                ValidateAudience = true,
+                ValidAudience = audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
             };
             
             try
@@ -60,13 +64,20 @@ namespace Logic.Authentication
 
         public string GenerateRefreshToken()
         {
-            var randomNumber = new byte[32];
-
-            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-                return Convert.ToBase64String(randomNumber);
-            }
+            return Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         }
+
+        /// <summary>
+        /// Refresh tokens are 256-bit random values, so a fast SHA-256 hash is sufficient (BCrypt is only needed
+        /// for low-entropy passwords). The deterministic hash also allows a direct lookup via the DB index.
+        /// </summary>
+        public static string HashRefreshToken(string refreshToken)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(refreshToken, nameof(refreshToken));
+            return Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
+        }
+
+        /// <summary>Audience for e-mail verification tokens, so they can never be used as API access tokens.</summary>
+        public static string GetEmailVerificationAudience(string audience) => $"{audience}.EmailVerification";
     }
 }

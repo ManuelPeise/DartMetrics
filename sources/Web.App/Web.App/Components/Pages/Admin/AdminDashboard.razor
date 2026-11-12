@@ -1,0 +1,10 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin</PageTitle>
+
+<h1>Admin</h1>
+
+<AuthorizeView>
+    <p>Angemeldet als <strong>@context.User.Identity?.Name</strong></p>
+</AuthorizeView>

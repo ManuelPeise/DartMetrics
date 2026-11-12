@@ -29,9 +29,11 @@ namespace Service.Api.Controllers.Authentication
 
         [AllowAnonymous]
         [HttpPost(Name = "VerifyEmail")]
-        public async Task VerifyEmail([FromQuery] string token)
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
-             await _userRegistration.VerifyEmail(token, _serverOptions);
+            var verified = await _userRegistration.VerifyEmail(token, _jwtOptions, _serverOptions);
+
+            return verified ? Ok() : BadRequest();
         }
     }
 }

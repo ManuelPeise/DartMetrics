@@ -41,6 +41,7 @@ namespace Data.DartContext.Seeds
                 UserCredentials = new UserCredentialsEntity
                 {
                     PasswordHash = PasswordHasher.HashPassword(_adminUserOptions.Password),
+                    PasswordChangedAt = utcNow,
                     CreatedAt = utcNow,
                     CreatedBy = "System",
                 },

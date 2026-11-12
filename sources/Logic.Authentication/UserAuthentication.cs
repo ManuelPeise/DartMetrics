@@ -13,6 +13,9 @@ namespace Logic.Authentication
     {
         private readonly IClaimsHelper _claimsHelper;
 
+        // Used to keep the response time constant when the user does not exist (prevents user enumeration via timing).
+        private static readonly Lazy<string> DummyPasswordHash = new(() => PasswordHasher.HashPassword(Guid.NewGuid().ToString()));
+
         public UserAuthentication(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
@@ -31,6 +34,7 @@ namespace Logic.Authentication
 
                 if (userEntity == null || userEntity.UserCredentials == null)
                 {
+                    PasswordHasher.VerifyPassword(authenticationRequest.Password, DummyPasswordHash.Value);
                     throw new UnauthorizedAccessException("Invalid email address or password.");
                 }
 
@@ -55,8 +59,9 @@ namespace Logic.Authentication
 
                 var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(jwtOptions.RefreshTokenExpireDays);
 
-                userEntity.UserCredentials.RefreshTokenHash = PasswordHasher.HashPassword(refreshToken);
+                userEntity.UserCredentials.RefreshTokenHash = JwtTokenGenerator.HashRefreshToken(refreshToken);
                 userEntity.UserCredentials.RefreshTokenExpiresAt = refreshTokenExpiresAt;
+                userEntity.UserCredentials.RefreshTokenRevokedAt = null;
 
                 await UnitOfWork.SaveChangesAsync();
 
@@ -64,7 +69,8 @@ namespace Logic.Authentication
                 {
                     Token = token,
                     RefreshToken = refreshToken,
-                    RefreshTokenExpiresAt = refreshTokenExpiresAt
+                    RefreshTokenExpiresAt = refreshTokenExpiresAt,
+                    AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(jwtOptions.ExpireMinutes)
                 };
 
             }
@@ -74,6 +80,86 @@ namespace Logic.Authentication
 
                 return null;
 
+            }
+        }
+
+        public async Task<TokenResponse?> RefreshToken(RefreshTokenRequest refreshTokenRequest, JwtOptions jwtOptions)
+        {
+            try
+            {
+                // The refresh token itself identifies the user. No (possibly expired) access token is required,
+                // otherwise a session could never be renewed once the access token has expired.
+                if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
+                    return null;
+
+                var refreshTokenHash = JwtTokenGenerator.HashRefreshToken(refreshTokenRequest.RefreshToken);
+
+                var userEntity =
+                    await UnitOfWork.UserUnitOfWork.UserRepository
+                        .GetFirstOrDefaultAsync(
+                            u => u.UserCredentials != null && u.UserCredentials.RefreshTokenHash == refreshTokenHash,
+                            include: u => u
+                                .Include(x => x.UserCredentials)
+                                .Include(x => x.UserRoles)
+                                .ThenInclude(ur => ur.Role));
+
+                if (userEntity?.UserCredentials == null || !userEntity.IsActive)
+                    return null;
+
+                var credentials = userEntity.UserCredentials;
+
+                if (credentials.RefreshTokenExpiresAt == null ||
+                    credentials.RefreshTokenExpiresAt <= DateTime.UtcNow ||
+                    credentials.RefreshTokenRevokedAt != null)
+                {
+                    return null;
+                }
+
+                var claims = _claimsHelper.GetUserClaims(userEntity);
+
+                var jwtTokenGenerator = new JwtTokenGenerator();
+
+                var token = jwtTokenGenerator.GenerateToken(
+                    claims,
+                    jwtOptions.Key,
+                    jwtOptions.Issuer,
+                    jwtOptions.Audience,
+                    jwtOptions.ExpireMinutes);
+
+                var newRefreshToken =
+                    jwtTokenGenerator.GenerateRefreshToken();
+
+                var accessTokenExpiresAt =
+                    DateTimeOffset.UtcNow.AddMinutes(jwtOptions.ExpireMinutes);
+
+                var refreshTokenExpiresAt =
+                    DateTimeOffset.UtcNow.AddDays(jwtOptions.RefreshTokenExpireDays);
+
+                credentials.RefreshTokenHash =
+                    JwtTokenGenerator.HashRefreshToken(newRefreshToken);
+
+                credentials.RefreshTokenExpiresAt =
+                    refreshTokenExpiresAt.UtcDateTime;
+
+                await UnitOfWork.SaveChangesAsync();
+
+                return new TokenResponse
+                {
+                    Token = token,
+                    RefreshToken = newRefreshToken,
+                    AccessTokenExpiresAt = accessTokenExpiresAt,
+                    RefreshTokenExpiresAt = refreshTokenExpiresAt
+                };
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage(
+                    "An error occurred while refreshing the token.",
+                    "UserAuthentication",
+                    exception,
+                    LogMessageTypeEnum.Error);
+
+                return null;
             }
         }
 
@@ -98,6 +184,7 @@ namespace Logic.Authentication
 
                 userEntity.UserCredentials.RefreshTokenHash = null;
                 userEntity.UserCredentials.RefreshTokenExpiresAt = null;
+                userEntity.UserCredentials.RefreshTokenRevokedAt = DateTime.UtcNow;
 
                 await UnitOfWork.SaveChangesAsync();
 

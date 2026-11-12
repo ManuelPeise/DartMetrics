@@ -1,0 +1,464 @@
+/* ==========================================================================
+   DartMetrics – public area (landing, login, register)
+   Palette taken from the background photo (dark wood, brass darts) and the
+   dartboard (red / green rings).
+   ========================================================================== */
+
+html, body {
+    margin: 0;
+    background: #120b09;
+}
+
+:root {
+    --pl-ink: #f4ede4;
+    --pl-ink-muted: #b9ab9c;
+    --pl-brass: #d1a45f;
+    --pl-brass-strong: #e6bb72;
+    --pl-wood-950: #120b09;
+    --pl-wood-900: #1b120f;
+    --pl-wood-800: #2a1c17;
+    --pl-red: #c8232f;
+    --pl-green: #1f8a3b;
+    --pl-line: rgba(244, 237, 228, 0.14);
+    --pl-radius: 14px;
+    --pl-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --pl-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.pl-root {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--pl-ink);
+    font-family: var(--pl-font-body);
+    background: var(--pl-wood-950) url("/img/background.jpg") center / cover no-repeat fixed;
+    isolation: isolate;
+}
+
+    /* Darken toward the right so the content column stays readable while the darts remain visible. */
+    .pl-root::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+            linear-gradient(90deg, rgba(18, 11, 9, 0.25) 0%, rgba(18, 11, 9, 0.55) 45%, rgba(18, 11, 9, 0.92) 75%),
+            linear-gradient(180deg, rgba(18, 11, 9, 0.55) 0%, transparent 25%, transparent 70%, rgba(18, 11, 9, 0.8) 100%);
+    }
+
+/* ---------- Header ---------- */
+
+.pl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem clamp(1.25rem, 4vw, 3.5rem);
+}
+
+.pl-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--pl-ink);
+    text-decoration: none;
+    font-family: var(--pl-font-display);
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+    .pl-brand img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px var(--pl-brass);
+    }
+
+    .pl-brand .pl-brand-accent {
+        color: var(--pl-brass);
+    }
+
+.pl-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ---------- Stage: content always sits in the right half ---------- */
+
+.pl-stage {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem clamp(1.25rem, 6vw, 6rem) 3rem;
+}
+
+.pl-content {
+    grid-column: 2;
+    width: 100%;
+    animation: pl-rise 0.5s ease-out both;
+}
+
+@keyframes pl-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 900px) {
+    .pl-stage {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .pl-content {
+        grid-column: 1;
+        max-width: 520px;
+        margin-inline: auto;
+    }
+
+    .pl-root::before {
+        background: rgba(18, 11, 9, 0.78);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-content { animation: none; }
+}
+
+/* ---------- Typography ---------- */
+
+.pl-eyebrow {
+    margin: 0 0 0.75rem;
+    color: var(--pl-brass);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.pl-title {
+    margin: 0 0 1rem;
+    font-family: var(--pl-font-display);
+    font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+}
+
+    .pl-title em {
+        font-style: normal;
+        color: var(--pl-brass);
+    }
+
+.pl-lead {
+    margin: 0 0 2rem;
+    max-width: 42ch;
+    color: var(--pl-ink-muted);
+    font-size: 1.08rem;
+    line-height: 1.6;
+}
+
+/* ---------- Buttons ---------- */
+
+.pl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.4rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font: 600 0.95rem var(--pl-font-body);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+    .pl-btn:focus-visible {
+        outline: 2px solid var(--pl-brass-strong);
+        outline-offset: 3px;
+    }
+
+    .pl-btn:active { transform: translateY(1px); }
+
+    .pl-btn[disabled] {
+        opacity: 0.6;
+        cursor: progress;
+    }
+
+.pl-btn--primary {
+    background: var(--pl-brass);
+    color: var(--pl-wood-950);
+}
+
+    .pl-btn--primary:hover { background: var(--pl-brass-strong); }
+
+.pl-btn--ghost {
+    border-color: var(--pl-line);
+    color: var(--pl-ink);
+    background: rgba(18, 11, 9, 0.35);
+}
+
+    .pl-btn--ghost:hover { border-color: var(--pl-brass); color: var(--pl-brass-strong); }
+
+.pl-btn--link {
+    padding-inline: 0.9rem;
+    color: var(--pl-ink);
+    background: none;
+}
+
+    .pl-btn--link:hover { color: var(--pl-brass-strong); }
+
+.pl-btn--block { width: 100%; }
+
+.pl-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* ---------- Landing features ---------- */
+
+.pl-features {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 2.75rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--pl-line);
+    list-style: none;
+}
+
+    .pl-features strong {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-family: var(--pl-font-display);
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .pl-features span {
+        color: var(--pl-ink-muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .pl-features li::before {
+        content: "";
+        display: block;
+        width: 22px;
+        height: 3px;
+        margin-bottom: 0.75rem;
+        border-radius: 2px;
+        background: var(--pl-brass);
+    }
+
+        .pl-features li:nth-child(2)::before { background: var(--pl-red); }
+        .pl-features li:nth-child(3)::before { background: var(--pl-green); }
+
+@media (max-width: 560px) {
+    .pl-features { grid-template-columns: 1fr; }
+}
+
+/* ---------- Card + forms ---------- */
+
+.pl-card {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: rgba(27, 18, 15, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+}
+
+    .pl-card .pl-title {
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        margin-bottom: 0.4rem;
+    }
+
+    .pl-card .pl-lead {
+        margin-bottom: 1.75rem;
+        font-size: 0.98rem;
+    }
+
+.pl-form {
+    display: grid;
+    gap: 1.1rem;
+}
+
+.pl-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .pl-row { grid-template-columns: 1fr; }
+}
+
+.pl-field {
+    display: grid;
+    gap: 0.4rem;
+}
+
+    .pl-field label {
+        color: var(--pl-ink-muted);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .pl-field .pl-optional {
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 400;
+        opacity: 0.75;
+    }
+
+.pl-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--pl-line);
+    border-radius: 10px;
+    background: rgba(18, 11, 9, 0.6);
+    color: var(--pl-ink);
+    font: 400 1rem var(--pl-font-body);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+    .pl-input::placeholder { color: rgba(185, 171, 156, 0.55); }
+
+    .pl-input:focus {
+        outline: none;
+        border-color: var(--pl-brass);
+        box-shadow: 0 0 0 3px rgba(209, 164, 95, 0.22);
+    }
+
+    /* Blazor validation state classes */
+    .pl-input.invalid {
+        outline: none;
+        border-color: var(--pl-red);
+    }
+
+    .pl-input.valid.modified {
+        outline: none;
+        border-color: rgba(31, 138, 59, 0.8);
+    }
+
+.pl-form .validation-message {
+    color: #ff7b84;
+    font-size: 0.82rem;
+}
+
+.pl-alert {
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    border-left: 3px solid var(--pl-red);
+    border-radius: 6px;
+    background: rgba(200, 35, 47, 0.14);
+    color: #ffd2d5;
+    font-size: 0.9rem;
+}
+
+.pl-alert--success {
+    border-left-color: var(--pl-green);
+    background: rgba(31, 138, 59, 0.16);
+    color: #cdeed6;
+}
+
+.pl-switch {
+    margin: 1.5rem 0 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.92rem;
+    text-align: center;
+}
+
+    .pl-switch a {
+        color: var(--pl-brass);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+        .pl-switch a:hover { text-decoration: underline; }
+
+/* ---------- Footer ---------- */
+
+.pl-footer {
+    padding: 1rem clamp(1.25rem, 4vw, 3.5rem) 1.5rem;
+    color: rgba(185, 171, 156, 0.7);
+    font-size: 0.8rem;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 560px) {
+    .pl-root {
+        /* "fixed" backgrounds are janky / unsupported on mobile browsers */
+        background-attachment: scroll;
+    }
+
+    .pl-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+    }
+
+    .pl-brand {
+        font-size: 1.35rem;
+    }
+
+        .pl-brand img {
+            width: 32px;
+            height: 32px;
+        }
+
+    .pl-nav .pl-btn {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.88rem;
+    }
+
+    .pl-stage {
+        padding-top: 1rem;
+    }
+}
+
+/* ---------- Loading / misc ---------- */
+
+.pl-actions--spaced {
+    margin-top: 1.5rem;
+}
+
+.pl-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pl-spinner {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid var(--pl-line);
+    border-top-color: var(--pl-brass);
+    border-radius: 50%;
+    animation: pl-spin 0.8s linear infinite;
+}
+
+@keyframes pl-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pl-spinner { animation-duration: 2.4s; }
+}

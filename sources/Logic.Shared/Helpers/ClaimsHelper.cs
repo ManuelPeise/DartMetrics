@@ -12,7 +12,7 @@ namespace Logic.Shared.Helpers
     {
         public const string UserIdClaimType = "UserId";
         public const string UserEmailClaimType = "UserEmail";
-        public const string UserRoleClaimType = "UserRole";
+        public const string UserRolesClaimType = "UserRoles";
 
 
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -44,7 +44,7 @@ namespace Logic.Shared.Helpers
             {
                 UserId = int.Parse(userIdClaim),
                 Email = userEmailClaim,
-                Roles = HttpContext.User.FindAll(UserRoleClaimType)
+                Roles = HttpContext.User.FindAll(UserRolesClaimType)
                     .Select(c => Enum.Parse<UserRoleEnum>(c.Value))
                     .ToList()
             };
@@ -57,7 +57,12 @@ namespace Logic.Shared.Helpers
                 throw new ArgumentNullException(nameof(userEntity));
             }
             
-            var roles = userEntity.UserRoles?.Select(ur => ur.Role.UserRole).ToList() ?? new List<UserRoleEnum>();
+            // Role navigation may not be loaded (e.g. right after creating the user) -> skip instead of crashing.
+            var roles = userEntity.UserRoles?
+                .Where(ur => ur.Role != null)
+                .Select(ur => ur.Role.UserRole)
+                .Distinct()
+                .ToList() ?? new List<UserRoleEnum>();
 
             var claims = new List<Claim>
             {
@@ -66,7 +71,7 @@ namespace Logic.Shared.Helpers
             };
 
             // One claim per role, so [Authorize(Roles = "Admin")] works.
-            claims.AddRange(roles.Select(role => new Claim(UserRoleClaimType, role.ToString())));
+            claims.AddRange(roles.Select(role => new Claim(UserRolesClaimType, role.ToString())));
 
             return claims;
         }

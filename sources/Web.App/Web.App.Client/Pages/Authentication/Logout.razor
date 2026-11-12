@@ -1,0 +1,16 @@
+@page "/logout"
+@inject IAccountService AccountService
+@inject NavigationManager Navigation
+
+<PageTitle>Abmelden</PageTitle>
+
+<p>Abmelden …</p>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AccountService.LogoutAsync();
+
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

@@ -1,0 +1,25 @@
+@using Web.App.Client.Routing
+@inject NavigationManager Navigation
+
+@if (IsAuthenticated)
+{
+    <h1>Kein Zugriff</h1>
+    <p>Du hast keine Berechtigung für diese Seite.</p>
+}
+
+@code {
+    [Parameter] public bool IsAuthenticated { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (IsAuthenticated)
+            return;
+
+        var returnUrl = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        // /login is a WebAssembly page -> full page load when we are currently on the server.
+        Navigation.NavigateTo(
+            $"/login?returnUrl={Uri.EscapeDataString(returnUrl)}",
+            forceLoad: !OperatingSystem.IsBrowser());
+    }
+}
