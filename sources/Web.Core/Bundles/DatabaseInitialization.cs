@@ -16,14 +16,13 @@ namespace Web.Core.Bundles
 
         public void Initialize(WebApplication app)
         {
-            var dbContext = app.Services.CreateScope().ServiceProvider.GetRequiredService<DartDatabaseContext>();
-            
-            var pendingMigrations = dbContext.Database.GetPendingMigrations();
+            // Dispose the scope (and with it the DbContext/connection) after initialization.
+            using var scope = app.Services.CreateScope();
 
-            if(pendingMigrations.Any())
-            {
-                dbContext.Database.Migrate();
-            }
+            var dbContext = scope.ServiceProvider.GetRequiredService<DartDatabaseContext>();
+
+            // Migrate() itself only applies what is missing - no need to check pending migrations first.
+            dbContext.Database.Migrate();
 
             var adminSeeder = new DefaultAdminSeed(_adminUserOptions);
             

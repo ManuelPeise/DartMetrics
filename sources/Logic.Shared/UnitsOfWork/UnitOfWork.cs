@@ -8,17 +8,21 @@ namespace Logic.Shared.UnitsOfWork
 {
     public class UnitOfWork: IUnitOfWork
     {
-        private readonly HttpContext _httpContext;
+        private readonly HttpContext? _httpContext;
         private readonly DartDatabaseContext _dartDatabaseContext;
 
         public IUserUnitOfWork UserUnitOfWork { get; }
 
+        public IDartTrainingUnitOfWork DartTrainingUnitOfWork { get; }
+
+        
         public UnitOfWork(DartDatabaseContext dartDatabaseContext, IHttpContextAccessor httpContextAccessor)
         {
             _dartDatabaseContext = dartDatabaseContext;
             _httpContext = httpContextAccessor.HttpContext;
 
             UserUnitOfWork = new UserUnitOfWork(_dartDatabaseContext);
+            DartTrainingUnitOfWork = new DartTrainingUnitOfWork(_dartDatabaseContext);
         }
 
         public Task<bool> SaveChangesAsync()
