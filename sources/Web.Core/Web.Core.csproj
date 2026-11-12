@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Data.DartContext\Data.DartContext.csproj" />
     <ProjectReference Include="..\Logic.Authentication\Logic.Authentication.csproj" />
+    <ProjectReference Include="..\Logic.Profile\Logic.Profile.csproj" />
     <ProjectReference Include="..\Logic.Shared\Logic.Shared.csproj" />
     <ProjectReference Include="..\Service.Api\Service.Api.csproj" />
     <ProjectReference Include="..\Shared.Models\Shared.Models.csproj" />

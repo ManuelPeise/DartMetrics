@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Logic.Profile\Logic.Profile.csproj" />
     <ProjectReference Include="..\Shared.Interfaces\Shared.Interfaces.csproj" />
   </ItemGroup>
 

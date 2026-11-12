@@ -6,7 +6,7 @@ namespace Logic.Profile.DI
 {
     public static class ProfileServiceRegistration
     {
-        public static void RegisterProfileServices(this IServiceCollection services)
+        public static void AddProfileServices(this IServiceCollection services)
         {
             services.AddScoped<IUserProfileService, UserProfileService>();
         }

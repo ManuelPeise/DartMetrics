@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Shared.Models.User
+﻿namespace Shared.Models.User
 {
     public class UserCredentialsModelBase
     {
