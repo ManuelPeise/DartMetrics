@@ -1,4 +1,5 @@
 ﻿using Shared.Models.Options;
+using Web.Core.MiddleWare;
 
 namespace Web.Core.Bundles
 {
@@ -18,6 +19,7 @@ namespace Web.Core.Bundles
             }
 
             app.UseHttpsRedirection();
+            app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
             app.UseAuthentication();
             app.UseAuthorization();

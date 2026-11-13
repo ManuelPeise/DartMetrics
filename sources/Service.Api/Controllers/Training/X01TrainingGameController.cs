@@ -1,0 +1,49 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Shared.Interfaces.Training;
+using Shared.Models.Training;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Service.Api.Controllers.Training
+{
+    [Route("api/[controller]/[action]")]
+    [ApiController]
+    public class X01TrainingGameController : ApiControllerBase
+    {
+        private readonly IX01TrainingGame _x01TrainingGame;
+
+        public X01TrainingGameController(IX01TrainingGame x01TrainingGame)
+        {
+            _x01TrainingGame = x01TrainingGame;
+        }
+
+        [HttpPost(Name = "StartX01Training")]
+        public async Task<IActionResult> StartX01Training([FromBody] StartX01TrainingModel model)
+        {
+            var trainingId = await _x01TrainingGame.StartTrainingAsync(model);
+            return Ok(trainingId);
+        }
+
+        [HttpPost(Name = "AddX01TrainingThrow")]
+        public async Task<IActionResult> AddX01TrainingThrow([FromBody] X01TrainingThrow model)
+        {
+            var result = await _x01TrainingGame.AddThrowAsync(model);
+            return Ok(result);
+        }
+
+        [HttpPost(Name = "FinishX01Training")]
+        public async Task<IActionResult> FinishX01Training([FromBody] TrainingSessionRequestModel model)
+        {
+            await _x01TrainingGame.FinishTrainingAsync(model.TrainingId);
+            return Ok();
+        }
+
+        [HttpGet(Name = "GetX01TrainingResult")]
+        public async Task<IActionResult> GetX01TrainingResult([FromQuery] int trainingId)
+        {
+            var result = await _x01TrainingGame.GetResultAsync(trainingId);
+            return Ok(result);
+        }
+    }
+}

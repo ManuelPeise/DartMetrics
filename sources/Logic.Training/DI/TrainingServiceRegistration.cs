@@ -8,6 +8,7 @@ namespace Logic.Training.DI
         public static void AddTrainingServices(this IServiceCollection services)
         {
             services.AddScoped<ISegmentTraining, SegmentTraining>();
+            services.AddScoped<ICheckoutTraining, CheckoutTraining>();
         }
     }
 }

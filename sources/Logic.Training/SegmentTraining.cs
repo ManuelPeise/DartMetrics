@@ -1,27 +1,23 @@
 ﻿using Data.DartContext.Entities.Training;
-using Logic.Shared;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums.Training;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
 using Shared.Interfaces.UnitsOfWork;
-using Shared.Models.Authentication;
 using Shared.Models.Training;
 
 namespace Logic.Training
 {
-    public class SegmentTraining : ALogicBase, ISegmentTraining
+    public class SegmentTraining : TrainingBase, ISegmentTraining
     {
         private const int MaxThrows = 3;
 
-        private readonly IClaimsHelper _claimsHelper;
         public SegmentTraining(
             IUnitOfWork unitOfWork,
             IMessageLog messageLog,
-            IClaimsHelper claimsHelper) : base(unitOfWork, messageLog)
+            IClaimsHelper claimsHelper) : base(unitOfWork, messageLog, claimsHelper)
         {
-            _claimsHelper = claimsHelper;
         }
 
         public async Task<int> StartTrainingAsync(StartSegmentTrainingModel model)
@@ -147,28 +143,6 @@ namespace Logic.Training
             }
         }
 
-        private void EnsureCurrentUserIsValid(out CurrentUser currentUser)
-        {
-            currentUser = _claimsHelper.GetCurrentUserFromClaims();
-
-            if (currentUser == null || currentUser.UserId == 0)
-            {
-                throw new Exception("Current user not found.");
-            }
-        }
-
-        private async Task<SegmentTrainingEntity> LoadTraining(int trainingId, int userId)
-        {
-            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.SegmentTrainingRepository.GetFirstOrDefaultAsync(t => t.Id == trainingId, include: t => t.Include(t => t.TrainingSession).Include(t => t.Throws));
-
-            if (trainingEntity == null || trainingEntity.TrainingSession.UserId != userId)
-            {
-                throw new Exception($"Training with id: {trainingId} for user id: {userId} not found.");
-            }
-
-            return trainingEntity;
-        }
-
         private bool IsTrainingFinishedOrMaxVisited(SegmentTrainingEntity trainingEntity, int visited)
         {
             return trainingEntity.TrainingSession.FinishedAt.HasValue || visited >= trainingEntity.NumberOfVisits;
@@ -182,26 +156,6 @@ namespace Logic.Training
         private bool IsValidThrow(SegmentTrainingEntity entity, int throwNumber, int numberOfVisits)
         {
             return entity.Throws.Count < MaxThrows || !IsExistingThrow(entity, throwNumber, numberOfVisits);
-        }
-
-        private static bool IsValidSegment(int segment)
-        {
-            return segment == 0
-                || (segment >= 1 && segment <= 20)
-                || segment == 25;
-        }
-
-        private bool IsValidMultiplier(int segment, int multiplier)
-        {
-            switch (segment)
-            {
-                case 0:
-                    return multiplier == 0;
-                case 25:
-                    return multiplier == 1 || multiplier == 2;
-                default:
-                    return multiplier >= 1 && multiplier <= 3;
-            }
         }
 
         private SegmentTrainingResult GetSegmentTrainingResult(SegmentTrainingEntity trainingEntity)
