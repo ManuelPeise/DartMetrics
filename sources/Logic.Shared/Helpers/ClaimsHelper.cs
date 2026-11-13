@@ -22,7 +22,6 @@ namespace Logic.Shared.Helpers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // Resolved on every access, so it always points at the current request.
         private HttpContext? HttpContext => _httpContextAccessor.HttpContext;
 
         public CurrentUser GetCurrentUserFromClaims()

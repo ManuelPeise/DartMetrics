@@ -73,22 +73,26 @@ namespace Logic.Shared.Logger
                 .OrderByDescending(msg => msg.CreatedAt)
                 .Select(msg => new LogMessage
                 {
+                    Id = msg.Id,
                     Message = msg.Message,
                     Module = msg.Module,
                     ExceptionMessage = msg.ExceptionMessage,
                     Stacktrace = msg.Stacktrace,
-                    LogMessageType = msg.LogMessageType
+                    LogMessageType = msg.LogMessageType,
+                    CreatedAt = msg.CreatedAt,
                 })
                 .ToListAsync();
         }
 
-        public async Task DeleteMessages(IEnumerable<int> messageIds)
+        public async Task<bool> DeleteMessages(IEnumerable<int> messageIds)
         {
             var messagesToDelete = _dartDatabaseContext.LogMessages.Where(msg => messageIds.Contains(msg.Id));
 
             _dartDatabaseContext.LogMessages.RemoveRange(messagesToDelete);
 
-            await _dartDatabaseContext.SaveChangesAsync();
+            var result = await _dartDatabaseContext.SaveChangesAsync();
+
+            return result > 0;
         }
 
         /// <summary>

@@ -7,6 +7,6 @@ namespace Shared.Interfaces.Logger
     {
         Task LogMessage(string message, string module, Exception exception, LogMessageTypeEnum logMessageType = LogMessageTypeEnum.Error);
         Task<IEnumerable<LogMessage>> GetLogMessages(LogMessageTypeEnum? messageType = null);
-        Task DeleteMessages(IEnumerable<int> messageIds);
+        Task<bool> DeleteMessages(IEnumerable<int> messageIds);
     }
 }
