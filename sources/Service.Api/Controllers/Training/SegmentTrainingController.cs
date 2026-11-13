@@ -31,15 +31,15 @@ namespace Service.Api.Controllers.Training
         }
 
         [HttpPost(Name = "FinishSegmentTraining")]
-        public async Task<IActionResult> FinishSegmentTraining([FromRoute] int trainingId)
+        public async Task<IActionResult> FinishSegmentTraining([FromBody] TrainingSessionRequestModel model)
         {
-            await _segmentTraining.FinishTrainingAsync(trainingId);
+            await _segmentTraining.FinishTrainingAsync(model.TrainingId);
 
             return Ok();
         }
 
         [HttpGet(Name = "GetSegmentTrainingResult")]
-        public async Task<IActionResult> GetSegmentTrainingResult([FromRoute] int trainingId)
+        public async Task<IActionResult> GetSegmentTrainingResult([FromQuery] int trainingId)
         {
             var result = await _segmentTraining.GetResultAsync(trainingId);
 
