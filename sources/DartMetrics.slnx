@@ -12,6 +12,7 @@
     <Project Path="Logic.Authentication/Logic.Authentication.csproj" Id="35a7aaf9-c2df-425d-85d9-834e5efb5315" />
     <Project Path="Logic.Profile/Logic.Profile.csproj" Id="39721a6e-6c50-4624-8603-c742251272f0" />
     <Project Path="Logic.Shared/Logic.Shared.csproj" Id="537fad96-5606-4f25-8fbd-a9fa3602404f" />
+    <Project Path="Logic.Training/Logic.Training.csproj" Id="e095f72b-64d7-4b95-a682-ce110d1c1ca3" />
   </Folder>
   <Folder Name="/04 Data/">
     <Project Path="Data.DartContext/Data.DartContext.csproj" Id="d8d659d5-2abb-4846-87dd-9ca774ffd5a5" />

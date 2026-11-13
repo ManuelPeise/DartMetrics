@@ -2,7 +2,7 @@
 {
     public enum TrainingTypeEnum
     {
-        Segment = 1,
+        SegmentTraining = 1,
         Checkout = 2,
         Game301 = 3,
         Game501 = 4

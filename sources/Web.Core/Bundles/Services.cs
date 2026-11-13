@@ -12,6 +12,7 @@ using System.Text;
 using Service.Api.Controllers;
 using Shared.Models.Authentication;
 using Logic.Profile.DI;
+using Logic.Training.DI;
 
 namespace Web.Core.Bundles
 {
@@ -121,6 +122,7 @@ namespace Web.Core.Bundles
             services.AddSharedServices();
             services.AddAuthenticationServices();
             services.AddProfileServices();
+            services.AddTrainingServices();
         }
     }
 }
