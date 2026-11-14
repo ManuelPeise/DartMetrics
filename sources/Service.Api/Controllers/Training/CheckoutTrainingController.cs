@@ -16,6 +16,15 @@ namespace Service.Api.Controllers.Training
             _checkoutTraining = checkoutTraining;
         }
 
+        [HttpGet(Name = "GetRunningCheckoutTraining")]
+        public async Task<IActionResult> GetRunningCheckoutTraining()
+        {
+            var running = await _checkoutTraining.GetRunningTrainingAsync();
+
+            // 204, wenn nichts offen ist (der Client startet dann neu).
+            return running is null ? NoContent() : Ok(running);
+        }
+
         [HttpPost(Name = "StartCheckoutTraining")]
         public async Task<IActionResult> StartCheckoutTraining([FromBody] StartCheckoutTrainingModel model)
         {

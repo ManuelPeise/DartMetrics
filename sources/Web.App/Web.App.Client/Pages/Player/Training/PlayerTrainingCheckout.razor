@@ -1,4 +1,4 @@
-@page "/player/training/checkout"
+﻿@page "/player/training/checkout"
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
@@ -126,6 +126,32 @@
         {
             _targetScore = value;
         }
+    }
+
+    // Offenes Training nach Reload oder Navigation fortsetzen, sonst Einstellungen zeigen.
+    protected override async Task OnInitializedAsync()
+    {
+        var running = await TrainingApi.GetRunningCheckoutAsync();
+
+        if (!running.IsSuccess || running.Value is not { } training)
+        {
+            return;
+        }
+
+        _trainingId = training.TrainingId;
+        _attemptNumber = training.NextVisitNumber;
+        _throwNumber = training.NextThrowNumber;
+        _dartsThrown = training.DartsThrown;
+        _darts.Clear();
+        _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
+        _clearDartsOnNext = false;
+        _targetScore = training.TargetScore;
+        _remaining = training.RemainingScore;
+        _successful = training.SuccessfulAttempts;
+        _suggestions = training.CheckoutSuggestions.Count > 0 ? training.CheckoutSuggestions : null;
+        _status = "Offenes Training fortgesetzt";
+        _tone = null;
+        _phase = Phase.Playing;
     }
 
     private async Task StartAsync()

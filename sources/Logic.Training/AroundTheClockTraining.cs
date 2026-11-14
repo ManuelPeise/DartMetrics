@@ -19,6 +19,56 @@ namespace Logic.Training
             IMessageLog messageLog,
             IClaimsHelper claimsHelper) : base(unitOfWork, messageLog, claimsHelper) { }
 
+        public async Task<RunningAroundTheClockTraining?> GetRunningTrainingAsync()
+        {
+            try
+            {
+                EnsureCurrentUserIsValid(out var currentUser);
+
+                var sessionId = await FindRunningSessionIdAsync(currentUser.UserId, TrainingTypeEnum.AroundTheClockTraining);
+
+                if (sessionId is null)
+                {
+                    return null;
+                }
+
+                var training = await LoadAroundTheClockTraining(sessionId.Value, currentUser.UserId);
+                var visits = training.Visits.OrderBy(v => v.VisitNumber).ToList();
+                var last = visits.LastOrDefault();
+                var lastThrows = last?.Throws.OrderBy(t => t.ThrowNumber).ToList() ?? new List<AroundTheClockTrainingThrowEntity>();
+                var isVisitOpen = last is not null && lastThrows.Count < 3;
+
+                var target = 1;
+                var hits = 0;
+
+                foreach (var dart in visits.SelectMany(v => v.Throws.OrderBy(t => t.ThrowNumber)))
+                {
+                    if (target < 23 && IsTargetHit(target, dart.Segment, dart.Multiplier))
+                    {
+                        hits++;
+                        target = GetNextTarget(target);
+                    }
+                }
+
+                return new RunningAroundTheClockTraining
+                {
+                    TrainingId = training.TrainingSessionId,
+                    StartedAt = training.TrainingSession.StartedAt,
+                    NextVisitNumber = isVisitOpen ? last!.VisitNumber : (last?.VisitNumber ?? 0) + 1,
+                    NextThrowNumber = isVisitOpen ? lastThrows.Count + 1 : 1,
+                    DartsThrown = visits.Sum(v => v.Throws.Count),
+                    CurrentVisitDarts = ToDarts(lastThrows.Where(_ => isVisitOpen).Select(t => (t.Segment, t.Multiplier))),
+                    CurrentTarget = target,
+                    Hits = hits
+                };
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading running around the clock training.", nameof(AroundTheClockTraining), exception);
+                throw;
+            }
+        }
+
         public async Task<int> StartTrainingAsync(StartAroundTheClockTrainingModel model)
         {
             try

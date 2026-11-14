@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.UnitsOfWork;
+using Shared.Enums.Training;
 using Shared.Models.Authentication;
+using Shared.Models.Training;
 
 namespace Logic.Training
 {
@@ -75,6 +77,19 @@ namespace Logic.Training
 
             return trainingEntity ?? throw NotFound(trainingId);
         }
+
+        /// <summary>Id der neuesten offenen Session dieser Art, sonst null.</summary>
+        protected async Task<int?> FindRunningSessionIdAsync(int userId, TrainingTypeEnum trainingType)
+        {
+            var sessions = await UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository.GetWhereAsync(
+                s => s.UserId == userId && s.TrainingType == trainingType && s.FinishedAt == null,
+                asNoTracking: true);
+
+            return sessions.OrderByDescending(s => s.StartedAt).ThenByDescending(s => s.Id).FirstOrDefault()?.Id;
+        }
+
+        protected static List<TrainingDart> ToDarts(IEnumerable<(int Segment, int Multiplier)> darts) =>
+            darts.Select(d => new TrainingDart { Segment = d.Segment, Multiplier = d.Multiplier }).ToList();
 
         private static KeyNotFoundException NotFound(int trainingId) =>
             new($"Training with id {trainingId} was not found.");

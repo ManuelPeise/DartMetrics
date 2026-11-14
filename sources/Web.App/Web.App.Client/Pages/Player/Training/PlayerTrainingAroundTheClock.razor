@@ -1,4 +1,4 @@
-@page "/player/training/around-the-clock"
+﻿@page "/player/training/around-the-clock"
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
 
@@ -107,6 +107,30 @@
         new("Triples", _result.TripleHits.ToString()),
         new("25 / Bull", $"{_result.OuterBullHits} / {_result.InnerBullHits}")
     ];
+
+    // Offenes Training nach Reload oder Navigation fortsetzen, sonst Einstellungen zeigen.
+    protected override async Task OnInitializedAsync()
+    {
+        var running = await TrainingApi.GetRunningAroundTheClockAsync();
+
+        if (!running.IsSuccess || running.Value is not { } training)
+        {
+            return;
+        }
+
+        _trainingId = training.TrainingId;
+        _visitNumber = training.NextVisitNumber;
+        _throwNumber = training.NextThrowNumber;
+        _dartsThrown = training.DartsThrown;
+        _darts.Clear();
+        _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
+        _clearDartsOnNext = false;
+        _target = training.CurrentTarget;
+        _hits = training.Hits;
+        _status = "Offenes Training fortgesetzt";
+        _tone = null;
+        _phase = Phase.Playing;
+    }
 
     private async Task StartAsync()
     {

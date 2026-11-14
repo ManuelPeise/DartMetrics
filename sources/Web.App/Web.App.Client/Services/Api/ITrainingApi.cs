@@ -1,4 +1,4 @@
-using global::Shared.Models.Training;
+﻿using global::Shared.Models.Training;
 
 namespace Web.App.Client.Services.Api
 {
@@ -9,6 +9,12 @@ namespace Web.App.Client.Services.Api
     public interface ITrainingApi
     {
         // X01
+        /// <summary>Offene Trainings zum Fortsetzen; Value ist null, wenn nichts offen ist.</summary>
+        Task<ApiResult<RunningX01Training?>> GetRunningX01Async(CancellationToken cancellationToken = default);
+        Task<ApiResult<RunningAroundTheClockTraining?>> GetRunningAroundTheClockAsync(CancellationToken cancellationToken = default);
+        Task<ApiResult<RunningCheckoutTraining?>> GetRunningCheckoutAsync(CancellationToken cancellationToken = default);
+        Task<ApiResult<RunningSegmentTraining?>> GetRunningSegmentAsync(CancellationToken cancellationToken = default);
+
         Task<ApiResult<int>> StartX01Async(StartX01TrainingModel model, CancellationToken cancellationToken = default);
         Task<ApiResult<X01TrainingThrowResult>> AddX01ThrowAsync(X01TrainingThrow model, CancellationToken cancellationToken = default);
         Task<ApiResult<bool>> FinishX01Async(int trainingId, CancellationToken cancellationToken = default);

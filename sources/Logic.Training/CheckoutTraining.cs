@@ -62,6 +62,48 @@ namespace Logic.Training
 
         }
 
+        public async Task<RunningCheckoutTraining?> GetRunningTrainingAsync()
+        {
+            try
+            {
+                EnsureCurrentUserIsValid(out var currentUser);
+
+                var sessionId = await FindRunningSessionIdAsync(currentUser.UserId, TrainingTypeEnum.CheckoutTraining);
+
+                if (sessionId is null)
+                {
+                    return null;
+                }
+
+                var training = await LoadCheckoutTraining(sessionId.Value, currentUser.UserId);
+                var lastAttempt = training.Attempts.OrderBy(a => a.AttemptNumber).LastOrDefault();
+                var isAttemptOpen = lastAttempt is not null && !IsAttemptFinished(lastAttempt, training.TargetScore);
+                var openThrows = isAttemptOpen
+                    ? lastAttempt!.Throws.OrderBy(t => t.ThrowNumber).ToList()
+                    : new List<CheckoutTrainingThrowEntity>();
+                var remaining = training.TargetScore - openThrows.Sum(t => t.Score);
+
+                return new RunningCheckoutTraining
+                {
+                    TrainingId = training.TrainingSessionId,
+                    StartedAt = training.TrainingSession.StartedAt,
+                    TargetScore = training.TargetScore,
+                    NextVisitNumber = isAttemptOpen ? lastAttempt!.AttemptNumber : (lastAttempt?.AttemptNumber ?? 0) + 1,
+                    NextThrowNumber = openThrows.Count + 1,
+                    DartsThrown = training.Attempts.Sum(a => a.Throws.Count),
+                    CurrentVisitDarts = ToDarts(openThrows.Select(t => (t.Segment, t.Multiplier))),
+                    RemainingScore = remaining,
+                    SuccessfulAttempts = training.Attempts.Count(a => IsSuccessful(a, training.TargetScore)),
+                    CheckoutSuggestions = _rules.GetCheckoutSuggestions(remaining, DartsPerAttempt - openThrows.Count)
+                };
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading running checkout training.", nameof(CheckoutTraining), exception);
+                throw;
+            }
+        }
+
         /// <summary>
         /// Ein Versuch = bis zu drei Darts auf den Zielwert (Double-Out). Er endet mit Checkout, Bust oder dem dritten Dart;
         /// danach beginnt der nächste Dart einen neuen Versuch (AttemptNumber + 1).

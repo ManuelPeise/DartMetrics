@@ -16,6 +16,15 @@ namespace Service.Api.Controllers.Training
             _segmentTraining = segmentTraining;
         }
 
+        [HttpGet(Name = "GetRunningSegmentTraining")]
+        public async Task<IActionResult> GetRunningSegmentTraining()
+        {
+            var running = await _segmentTraining.GetRunningTrainingAsync();
+
+            // 204, wenn nichts offen ist (der Client startet dann neu).
+            return running is null ? NoContent() : Ok(running);
+        }
+
         [HttpPost(Name = "StartSegmentTraining")]
         public async Task<IActionResult> StartSegmentTraining([FromBody] StartSegmentTrainingModel model)
         {

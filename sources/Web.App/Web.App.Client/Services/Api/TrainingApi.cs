@@ -1,4 +1,4 @@
-using global::Shared.Models.Training;
+﻿using global::Shared.Models.Training;
 
 namespace Web.App.Client.Services.Api
 {
@@ -16,6 +16,19 @@ namespace Web.App.Client.Services.Api
         {
             _api = api;
         }
+
+        // Offene Trainings (204 = nichts offen)
+        public Task<ApiResult<RunningX01Training?>> GetRunningX01Async(CancellationToken ct = default) =>
+            ApiResponse.ReadOptionalAsync<RunningX01Training>(_api.GetAsync(X01 + "GetRunningX01Training", ct), ct);
+
+        public Task<ApiResult<RunningAroundTheClockTraining?>> GetRunningAroundTheClockAsync(CancellationToken ct = default) =>
+            ApiResponse.ReadOptionalAsync<RunningAroundTheClockTraining>(_api.GetAsync(AroundTheClock + "GetRunningAroundTheClockTraining", ct), ct);
+
+        public Task<ApiResult<RunningCheckoutTraining?>> GetRunningCheckoutAsync(CancellationToken ct = default) =>
+            ApiResponse.ReadOptionalAsync<RunningCheckoutTraining>(_api.GetAsync(Checkout + "GetRunningCheckoutTraining", ct), ct);
+
+        public Task<ApiResult<RunningSegmentTraining?>> GetRunningSegmentAsync(CancellationToken ct = default) =>
+            ApiResponse.ReadOptionalAsync<RunningSegmentTraining>(_api.GetAsync(Segment + "GetRunningSegmentTraining", ct), ct);
 
         // X01
         public Task<ApiResult<int>> StartX01Async(StartX01TrainingModel model, CancellationToken ct = default) =>

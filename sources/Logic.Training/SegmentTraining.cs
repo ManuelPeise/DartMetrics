@@ -59,6 +59,47 @@ namespace Logic.Training
             }
         }
 
+        public async Task<RunningSegmentTraining?> GetRunningTrainingAsync()
+        {
+            try
+            {
+                EnsureCurrentUserIsValid(out var currentUser);
+
+                var sessionId = await FindRunningSessionIdAsync(currentUser.UserId, TrainingTypeEnum.SegmentTraining);
+
+                if (sessionId is null)
+                {
+                    return null;
+                }
+
+                var training = await LoadSegmentTraining(sessionId.Value, currentUser.UserId);
+                var (nextVisit, nextThrow) = NextThrowPosition(training);
+                var currentVisitDarts = training.Throws
+                    .Where(t => nextThrow > 1 && t.VisitNumber == nextVisit)
+                    .OrderBy(t => t.ThrowNumber)
+                    .Select(t => (t.Segment, t.Multiplier));
+
+                return new RunningSegmentTraining
+                {
+                    TrainingId = training.TrainingSessionId,
+                    StartedAt = training.TrainingSession.StartedAt,
+                    TargetSegment = training.TargetSegment,
+                    TargetMultiplier = training.TargetMultiplier,
+                    NumberOfVisits = training.NumberOfVisits,
+                    NextVisitNumber = nextVisit,
+                    NextThrowNumber = nextThrow,
+                    DartsThrown = training.Throws.Count,
+                    Hits = training.Throws.Count(t => t.IsHit),
+                    CurrentVisitDarts = ToDarts(currentVisitDarts)
+                };
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading running segment training.", nameof(SegmentTraining), exception);
+                throw;
+            }
+        }
+
         public async Task<SegmentTrainingThrowResult> AddThrowAsync(SegmentTrainingThrow model)
         {
             try

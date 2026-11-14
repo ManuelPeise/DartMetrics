@@ -6,6 +6,7 @@ using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
 using Shared.Interfaces.UnitsOfWork;
+using Shared.Models.Shared;
 using Shared.Models.Training;
 
 namespace Logic.Training
@@ -21,6 +22,55 @@ namespace Logic.Training
             IMessageLog messageLog,
             IClaimsHelper claimsHelper) : base(unitOfWork, messageLog, claimsHelper)
         {
+        }
+
+        public async Task<RunningX01Training?> GetRunningTrainingAsync()
+        {
+            try
+            {
+                EnsureCurrentUserIsValid(out var currentUser);
+
+                var sessionId = await FindRunningSessionIdAsync(currentUser.UserId, TrainingTypeEnum.X01Training);
+
+                if (sessionId is null)
+                {
+                    return null;
+                }
+
+                var training = await LoadX01Training(sessionId.Value, currentUser.UserId);
+                var visits = training.Visits.OrderBy(v => v.VisitNumber).ToList();
+                var last = visits.LastOrDefault();
+                var lastThrows = last?.Throws.OrderBy(t => t.ThrowNumber).ToList() ?? new List<TrainingGameThrowEntity>();
+                var isVisitOpen = last is not null && !last.IsBust && last.ScoreAfter != 0 && lastThrows.Count < 3;
+                var remaining = last?.ScoreAfter ?? training.StartingScore;
+
+                // Gleiche Regel wie AddThrowAsync: eröffnet, sobald gepunktet wurde.
+                var isOpened = training.InMode == X01InModeEnum.Straight || remaining < training.StartingScore;
+
+                return new RunningX01Training
+                {
+                    TrainingId = training.TrainingSessionId,
+                    StartedAt = training.TrainingSession.StartedAt,
+                    StartingScore = training.StartingScore,
+                    InMode = training.InMode,
+                    OutMode = training.OutMode,
+                    NextVisitNumber = isVisitOpen ? last!.VisitNumber : (last?.VisitNumber ?? 0) + 1,
+                    NextThrowNumber = isVisitOpen ? lastThrows.Count + 1 : 1,
+                    DartsThrown = visits.Sum(v => v.Throws.Count),
+                    CurrentVisitDarts = ToDarts(lastThrows.Where(_ => isVisitOpen).Select(t => (t.Segment, t.Multiplier))),
+                    RemainingScore = remaining,
+                    IsOpened = isOpened,
+                    Busts = visits.Count(v => v.IsBust),
+                    CheckoutSuggestions = isVisitOpen && isOpened
+                        ? _rules.GetCheckoutSuggestions(remaining, 3 - lastThrows.Count, training.OutMode)
+                        : new List<CheckoutSuggestion>()
+                };
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading running X01 training.", nameof(X01TrainingGame), exception);
+                throw;
+            }
         }
 
         public async Task<int> StartTrainingAsync(StartX01TrainingModel model)

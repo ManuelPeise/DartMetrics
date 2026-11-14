@@ -16,6 +16,15 @@ namespace Service.Api.Controllers.Training
             _x01TrainingGame = x01TrainingGame;
         }
 
+        [HttpGet(Name = "GetRunningX01Training")]
+        public async Task<IActionResult> GetRunningX01Training()
+        {
+            var running = await _x01TrainingGame.GetRunningTrainingAsync();
+
+            // 204, wenn nichts offen ist (der Client startet dann neu).
+            return running is null ? NoContent() : Ok(running);
+        }
+
         [HttpPost(Name = "StartX01Training")]
         public async Task<IActionResult> StartX01Training([FromBody] StartX01TrainingModel model)
         {

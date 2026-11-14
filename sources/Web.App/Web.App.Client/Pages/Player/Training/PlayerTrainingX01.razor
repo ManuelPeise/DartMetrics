@@ -1,4 +1,4 @@
-@page "/player/training/x01"
+﻿@page "/player/training/x01"
 @using global::Shared.Enums.X01
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Training
@@ -128,6 +128,35 @@
         new("Doubles", _result.DoubleHits.ToString()),
         new("Misses", _result.Misses.ToString())
     ];
+
+    // Offenes Training nach Reload oder Navigation fortsetzen, sonst Einstellungen zeigen.
+    protected override async Task OnInitializedAsync()
+    {
+        var running = await TrainingApi.GetRunningX01Async();
+
+        if (!running.IsSuccess || running.Value is not { } training)
+        {
+            return;
+        }
+
+        _trainingId = training.TrainingId;
+        _visitNumber = training.NextVisitNumber;
+        _throwNumber = training.NextThrowNumber;
+        _dartsThrown = training.DartsThrown;
+        _darts.Clear();
+        _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
+        _clearDartsOnNext = false;
+        _startingScore = training.StartingScore;
+        _inMode = training.InMode;
+        _outMode = training.OutMode;
+        _remaining = training.RemainingScore;
+        _opened = training.IsOpened;
+        _busts = training.Busts;
+        _suggestions = training.CheckoutSuggestions.Count > 0 ? training.CheckoutSuggestions : null;
+        _status = "Offenes Training fortgesetzt";
+        _tone = null;
+        _phase = Phase.Playing;
+    }
 
     private async Task StartAsync()
     {

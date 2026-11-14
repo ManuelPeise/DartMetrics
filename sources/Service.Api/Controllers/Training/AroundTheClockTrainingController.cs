@@ -16,6 +16,15 @@ namespace Service.Api.Controllers.Training
             _aroundTheClockTraining = aroundTheClockTraining;
         }
 
+        [HttpGet(Name = "GetRunningAroundTheClockTraining")]
+        public async Task<IActionResult> GetRunningAroundTheClockTraining()
+        {
+            var running = await _aroundTheClockTraining.GetRunningTrainingAsync();
+
+            // 204, wenn nichts offen ist (der Client startet dann neu).
+            return running is null ? NoContent() : Ok(running);
+        }
+
         [HttpPost(Name = "StartAroundTheClockTraining")]
         public async Task<IActionResult> StartTraining([FromBody] StartAroundTheClockTrainingModel model)
         {

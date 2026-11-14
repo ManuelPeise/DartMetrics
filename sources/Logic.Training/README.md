@@ -16,3 +16,10 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 - Checkout-Training: Versuch = bis zu 3 Darts auf den Zielwert, endet mit Checkout, Bust oder dem 3. Dart; immer Double-Out.
 - Regeln aus `Logic.Shared/Rules`.
 - DI: `AddTrainingServices()` registriert alle vier Services.
+
+## Fortsetzen nach Reload
+
+Jedes Training hat `GetRunningTrainingAsync()` (API: `GetRunning<Art>Training`, 204 wenn nichts offen ist).
+Geliefert wird die neueste offene Session dieser Art des Benutzers mit allem, was die Seite zum Weiterspielen braucht:
+Position des nächsten Darts, bereits geworfene Darts der angefangenen Aufnahme bzw. des Versuchs, Reststand/Ziel, Treffer, Busts, Checkout-Wege.
+Die Werte werden aus den gespeicherten Würfen nach denselben Regeln wie in `AddThrowAsync` berechnet.
