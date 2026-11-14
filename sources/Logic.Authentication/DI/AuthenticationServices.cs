@@ -1,5 +1,4 @@
-﻿using Logic.Shared.Helpers;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Shared.Interfaces.Authentication;
 
 namespace Logic.Authentication.DI
@@ -9,7 +8,6 @@ namespace Logic.Authentication.DI
         public static void AddAuthenticationServices(this IServiceCollection services)
         {
             services.AddScoped<IUserAuthentication, UserAuthentication>();
-            services.AddScoped<IClaimsHelper, ClaimsHelper>();
             services.AddScoped<IUserRegistration, UserRegistration>();
         }
     }

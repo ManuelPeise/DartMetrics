@@ -38,16 +38,11 @@ namespace Service.Api.Controllers.Administration
 
 
         [HttpPost(Name = "DeleteLogMessages")]
-        public async Task<IActionResult> DeleteLogMessages([FromRoute] IEnumerable<int> ids)
+        public async Task<IActionResult> DeleteLogMessages([FromBody] IEnumerable<int> ids)
         {
-            var log = _logService.DeleteMessages(ids);
+            var logs = await _logService.DeleteMessages(ids);
 
-            if (log == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(log);
+            return Ok(logs);
         }
     }
 }
