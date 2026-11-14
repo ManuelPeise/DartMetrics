@@ -5,5 +5,6 @@
         SegmentTraining = 1,
         CheckoutTraining = 2,
         X01Training = 3,
+        AroundTheClockTraining = 4
     }
 }

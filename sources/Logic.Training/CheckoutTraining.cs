@@ -4,7 +4,6 @@ using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
 using Shared.Interfaces.UnitsOfWork;
-using Shared.Models.Authentication;
 using Shared.Models.Training;
 
 namespace Logic.Training

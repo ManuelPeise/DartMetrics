@@ -879,6 +879,109 @@ namespace Data.DartContext.Migrations
                     b.ToTable("LogMessages", (string)null);
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("TrainingSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingSessionId")
+                        .IsUnique();
+
+                    b.ToTable("AroundTheClockTrainings");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingThrowEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AroundTheClockTrainingVisitId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Multiplier")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Segment")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ThrowNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AroundTheClockTrainingVisitId");
+
+                    b.ToTable("AroundTheClockTrainingThrows");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingVisitEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AroundTheClockTrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("VisitNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AroundTheClockTrainingId");
+
+                    b.ToTable("AroundTheClockTrainingVisits");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1704,6 +1807,39 @@ namespace Data.DartContext.Migrations
                     b.Navigation("GeneratorThrowModel");
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.TrainingSessionEntity", "TrainingSession")
+                        .WithOne("AroundTheClockTraining")
+                        .HasForeignKey("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", "TrainingSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TrainingSession");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingThrowEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.AroundTheClockTrainingVisitEntity", "Visit")
+                        .WithMany("Throws")
+                        .HasForeignKey("AroundTheClockTrainingVisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingVisitEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", "AroundTheClockTraining")
+                        .WithMany("Visits")
+                        .HasForeignKey("AroundTheClockTrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AroundTheClockTraining");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Training.CheckoutTrainingEntity", "CheckoutTraining")
@@ -1877,6 +2013,16 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Trainings");
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingVisitEntity", b =>
+                {
+                    b.Navigation("Throws");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.Navigation("Throws");
@@ -1904,6 +2050,8 @@ namespace Data.DartContext.Migrations
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.TrainingSessionEntity", b =>
                 {
+                    b.Navigation("AroundTheClockTraining");
+
                     b.Navigation("CheckoutTraining");
 
                     b.Navigation("SegmentTraining");

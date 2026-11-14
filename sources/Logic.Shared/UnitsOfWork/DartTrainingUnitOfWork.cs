@@ -10,24 +10,32 @@ namespace Logic.Shared.UnitsOfWork
     {
         private readonly DartDatabaseContext _dartDatabaseContext;
 
+        // Training session
         public IRepositoryBase<TrainingSessionEntity> TrainingSessionRepository { get; }
 
+        // Checkout training
         public IRepositoryBase<CheckoutTrainingEntity> CheckoutTrainingRepository { get; }
 
-        public IRepositoryBase<CheckoutTrainingAttemptEntity> CheckoutTrainingAttemptRepository { get; }    
+        public IRepositoryBase<CheckoutTrainingAttemptEntity> CheckoutTrainingAttemptRepository { get; }
 
         public IRepositoryBase<CheckoutTrainingThrowEntity> CheckoutTrainingThrowRepository { get; }
 
+        // Segment training
         public IRepositoryBase<SegmentTrainingEntity> SegmentTrainingRepository { get; }
 
         public IRepositoryBase<SegmentTrainingThrowEntity> SegmentTrainingThrowRepository { get; }
 
+        // Training games
         public IRepositoryBase<TrainingGameEntity> TrainingGameRepository { get; }
 
         public IRepositoryBase<TrainingGameThrowEntity> TrainingGameThrowRepository { get; }
 
         public IRepositoryBase<TrainingGameVisitEntity> TrainingGameVisitRepository { get; }
 
+        // Around the clock training
+        public IRepositoryBase<AroundTheClockTrainingEntity> AroundTheClockTrainingRepository { get; }
+        public IRepositoryBase<AroundTheClockTrainingVisitEntity> AroundTheClockTrainingVisitRepository { get; }
+        public IRepositoryBase<AroundTheClockTrainingThrowEntity> AroundTheClockTrainingThrowRepository { get; }
 
 
         public DartTrainingUnitOfWork(DartDatabaseContext dartDatabaseContext)
@@ -43,6 +51,9 @@ namespace Logic.Shared.UnitsOfWork
             TrainingGameRepository = new RepositoryBase<TrainingGameEntity>(_dartDatabaseContext);
             TrainingGameThrowRepository = new RepositoryBase<TrainingGameThrowEntity>(_dartDatabaseContext);
             TrainingGameVisitRepository = new RepositoryBase<TrainingGameVisitEntity>(_dartDatabaseContext);
+            AroundTheClockTrainingRepository = new RepositoryBase<AroundTheClockTrainingEntity>(_dartDatabaseContext);
+            AroundTheClockTrainingVisitRepository = new RepositoryBase<AroundTheClockTrainingVisitEntity>(_dartDatabaseContext);
+            AroundTheClockTrainingThrowRepository = new RepositoryBase<AroundTheClockTrainingThrowEntity>(_dartDatabaseContext);
         }
     }
 }

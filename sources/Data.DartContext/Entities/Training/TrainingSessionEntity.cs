@@ -20,6 +20,7 @@ namespace Data.DartContext.Entities.Training
         public SegmentTrainingEntity? SegmentTraining { get; set; }
 
         public CheckoutTrainingEntity? CheckoutTraining { get; set; }
+        public AroundTheClockTrainingEntity? AroundTheClockTraining { get; set; }
 
         public TrainingGameEntity? TrainingGame { get; set; }
     }
