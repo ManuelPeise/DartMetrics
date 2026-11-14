@@ -1,13 +1,13 @@
 @page "/admin/bots"
-@using Web.App.Components.Admin.Preview
-@using static Web.App.Components.Admin.Preview.AdminSampleData
+@using Shared.Enums.Bot
+@using Shared.Interfaces.Blazor.Api
+@using Shared.Models.Bot
+@inject IAuthorizedApiClient Api
 
 <PageTitle>DartBot-Verwaltung – DartMetrics Admin</PageTitle>
 
 <AdminPageHeader Eyebrow="Verwaltung" Title="DartBots"
                  Subtitle="Virtuelle Gegner anlegen, aktivieren und ihre Entwicklung verfolgen." />
-
-<AdminPreviewNote />
 
 @if (_message is not null)
 {
@@ -21,10 +21,13 @@
                 <input type="checkbox" checked="@_includeInactive" @onchange="ToggleInactiveAsync" />
                 Deaktivierte anzeigen
             </label>
-            <span class="adm-toolbar__meta">@VisibleBots.Count() @(VisibleBots.Count() == 1 ? "Bot" : "Bots")</span>
+            @if (_bots is not null)
+            {
+                <span class="adm-toolbar__meta">@_bots.Count @(_bots.Count == 1 ? "Bot" : "Bots")</span>
+            }
         </div>
 
-        <AdminTable Items="VisibleBots">
+        <AdminTable Items="_bots" IsLoading="@(_loading && _bots is null)" ErrorText="@_loadError" OnRetry="LoadAsync">
             <HeaderTemplate>
                 <th>Bot</th>
                 <th>Level</th>
@@ -37,18 +40,18 @@
             <RowTemplate Context="bot">
                 <td data-label="Bot" class="adm-cell-title">
                     <strong>@bot.Name</strong>
-                    <small>@bot.Alias · Profil v@(bot.ProfileVersion)@(bot.PlayingStyle is null ? "" : " · " + bot.PlayingStyle)</small>
+                    <small>@bot.Alias · Profil v@(bot.ProfileVersionNumber)@(bot.PlayingStyle is null ? "" : " · " + StyleText(bot.PlayingStyle.Value))</small>
                 </td>
-                <td data-label="Level" class="adm-num">@bot.Level</td>
+                <td data-label="Level" class="adm-num">@bot.DevelopmentLevel</td>
                 <td data-label="Elo" class="adm-num">@bot.Rating</td>
-                <td data-label="XP" class="adm-num">@bot.Xp.ToString("N0", German)</td>
+                <td data-label="XP" class="adm-num">@bot.ExperiencePoints.ToString("N0", German)</td>
                 <td data-label="Skills">
                     <div class="adm-skill-bars">
-                        <AdminSkillBar Label="Präzision" Value="bot.Precision" />
-                        <AdminSkillBar Label="Konstanz" Value="bot.Consistency" />
-                        <AdminSkillBar Label="Taktik" Value="bot.Tactics" />
-                        <AdminSkillBar Label="Druck" Value="bot.Pressure" />
-                        <AdminSkillBar Label="Risiko" Value="bot.Risk" />
+                        <AdminSkillBar Label="Präzision" Value="bot.ThrowPrecision" />
+                        <AdminSkillBar Label="Konstanz" Value="bot.ThrowConsistency" />
+                        <AdminSkillBar Label="Taktik" Value="bot.TacticalIntelligence" />
+                        <AdminSkillBar Label="Druck" Value="bot.PressureResistance" />
+                        <AdminSkillBar Label="Risiko" Value="bot.RiskTaking" />
                     </div>
                 </td>
                 <td data-label="Status">
@@ -98,18 +101,19 @@
 </div>
 
 @code {
-    // Design-Phase: lokale Beispieldaten, Aktionen wirken nur in dieser Ansicht.
     private static readonly System.Globalization.CultureInfo German = new("de-DE");
 
     private static readonly IReadOnlyList<AdminSelectOption> StyleOptions =
     [
         new("", "Kein Spielstil"),
-        new("Ausgewogen", "Ausgewogen"),
-        new("Aggressiv", "Aggressiv"),
-        new("Defensiv", "Defensiv")
+        new(nameof(DartBotPlayingStyleEnum.Balanced), "Ausgewogen"),
+        new(nameof(DartBotPlayingStyleEnum.Aggressive), "Aggressiv"),
+        new(nameof(DartBotPlayingStyleEnum.Defensive), "Defensiv")
     ];
 
-    private readonly List<SampleBot> _bots = AdminSampleData.Bots();
+    private List<DartBotListItem>? _bots;
+    private bool _loading = true;
+    private string? _loadError;
     private bool _includeInactive;
     private int? _busyBotId;
 
@@ -123,22 +127,75 @@
     private string? _message;
     private bool _messageIsError;
 
-    private IEnumerable<SampleBot> VisibleBots =>
-        _bots.Where(b => _includeInactive || b.IsActive).OrderBy(b => b.Name);
+    // Erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAsync();
+        }
+    }
 
-    private void ToggleInactiveAsync(ChangeEventArgs e) => _includeInactive = e.Value is true;
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+        await InvokeAsync(StateHasChanged);
 
-    private async Task SetActiveAsync(SampleBot bot, bool isActive)
+        try
+        {
+            using var response = await Api.GetAsync($"DartBotAdministration/GetDartBots?includeInactive={_includeInactive}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _bots = await response.Content.ReadFromJsonAsync<List<DartBotListItem>>() ?? [];
+            }
+            else
+            {
+                _loadError = await ApiProblem.ReadMessageAsync(response);
+            }
+        }
+        catch
+        {
+            _loadError = "Die Bots konnten nicht geladen werden.";
+        }
+
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleInactiveAsync(ChangeEventArgs e)
+    {
+        _includeInactive = e.Value is true;
+        await LoadAsync();
+    }
+
+    private async Task SetActiveAsync(DartBotListItem bot, bool isActive)
     {
         _busyBotId = bot.Id;
         _message = null;
 
-        // Ladezustand der Buttons sichtbar machen.
-        await Task.Delay(400);
+        try
+        {
+            var action = isActive ? "ActivateDartBot" : "DeactivateDartBot";
+            using var response = await Api.PostAsync($"DartBotAdministration/{action}?botId={bot.Id}");
 
-        bot.IsActive = isActive;
-        ShowMessage($"{bot.Name} wurde {(isActive ? "aktiviert" : "deaktiviert")}.", isError: false);
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage($"{bot.Name} wurde {(isActive ? "aktiviert" : "deaktiviert")}.", isError: false);
+            }
+            else
+            {
+                ShowMessage(await ApiProblem.ReadMessageAsync(response), isError: true);
+            }
+        }
+        catch
+        {
+            ShowMessage("Die Aktion ist fehlgeschlagen.", isError: true);
+        }
+
         _busyBotId = null;
+        await LoadAsync();
     }
 
     private async Task CreateAsync()
@@ -147,34 +204,51 @@
         _nameError = string.IsNullOrWhiteSpace(_name) ? "Bitte einen Namen eingeben." : null;
         _aliasError = string.IsNullOrWhiteSpace(_alias) ? "Bitte einen Alias eingeben." : null;
 
-        if (_aliasError is null && _bots.Any(b => string.Equals(b.Alias, _alias!.Trim(), StringComparison.OrdinalIgnoreCase)))
-        {
-            _aliasError = "Dieser Alias ist bereits vergeben.";
-        }
-
         if (_nameError is not null || _aliasError is not null)
         {
             return;
         }
 
         _creating = true;
-        await Task.Delay(500);
 
-        _bots.Add(new SampleBot
+        try
         {
-            Id = _bots.Max(b => b.Id) + 1,
-            Name = _name!.Trim(),
-            Alias = _alias!.Trim(),
-            PlayingStyle = string.IsNullOrEmpty(_style) ? null : _style,
-            Precision = 0.15f,
-            Consistency = 0.2f,
-            Tactics = 0.2f,
-            Pressure = 0.2f
-        });
+            var model = new CreateDartBotModel
+            {
+                Name = _name!.Trim(),
+                Alias = _alias!.Trim(),
+                PlayingStyle = Enum.TryParse<DartBotPlayingStyleEnum>(_style, out var style) ? style : null
+            };
 
-        ShowMessage($"{_name.Trim()} wurde angelegt.", isError: false);
-        _name = _alias = null;
-        _style = "";
+            using var response = await Api.PostAsync("DartBotAdministration/CreateDartBot", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage($"{model.Name} wurde angelegt.", isError: false);
+                _name = _alias = null;
+                _style = "";
+                await LoadAsync();
+            }
+            else
+            {
+                var problem = await ApiProblem.ReadMessageAsync(response);
+
+                // Doppelter Alias kommt als 400 mit Hinweis auf den Alias.
+                if (problem.Contains("alias", StringComparison.OrdinalIgnoreCase))
+                {
+                    _aliasError = "Dieser Alias ist bereits vergeben.";
+                }
+                else
+                {
+                    ShowMessage(problem, isError: true);
+                }
+            }
+        }
+        catch
+        {
+            ShowMessage("Der Bot konnte nicht angelegt werden.", isError: true);
+        }
+
         _creating = false;
     }
 
@@ -183,4 +257,11 @@
         _message = text;
         _messageIsError = isError;
     }
+
+    private static string StyleText(DartBotPlayingStyleEnum style) => style switch
+    {
+        DartBotPlayingStyleEnum.Aggressive => "Aggressiv",
+        DartBotPlayingStyleEnum.Defensive => "Defensiv",
+        _ => "Ausgewogen"
+    };
 }

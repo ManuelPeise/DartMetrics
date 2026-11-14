@@ -1,6 +1,8 @@
 @page "/admin/logs"
-@using Web.App.Components.Admin.Preview
-@using static Web.App.Components.Admin.Preview.AdminSampleData
+@using Shared.Enums.Logger
+@using Shared.Interfaces.Blazor.Api
+@using Shared.Models.Administration.Log
+@inject IAuthorizedApiClient Api
 
 <PageTitle>System-Logs – DartMetrics Admin</PageTitle>
 
@@ -13,8 +15,6 @@
     </Actions>
 </AdminPageHeader>
 
-<AdminPreviewNote />
-
 @if (_message is not null)
 {
     <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
@@ -25,10 +25,10 @@
         <AdminInput Id="log-search" Label="Suche" Placeholder="Meldung, Modul oder Fehlertext"
                     Value="@_search" ValueChanged="OnSearchChanged" />
         <AdminSelect Id="log-type" Label="Typ" Options="TypeOptions" Value="@_type" ValueChanged="OnTypeChanged" />
-        <span class="adm-toolbar__meta">@Filtered.Count() von @_logs.Count</span>
+        <span class="adm-toolbar__meta">@Filtered.Count() von @(_logs?.Count ?? 0)</span>
     </div>
 
-    <AdminTable Items="Visible">
+    <AdminTable Items="Visible" IsLoading="@(_loading && _logs is null)" ErrorText="@_loadError" OnRetry="LoadAsync">
         <HeaderTemplate>
             <th>Typ</th>
             <th>Zeitpunkt</th>
@@ -37,25 +37,25 @@
             <th><span class="adm-sr-only">Aktionen</span></th>
         </HeaderTemplate>
         <RowTemplate Context="log">
-            <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.Type)" Status="TypeStatus(log.Type)" /></td>
-            <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAtUtc)</td>
+            <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.MessageType)" Status="TypeStatus(log.MessageType)" /></td>
+            <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAt)</td>
             <td data-label="Modul" class="adm-table__muted">@log.Module</td>
             <td data-label="Meldung">
                 <span class="adm-table__message" title="@log.Message">@log.Message</span>
                 @if (_openId == log.Id)
                 {
                     <div class="adm-log-details">
-                        @if (!string.IsNullOrWhiteSpace(log.Exception))
+                        @if (!string.IsNullOrWhiteSpace(log.ExceptionMessage))
                         {
                             <h3>Exception</h3>
-                            <pre>@log.Exception</pre>
+                            <pre>@log.ExceptionMessage</pre>
                         }
                         @if (!string.IsNullOrWhiteSpace(log.Stacktrace))
                         {
                             <h3>Stacktrace</h3>
                             <pre>@log.Stacktrace</pre>
                         }
-                        @if (string.IsNullOrWhiteSpace(log.Exception) && string.IsNullOrWhiteSpace(log.Stacktrace))
+                        @if (string.IsNullOrWhiteSpace(log.ExceptionMessage) && string.IsNullOrWhiteSpace(log.Stacktrace))
                         {
                             <h3>Details</h3>
                             <pre>Keine weiteren Details.</pre>
@@ -108,7 +108,6 @@
 </AdminCard>
 
 @code {
-    // Design-Phase: lokale Beispieldaten, Löschen wirkt nur in dieser Ansicht.
     private const int PageSize = 50;
 
     private static readonly System.Globalization.CultureInfo German = new("de-DE");
@@ -116,13 +115,14 @@
     private static readonly IReadOnlyList<AdminSelectOption> TypeOptions =
     [
         new("", "Alle Typen"),
-        new(nameof(SampleLogType.Error), "Fehler"),
-        new(nameof(SampleLogType.Warning), "Warnungen"),
-        new(nameof(SampleLogType.Information), "Hinweise")
+        new(nameof(LogMessageTypeEnum.Error), "Fehler"),
+        new(nameof(LogMessageTypeEnum.Warning), "Warnungen"),
+        new(nameof(LogMessageTypeEnum.Information), "Hinweise")
     ];
 
-    private List<SampleLog> _logs = AdminSampleData.Logs();
-    private bool _loading;
+    private List<LogmessageExportModel>? _logs;
+    private bool _loading = true;
+    private string? _loadError;
 
     private string? _search;
     private string? _type = "";
@@ -135,21 +135,49 @@
     private string? _message;
     private bool _messageIsError;
 
-    private IEnumerable<SampleLog> Filtered =>
-        _logs
-            .Where(l => !Enum.TryParse<SampleLogType>(_type, out var type) || l.Type == type)
+    private IEnumerable<LogmessageExportModel> Filtered =>
+        (_logs ?? [])
+            .Where(l => !Enum.TryParse<LogMessageTypeEnum>(_type, out var type) || l.MessageType == type)
             .Where(l => string.IsNullOrWhiteSpace(_search) || Matches(l, _search.Trim()))
-            .OrderByDescending(l => l.CreatedAtUtc);
+            .OrderByDescending(l => l.CreatedAt);
 
-    private IEnumerable<SampleLog> Visible => Filtered.Take(_visibleCount).ToList();
+    private IEnumerable<LogmessageExportModel>? Visible => _logs is null ? null : Filtered.Take(_visibleCount).ToList();
+
+    // Erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAsync();
+        }
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        await Task.Delay(400);
-        _logs = AdminSampleData.Logs();
-        _message = null;
+        _loadError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Api.GetAsync("MessageLog/GetMessageLogs");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logs = await response.Content.ReadFromJsonAsync<List<LogmessageExportModel>>() ?? [];
+            }
+            else
+            {
+                _loadError = await ApiProblem.ReadMessageAsync(response);
+            }
+        }
+        catch
+        {
+            _loadError = "Die Logs konnten nicht geladen werden.";
+        }
+
         _loading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnSearchChanged(string? value)
@@ -173,40 +201,58 @@
         _deletingId = id;
         _message = null;
 
-        await Task.Delay(400);
+        try
+        {
+            using var response = await Api.PostAsync($"MessageLog/DeleteLogMessage?id={id}");
 
-        _logs.RemoveAll(l => l.Id == id);
-        _message = "Eintrag gelöscht.";
-        _messageIsError = false;
+            if (response.IsSuccessStatusCode)
+            {
+                _logs?.RemoveAll(l => l.Id == id);
+                _message = "Eintrag gelöscht.";
+                _messageIsError = false;
+            }
+            else
+            {
+                _message = await ApiProblem.ReadMessageAsync(response);
+                _messageIsError = true;
+            }
+        }
+        catch
+        {
+            _message = "Der Eintrag konnte nicht gelöscht werden.";
+            _messageIsError = true;
+        }
 
         _deletingId = null;
         _confirmDeleteId = null;
     }
 
-    private static bool Matches(SampleLog log, string search) =>
+    private static bool Matches(LogmessageExportModel log, string search) =>
         log.Message.Contains(search, StringComparison.OrdinalIgnoreCase) ||
         log.Module.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-        (log.Exception?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false);
+        (log.ExceptionMessage?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static string TypeText(SampleLogType type) => type switch
+    private static string TypeText(LogMessageTypeEnum type) => type switch
     {
-        SampleLogType.Error => "Fehler",
-        SampleLogType.Warning => "Warnung",
+        LogMessageTypeEnum.Error => "Fehler",
+        LogMessageTypeEnum.Warning => "Warnung",
         _ => "Info"
     };
 
-    private static AdminStatus TypeStatus(SampleLogType type) => type switch
+    private static AdminStatus TypeStatus(LogMessageTypeEnum type) => type switch
     {
-        SampleLogType.Error => AdminStatus.Danger,
-        SampleLogType.Warning => AdminStatus.Warning,
+        LogMessageTypeEnum.Error => AdminStatus.Danger,
+        LogMessageTypeEnum.Warning => AdminStatus.Warning,
         _ => AdminStatus.Neutral
     };
 
-    private static string FormatTime(DateTime utc)
+    private static string FormatTime(DateTime createdAt)
     {
+        var utc = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc);
+
         try
         {
-            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")).ToString("dd.MM.yyyy HH:mm:ss", German);
+            return TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")).ToString("dd.MM.yyyy HH:mm:ss", German);
         }
         catch (TimeZoneNotFoundException)
         {
