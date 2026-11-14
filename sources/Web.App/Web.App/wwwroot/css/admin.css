@@ -1102,3 +1102,61 @@
 
     .adm-form-actions .adm-btn { flex: 1; }
 }
+
+/* ---------- Log-Seite ---------- */
+
+.adm-filter-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr) auto;
+    align-items: end;
+    gap: var(--adm-space-3);
+    padding: var(--adm-space-4) var(--adm-space-5);
+    border-bottom: 1px solid var(--adm-line);
+}
+
+.adm-log-row--open td { background: rgba(244, 237, 228, 0.03); }
+
+.adm-log-details td { padding-top: 0; }
+
+.adm-log-details pre {
+    margin: 0;
+    max-height: 320px;
+    overflow: auto;
+    padding: var(--adm-space-3);
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-bg);
+    color: var(--adm-text-muted);
+    font: 0.75rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.adm-log-details h3 {
+    margin: var(--adm-space-3) 0 var(--adm-space-1);
+    color: var(--adm-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.adm-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--adm-space-1);
+    white-space: nowrap;
+}
+
+.adm-list-footer {
+    display: flex;
+    justify-content: center;
+    padding: var(--adm-space-4);
+    border-top: 1px solid var(--adm-line);
+}
+
+@media (max-width: 767px) {
+    .adm-filter-bar { grid-template-columns: minmax(0, 1fr); padding: var(--adm-space-4); }
+
+    .adm-row-actions { justify-content: flex-start; }
+}
