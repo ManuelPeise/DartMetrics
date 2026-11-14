@@ -13,6 +13,7 @@ using Service.Api.Controllers;
 using Shared.Models.Authentication;
 using Logic.Profile.DI;
 using Logic.Training.DI;
+using Logic.Bot.DI;
 using Logic.Administration.DI;
 
 namespace Web.Core.Bundles
@@ -124,6 +125,7 @@ namespace Web.Core.Bundles
             services.AddAuthenticationServices();
             services.AddProfileServices();
             services.AddTrainingServices();
+            services.AddBotServices();
             services.AddAdministrationServices();
         }
     }

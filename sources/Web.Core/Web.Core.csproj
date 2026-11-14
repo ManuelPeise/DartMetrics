@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Data.DartContext\Data.DartContext.csproj" />
     <ProjectReference Include="..\Logic.Administration\Logic.Administration.csproj" />
     <ProjectReference Include="..\Logic.Authentication\Logic.Authentication.csproj" />
+    <ProjectReference Include="..\Logic.Bot\Logic.Bot.csproj" />
     <ProjectReference Include="..\Logic.Profile\Logic.Profile.csproj" />
     <ProjectReference Include="..\Logic.Shared\Logic.Shared.csproj" />
     <ProjectReference Include="..\Logic.Training\Logic.Training.csproj" />

@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/03 Logic/">
     <Project Path="Logic.Administration/Logic.Administration.csproj" Id="8919887f-d600-479e-807f-459a0ecb27ff" />
+    <Project Path="Logic.Bot/Logic.Bot.csproj" Id="e29eef0d-5685-45e1-b9e3-7f04adb5b239" />
     <Project Path="Logic.Authentication/Logic.Authentication.csproj" Id="35a7aaf9-c2df-425d-85d9-834e5efb5315" />
     <Project Path="Logic.Profile/Logic.Profile.csproj" Id="39721a6e-6c50-4624-8603-c742251272f0" />
     <Project Path="Logic.Shared/Logic.Shared.csproj" Id="537fad96-5606-4f25-8fbd-a9fa3602404f" />

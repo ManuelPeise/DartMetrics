@@ -9,6 +9,7 @@ namespace Logic.Training.DI
         {
             services.AddScoped<ISegmentTraining, SegmentTraining>();
             services.AddScoped<ICheckoutTraining, CheckoutTraining>();
+            services.AddScoped<IX01TrainingGame, X01TrainingGame>();
         }
     }
 }
