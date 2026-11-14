@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 
-namespace Web.App.Components.Admin
+namespace Web.Shared.Components.Admin
 {
     /// <summary>Liest die Fehlermeldung aus der ProblemDetails-Antwort der API (GlobalExceptionHandlerMiddleware).</summary>
     public static class ApiProblem

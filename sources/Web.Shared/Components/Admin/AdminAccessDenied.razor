@@ -5,7 +5,8 @@
             <AdminIcon Name="AdminIconName.Lock" Size="36" />
             <p class="adm-state__title">Kein Zugriff</p>
             <p>Dieser Bereich ist Administratoren vorbehalten.</p>
-            <AreaLink Href="/" Class="adm-btn adm-btn--ghost">Zur Startseite</AreaLink>
+            @* Volles Neuladen: die Startseite läuft als WebAssembly, der Admin-Bereich auf dem Server. *@
+            <a href="/" class="adm-btn adm-btn--ghost" data-enhance-nav="false">Zur Startseite</a>
         </div>
     </AdminCard>
 </div>

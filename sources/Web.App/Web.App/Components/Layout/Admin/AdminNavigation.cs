@@ -1,4 +1,4 @@
-using Web.App.Components.Admin;
+using Web.Shared.Components.Admin;
 
 namespace Web.App.Components.Layout.Admin
 {

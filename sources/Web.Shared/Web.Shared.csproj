@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,23 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-
+  <!--
+    Web.Shared wird nur vom Server (Web.App) verwendet: Cookie-Anmeldung, Sitzungen, API-Client, Admin-Komponenten.
+    Deshalb das ASP.NET-Core-Shared-Framework statt einzelner Pakete. Die früheren 2.x-Pakete
+    (Microsoft.AspNetCore.Authentication / .Cookies 2.3.14) zogen Microsoft.AspNetCore.WebUtilities 2.3.12
+    mit einer bekannten Sicherheitslücke nach (NU1902, GHSA-6527-9fp8-r4x6).
+  -->
   <ItemGroup>
-    <SupportedPlatform Include="browser" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.3.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.15" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.15" />
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.15" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Components\" />
   </ItemGroup>
 
   <ItemGroup>

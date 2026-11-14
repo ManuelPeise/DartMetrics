@@ -1,4 +1,4 @@
-namespace Web.App.Components.Admin
+namespace Web.Shared.Components.Admin
 {
     public enum AdminButtonVariant
     {
