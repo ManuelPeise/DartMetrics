@@ -6,7 +6,7 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 |---|---|
 | `SegmentTraining` | Ein Zielfeld über mehrere Aufnahmen treffen |
 | `CheckoutTraining` | Checkouts von einem Startwert |
-| `X01TrainingGame` | 301/501 allein spielen |
+| `X01TrainingGame` | 301/501 allein spielen (Straight-/Double-In, Double-/Master-Out) |
 | `AroundTheClockTraining` | Segmente der Reihe nach |
 
 - `TrainingBase`: aktueller Benutzer, Laden eigener Trainings, Wurfprüfung.

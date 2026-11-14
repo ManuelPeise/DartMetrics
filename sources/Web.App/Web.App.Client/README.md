@@ -9,7 +9,8 @@ Authentication/       BffAuthenticationStateProvider (Anmeldestatus über /bff/u
 Layout/               MainLayout (Fallback), PublicLayout (öffentliche Seiten), LoginDisplay, AreaLink
 Layout/Player/        PlayerLayout, PlayerTopBar, PlayerBottomNav, PlayerNavigation (Menü + Rollen)
 Components/Player/    Bausteine des Spieler-Bereichs: PlayerCard, PlayerPageHeader, PlayerIcon,
-                      PlayerEmptyState, PlayerLoadingState, PlayerErrorState
+                      PlayerEmptyState, PlayerLoadingState, PlayerErrorState,
+                      DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel)
 Pages/                Home, Login, Logout, Register, VerifyEmail, AccessDenied, NotFound
 Pages/Player/         Start, Training, Gegen Bot spielen, Statistiken, Profil
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
@@ -31,3 +32,10 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 - Nach dem Login: Admins → `/admin`, Player/GameMaster → `/player` (sofern keine andere Seite angefordert war).
 - Links in den Admin-Bereich mit `AreaLink` (voller Seitenwechsel).
 - Responsiv: Desktop Top-Leiste mit Text, Tablet (< 1024 px) nur Icons, Smartphone (< 768 px) Bottom Navigation.
+
+## Wurfeingabe (`DartInputPad`)
+
+- Gibt jeden Dart einzeln über `OnDart` (`DartThrowInput`: Segment, Multiplier) aus; Kodierung wie im Backend.
+- Double/Triple gilt nur für den nächsten Dart. 25 ist Single, Bull = 25 × 2, kein Triple auf 25.
+- Kennt **keine Spielregeln**: Bust, Checkout und Aufnahmeende wertet die Seite aus.
+- Parameter: `CurrentDarts` (Anzeige der laufenden Aufnahme), `OnUndo`/`CanUndo` (optionale Rückgängig-Taste), `Disabled`, `ShowVisit`.

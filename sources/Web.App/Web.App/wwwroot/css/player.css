@@ -373,3 +373,136 @@ a.pa-card:hover {
 @media (prefers-reduced-motion: reduce) {
     .pa-content, .pa-card { animation: none; transition: none; }
 }
+
+/* ==========================================================================
+   Wurfeingabe (DartInputPad)
+   Farben der Dartscheibe: Double rot, Triple grün, Bull rot/grün.
+   ========================================================================== */
+
+.pa-pad {
+    display: grid;
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 520px;
+    padding: 0.9rem;
+    box-sizing: border-box;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.pa-pad--disabled { opacity: 0.6; }
+
+.pa-pad__visit {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) auto;
+    gap: 0.5rem;
+}
+
+.pa-pad__dart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pl-wood-950);
+}
+
+    .pa-pad__dart strong {
+        font-family: var(--pl-font-display);
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .pa-pad__dart small { color: var(--pl-ink-muted); font-size: 0.7rem; }
+
+.pa-pad__dart--empty { border-style: dashed; }
+
+.pa-pad__total {
+    display: grid;
+    place-items: center;
+    min-width: 64px;
+    border-radius: var(--pa-radius-sm);
+    background: rgba(209, 164, 95, 0.14);
+    color: var(--pl-brass-strong);
+    font-family: var(--pl-font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.pa-pad__modifiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.pa-pad__mod,
+.pa-pad__key {
+    min-height: 48px;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pl-wood-800);
+    color: var(--pl-ink);
+    font: 600 1.05rem var(--pl-font-body);
+    cursor: pointer;
+    transition: background var(--pa-transition), border-color var(--pa-transition), transform 0.06s;
+}
+
+    .pa-pad__mod:hover:not(:disabled),
+    .pa-pad__key:hover:not(:disabled) { border-color: rgba(209, 164, 95, 0.5); }
+
+    .pa-pad__mod:active:not(:disabled),
+    .pa-pad__key:active:not(:disabled) { transform: scale(0.96); }
+
+    .pa-pad__mod:disabled,
+    .pa-pad__key:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.pa-pad__mod {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+    .pa-pad__mod.is-active {
+        border-color: var(--pl-red);
+        background: rgba(200, 35, 47, 0.28);
+        color: #ffd2d5;
+    }
+
+    .pa-pad__mod--triple.is-active {
+        border-color: var(--pl-green);
+        background: rgba(31, 138, 59, 0.3);
+        color: #cdeed6;
+    }
+
+.pa-pad__numbers {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem;
+}
+
+.pa-pad__specials {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+    gap: 0.4rem;
+}
+
+.pa-pad__key--miss { color: var(--pl-ink-muted); }
+
+.pa-pad__key--bull {
+    border-color: rgba(200, 35, 47, 0.6);
+    background: linear-gradient(135deg, rgba(200, 35, 47, 0.35), rgba(31, 138, 59, 0.3));
+}
+
+.pa-pad__key--undo { color: var(--pl-brass-strong); font-size: 1.3rem; }
+
+@media (max-width: 767px) {
+    .pa-pad { padding: 0.6rem; max-width: none; }
+
+    .pa-pad__key, .pa-pad__mod { min-height: 52px; }
+}

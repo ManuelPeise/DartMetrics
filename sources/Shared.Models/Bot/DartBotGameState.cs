@@ -1,4 +1,5 @@
 ﻿using Shared.Enums.Bot;
+using Shared.Enums.X01;
 
 namespace Shared.Models.Bot
 {
@@ -12,6 +13,15 @@ namespace Shared.Models.Bot
         public DartBotGameStatusEnum Status { get; set; }
 
         public int StartingScore { get; set; }
+
+        public X01InModeEnum InMode { get; set; }
+
+        public X01OutModeEnum OutMode { get; set; }
+
+        /// <summary>Bei Double-In: hat der Mensch bzw. der Bot das aktuelle Leg schon eröffnet?</summary>
+        public bool IsUserOpened { get; set; } = true;
+
+        public bool IsBotOpened { get; set; } = true;
 
         public int BestOfLegs { get; set; }
 

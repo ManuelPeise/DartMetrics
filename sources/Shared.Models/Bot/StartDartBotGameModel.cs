@@ -1,4 +1,5 @@
-using Shared.Enums.Bot;
+﻿using Shared.Enums.Bot;
+using Shared.Enums.X01;
 
 namespace Shared.Models.Bot
 {
@@ -17,5 +18,9 @@ namespace Shared.Models.Bot
 
         /// <summary>Hat der Mensch im ersten Leg den Anwurf? Danach wechselt er je Leg.</summary>
         public bool UserStarts { get; set; } = true;
+
+        public X01InModeEnum InMode { get; set; } = X01InModeEnum.Straight;
+
+        public X01OutModeEnum OutMode { get; set; } = X01OutModeEnum.Double;
     }
 }

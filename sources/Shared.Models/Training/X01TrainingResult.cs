@@ -1,9 +1,15 @@
-﻿namespace Shared.Models.Training
+﻿using Shared.Enums.X01;
+
+namespace Shared.Models.Training
 {
     public class X01TrainingResult
     {
         public int TrainingId { get; set; }
         public int StartingScore { get; set; }
+
+        public X01InModeEnum InMode { get; set; }
+
+        public X01OutModeEnum OutMode { get; set; }
         public int RemainingScore { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? FinishedAt { get; set; }

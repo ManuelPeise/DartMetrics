@@ -1,4 +1,5 @@
-using Shared.Enums.Bot;
+﻿using Shared.Enums.Bot;
+using Shared.Enums.X01;
 
 namespace Data.DartContext.Entities.Bot
 {
@@ -10,6 +11,10 @@ namespace Data.DartContext.Entities.Bot
         public DartBotGameStatusEnum Status { get; set; } = DartBotGameStatusEnum.Running;
 
         public int StartingScore { get; set; }
+
+        public X01InModeEnum InMode { get; set; } = X01InModeEnum.Straight;
+
+        public X01OutModeEnum OutMode { get; set; } = X01OutModeEnum.Double;
 
         public int BestOfLegs { get; set; }
 

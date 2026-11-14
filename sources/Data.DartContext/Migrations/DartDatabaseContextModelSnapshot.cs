@@ -146,6 +146,16 @@ namespace Data.DartContext.Migrations
                     b.Property<int>("GameMode")
                         .HasColumnType("int");
 
+                    b.Property<int>("InMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("OutMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("datetime(6)");
 
@@ -1230,6 +1240,16 @@ namespace Data.DartContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<int>("InMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("OutMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("StartingScore")
                         .HasColumnType("int");

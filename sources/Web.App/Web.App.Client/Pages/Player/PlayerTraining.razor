@@ -2,7 +2,38 @@
 
 <PageTitle>Training – DartMetrics</PageTitle>
 
-<PlayerPageHeader Eyebrow="Üben" Title="Training" Subtitle="X01, Around the Clock, Checkout und Segment – jeder Dart zählt." />
+<PlayerPageHeader Eyebrow="Üben" Title="Training"
+                  Subtitle="X01, Around the Clock, Checkout und Segment – jeder Dart zählt." />
 
 <PlayerEmptyState Icon="PlayerIconName.Training" Title="Kommt bald"
-                  Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+                  Text="Die Trainings werden im nächsten Schritt freigeschaltet. Die Wurfeingabe kannst du unten schon ausprobieren." />
+
+<section class="pa-section" aria-labelledby="pad-title">
+    <h2 class="pa-section__title" id="pad-title">Wurfeingabe testen</h2>
+    <p class="pa-page-subtitle" style="margin-bottom: 1rem">Nur zur Vorschau – es wird nichts gespeichert.</p>
+
+    <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="Undo" CanUndo="@(_darts.Count > 0)" />
+</section>
+
+@code {
+    // Vorschau: eine Aufnahme mit bis zu drei Darts, danach beginnt die nächste.
+    private readonly List<DartThrowInput> _darts = [];
+
+    private void AddDart(DartThrowInput dart)
+    {
+        if (_darts.Count == 3)
+        {
+            _darts.Clear();
+        }
+
+        _darts.Add(dart);
+    }
+
+    private void Undo()
+    {
+        if (_darts.Count > 0)
+        {
+            _darts.RemoveAt(_darts.Count - 1);
+        }
+    }
+}

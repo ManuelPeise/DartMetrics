@@ -1,7 +1,8 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Logic.Bot.Models;
 using Logic.Bot.Simulation;
 using Logic.Shared.Rules;
+using Shared.Enums.X01;
 using Shared.Interfaces.Bot;
 using Shared.Models.Bot;
 using Shared.Models.Shared;
@@ -39,7 +40,13 @@ namespace Logic.Bot.Tactics
         /// Beste Wege je (Rest, verfügbare Darts), sortiert pro Risiko-Stufe.
         /// GetCheckoutSuggestions ist teuer (bis ~240.000 Kombinationen bei drei Darts), daher Cache.
         /// </summary>
-        private static readonly ConcurrentDictionary<(int Remaining, int Darts), IReadOnlyList<CheckoutSuggestion>[]> RouteCache = new();
+        private static readonly ConcurrentDictionary<(int Remaining, int Darts, X01OutModeEnum OutMode), IReadOnlyList<CheckoutSuggestion>[]> RouteCache = new();
+
+        /// <summary>Zusätzliche Kosten für ein Triple als Abschluss (Master-Out): seltener geübt als Doubles.</summary>
+        private const int TripleFinishPenalty = 4;
+
+        /// <summary>Ziel zum Eröffnen bei Double-In (größtes Double, Standard im Turnierdarts).</summary>
+        private static readonly DartTarget OpeningTarget = DartTarget.Double(20);
 
         private readonly X01Rules _rules = new();
         private readonly IRandomSource _random;
@@ -51,7 +58,13 @@ namespace Logic.Bot.Tactics
 
         public DartTarget SelectTarget(BotThrowDecisionContext context)
         {
-            var routes = GetBestRoutes(context.Remaining, context.DartsAvailable, context.Profile.RiskTaking);
+            // Double-In: bis zur Eröffnung zählt nur ein Double.
+            if (!context.IsOpened && context.InMode == X01InModeEnum.Double)
+            {
+                return OpeningTarget;
+            }
+
+            var routes = GetBestRoutes(context.Remaining, context.DartsAvailable, context.Profile.RiskTaking, context.OutMode);
 
             if (routes.Count > 0)
             {
@@ -97,7 +110,7 @@ namespace Logic.Bot.Tactics
                     continue;
                 }
 
-                var cost = LeftoverCost(leftover, context.Profile.RiskTaking) + TargetDifficulty(candidate, context.Profile.RiskTaking);
+                var cost = LeftoverCost(leftover, context.Profile.RiskTaking, context.OutMode) + TargetDifficulty(candidate, context.Profile.RiskTaking);
 
                 if (cost < bestCost)
                 {
@@ -122,9 +135,9 @@ namespace Logic.Bot.Tactics
         }
 
         /// <summary>Wie gut ist der Rest für die nächste Aufnahme? Weniger Darts und beliebte Doubles sind besser.</summary>
-        private double LeftoverCost(int leftover, float riskTaking)
+        private double LeftoverCost(int leftover, float riskTaking, X01OutModeEnum outMode)
         {
-            var routes = GetBestRoutes(leftover, 3, riskTaking);
+            var routes = GetBestRoutes(leftover, 3, riskTaking, outMode);
 
             if (routes.Count > 0)
             {
@@ -139,20 +152,20 @@ namespace Logic.Bot.Tactics
         /// Wege mit der kleinstmöglichen Dartanzahl (höchstens <paramref name="darts"/>), beste zuerst.
         /// Es wird mit 1 Dart begonnen und nur bei Bedarf tiefer gesucht.
         /// </summary>
-        private IReadOnlyList<CheckoutSuggestion> GetBestRoutes(int remaining, int darts, float riskTaking)
+        private IReadOnlyList<CheckoutSuggestion> GetBestRoutes(int remaining, int darts, float riskTaking, X01OutModeEnum outMode)
         {
             if (remaining is < 2 or > MaxCheckout || darts < 1)
             {
                 return [];
             }
 
-            var perBucket = RouteCache.GetOrAdd((remaining, Math.Min(darts, 3)), key =>
+            var perBucket = RouteCache.GetOrAdd((remaining, Math.Min(darts, 3), outMode), key =>
             {
                 List<CheckoutSuggestion> found = [];
 
                 for (var d = 1; d <= key.Darts && found.Count == 0; d++)
                 {
-                    found = _rules.GetCheckoutSuggestions(key.Remaining, d);
+                    found = _rules.GetCheckoutSuggestions(key.Remaining, d, key.OutMode);
                 }
 
                 var ordered = new IReadOnlyList<CheckoutSuggestion>[RiskBuckets];
@@ -187,7 +200,9 @@ namespace Logic.Bot.Tactics
             }
 
             var finish = route.Darts[^1];
-            cost += DoublePreference.GetValueOrDefault(finish.Segment, OtherDoublePreference);
+            cost += finish.Multiplier == 3
+                ? TripleFinishPenalty + TargetDifficulty(ToTarget(finish), (float)risk)
+                : DoublePreference.GetValueOrDefault(finish.Segment, OtherDoublePreference);
 
             return cost;
         }

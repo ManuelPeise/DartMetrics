@@ -17,7 +17,8 @@ DI/BotServiceRegistration          AddBotServices()
 
 ## Fachliche Regeln
 
-- Spieler 1 = Mensch, Spieler 2 = Bot. Double-Out, Best of 1–11 Legs, Anwurf wechselt je Leg.
+- Spieler 1 = Mensch, Spieler 2 = Bot. Best of 1–11 Legs, Anwurf wechselt je Leg.
+- X01-Varianten je Spiel: Straight-/Double-In, Double-/Master-Out. Bei Double-In zielt der Bot bis zur Eröffnung auf D20; Checkout-Wege richten sich nach dem Out-Modus.
 - Ein Spiel speichert Profilversion und aktive Modelle vom Start.
 - Lernen nur bei `Finished` und menschlichem Gegner, genau einmal (`LearningProcessedAt`).
 - Level aus Gesamt-XP (`LevelXpBase × n^LevelXpExponent`), Fähigkeiten steigen linear bis `SkillAtMaxLevel`.

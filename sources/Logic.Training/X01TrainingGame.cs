@@ -1,6 +1,7 @@
 ﻿using Data.DartContext.Entities.Training;
 using Logic.Shared.Rules;
 using Shared.Enums.Training;
+using Shared.Enums.X01;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
@@ -33,6 +34,11 @@ namespace Logic.Training
                     throw new Exception($"Starting score must be {ThreeZeroOneScore} or {FiveZeroOneScore}.");
                 }
 
+                if (!Enum.IsDefined(model.InMode) || !Enum.IsDefined(model.OutMode))
+                {
+                    throw new ArgumentException("Invalid in or out mode.");
+                }
+
                 var trainingSession = new TrainingSessionEntity
                 {
                     TrainingType = TrainingTypeEnum.X01Training,
@@ -40,7 +46,9 @@ namespace Logic.Training
                     UserId = currentUser.UserId,
                     TrainingGame = new TrainingGameEntity
                     {
-                        StartingScore = model.StartingScore
+                        StartingScore = model.StartingScore,
+                        InMode = model.InMode,
+                        OutMode = model.OutMode
                     }
                 };
 
@@ -131,13 +139,21 @@ namespace Logic.Training
                     Score = score
                 });
 
-                var visitScore = visit.Throws.Sum(t => t.Score);
+                // Double-In: eröffnet ist das Leg, sobald eine frühere Aufnahme gepunktet hat oder in dieser
+                // Aufnahme ein Double getroffen wurde. Vorher zählen Darts 0 (Score bleibt der Trefferwert).
+                var isOpenedBeforeVisit = training.InMode == X01InModeEnum.Straight || visit.ScoreBefore < training.StartingScore;
+
+                var visitScore = _rules.CountedScore(
+                    visit.Throws.OrderBy(t => t.ThrowNumber).Select(t => (t.Segment, t.Multiplier)),
+                    isOpenedBeforeVisit,
+                    training.InMode);
+
+                var isOpened = isOpenedBeforeVisit ||
+                               visit.Throws.Any(t => _rules.IsOpeningDart(t.Segment, t.Multiplier, training.InMode));
+
                 var remainingScore = visit.ScoreBefore - visitScore;
 
-                var isBust = remainingScore < 0 ||
-                             remainingScore == 1 ||
-                             (remainingScore == 0 &&
-                              !_rules.IsDouble(model.Segment, model.Multiplier));
+                var isBust = _rules.IsBust(visit.ScoreBefore, visitScore, model.Segment, model.Multiplier, training.OutMode);
 
                 if (isBust)
                 {
@@ -164,8 +180,9 @@ namespace Logic.Training
                     RemainingDarts = remainingDarts,
                     IsBust = visit.IsBust,
                     IsCheckout = isCheckout,
-                    CheckoutSuggestions = !isBust && !isCheckout && remainingDarts > 0
-                        ? _rules.GetCheckoutSuggestions(visit.ScoreAfter, remainingDarts)
+                    IsOpened = isOpened,
+                    CheckoutSuggestions = isOpened && !isBust && !isCheckout && remainingDarts > 0
+                        ? _rules.GetCheckoutSuggestions(visit.ScoreAfter, remainingDarts, training.OutMode)
                         : []
                 };
             }
@@ -218,7 +235,9 @@ namespace Logic.Training
                     .ToList();
 
                 var totalThrows = throws.Count;
-                var totalScore = throws.Sum(t => t.Score);
+
+                // Gewertete Punkte: Busts zählen 0, bei Double-In auch die Darts vor der Eröffnung.
+                var totalScore = visits.Sum(v => v.ScoreBefore - v.ScoreAfter);
                 var successfulVisits = visits.Count(v => !v.IsBust);
                 var totalVisits = visits.Count;
 
@@ -226,6 +245,8 @@ namespace Logic.Training
                 {
                     TrainingId = training.Id,
                     StartingScore = training.StartingScore,
+                    InMode = training.InMode,
+                    OutMode = training.OutMode,
                     RemainingScore = visits.LastOrDefault()?.ScoreAfter ?? training.StartingScore,
                     StartedAt = training.TrainingSession.StartedAt,
                     FinishedAt = training.TrainingSession.FinishedAt,

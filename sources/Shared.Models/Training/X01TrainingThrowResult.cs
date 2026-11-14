@@ -9,6 +9,9 @@ namespace Shared.Models.Training
         public bool IsBust { get; set; }
         public bool IsCheckout { get; set; }
 
+        /// <summary>Bei Double-In: ist das Leg nach diesem Dart eröffnet?</summary>
+        public bool IsOpened { get; set; } = true;
+
         public List<CheckoutSuggestion> CheckoutSuggestions { get; set; } = [];
     }
 }

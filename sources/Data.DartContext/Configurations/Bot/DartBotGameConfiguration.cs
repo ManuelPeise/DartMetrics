@@ -1,7 +1,8 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Enums.Bot;
+using Shared.Enums.X01;
 
 namespace Data.DartContext.Configurations.Bot
 {
@@ -26,6 +27,10 @@ namespace Data.DartContext.Configurations.Bot
             });
 
             builder.Property(x => x.StartedAt).IsRequired();
+
+            // Bestehende Spiele: Straight-In / Double-Out.
+            builder.Property(x => x.InMode).HasDefaultValue(X01InModeEnum.Straight).HasSentinel((X01InModeEnum)0);
+            builder.Property(x => x.OutMode).HasDefaultValue(X01OutModeEnum.Double).HasSentinel((X01OutModeEnum)0);
 
             // Gewinner: einfacher FK; dass er zu diesem Spiel gehört, prüft die Anwendung
             // (ein zusammengesetzter FK über den eigenen Primärschlüssel ist mit EF nicht sauber abbildbar).

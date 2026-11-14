@@ -1,0 +1,121 @@
+@*
+    Wurfeingabe für Training und Bot-Spiel: jeder Dart einzeln.
+    - Double/Triple gilt nur für den nächsten Dart und springt danach auf Single zurück.
+    - 25 ist immer Single, Bull ist 25 × 2; Triple ist für 25 nicht möglich.
+    - Die Komponente kennt keine Spielregeln: Bust/Checkout wertet der Aufrufer aus.
+*@
+<div class="pa-pad @(Disabled ? "pa-pad--disabled" : "")">
+    @if (ShowVisit)
+    {
+        <div class="pa-pad__visit" aria-live="polite">
+            @for (var i = 0; i < DartsPerVisit; i++)
+            {
+                var index = i;
+                var dart = index < CurrentDarts.Count ? CurrentDarts[index] : (DartThrowInput?)null;
+                <span class="pa-pad__dart @(dart is null ? "pa-pad__dart--empty" : "")">
+                    @if (dart is { } d)
+                    {
+                        <strong>@d.Label</strong>
+                        <small>@d.Score</small>
+                    }
+                    else
+                    {
+                        <small>Dart @(index + 1)</small>
+                    }
+                </span>
+            }
+            <span class="pa-pad__total" title="Summe der Aufnahme">@CurrentDarts.Sum(d => d.Score)</span>
+        </div>
+    }
+
+    <div class="pa-pad__modifiers" role="group" aria-label="Multiplikator">
+        <button type="button" class="pa-pad__mod @(_multiplier == 2 ? "is-active" : "")"
+                aria-pressed="@(_multiplier == 2 ? "true" : "false")" disabled="@Disabled"
+                @onclick="() => ToggleMultiplier(2)">Double</button>
+        <button type="button" class="pa-pad__mod pa-pad__mod--triple @(_multiplier == 3 ? "is-active" : "")"
+                aria-pressed="@(_multiplier == 3 ? "true" : "false")" disabled="@Disabled"
+                @onclick="() => ToggleMultiplier(3)">Triple</button>
+    </div>
+
+    <div class="pa-pad__numbers" role="group" aria-label="Segment">
+        @for (var segment = 1; segment <= 20; segment++)
+        {
+            var value = segment;
+            <button type="button" class="pa-pad__key" disabled="@Disabled"
+                    aria-label="@AriaLabel(value)" @onclick="() => ThrowAsync(value)">
+                @value
+            </button>
+        }
+    </div>
+
+    <div class="pa-pad__specials">
+        <button type="button" class="pa-pad__key pa-pad__key--miss" disabled="@Disabled" @onclick="MissAsync">Miss</button>
+        <button type="button" class="pa-pad__key" disabled="@(Disabled || _multiplier == 3)"
+                title="@(_multiplier == 3 ? "Kein Triple auf 25" : "Single Bull (25)")" @onclick="OuterBullAsync">25</button>
+        <button type="button" class="pa-pad__key pa-pad__key--bull" disabled="@Disabled" @onclick="BullAsync">Bull</button>
+        @if (OnUndo.HasDelegate)
+        {
+            <button type="button" class="pa-pad__key pa-pad__key--undo" disabled="@(Disabled || !CanUndo)"
+                    aria-label="Letzten Dart zurücknehmen" @onclick="UndoAsync">↶</button>
+        }
+    </div>
+</div>
+
+@code {
+    private const int DartsPerVisit = 3;
+
+    private int _multiplier = 1;
+
+    /// <summary>Wird für jeden eingegebenen Dart aufgerufen.</summary>
+    [Parameter, EditorRequired] public EventCallback<DartThrowInput> OnDart { get; set; }
+
+    /// <summary>Optional: Rückgängig-Taste anzeigen.</summary>
+    [Parameter] public EventCallback OnUndo { get; set; }
+
+    [Parameter] public bool CanUndo { get; set; } = true;
+
+    /// <summary>Darts der laufenden Aufnahme (zur Anzeige, vom Aufrufer verwaltet).</summary>
+    [Parameter] public IReadOnlyList<DartThrowInput> CurrentDarts { get; set; } = [];
+
+    [Parameter] public bool ShowVisit { get; set; } = true;
+
+    /// <summary>Z. B. während eines API-Aufrufs oder wenn der Gegner am Zug ist.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    private void ToggleMultiplier(int multiplier) =>
+        _multiplier = _multiplier == multiplier ? 1 : multiplier;
+
+    private Task ThrowAsync(int segment) => SendAsync(new DartThrowInput(segment, _multiplier));
+
+    private Task MissAsync() => SendAsync(DartThrowInput.Miss);
+
+    private Task OuterBullAsync() => SendAsync(new DartThrowInput(25, 1));
+
+    private Task BullAsync() => SendAsync(new DartThrowInput(25, 2));
+
+    private async Task SendAsync(DartThrowInput dart)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        // Double/Triple gilt nur für einen Dart.
+        _multiplier = 1;
+
+        await OnDart.InvokeAsync(dart);
+    }
+
+    private async Task UndoAsync()
+    {
+        _multiplier = 1;
+        await OnUndo.InvokeAsync();
+    }
+
+    private string AriaLabel(int segment) => _multiplier switch
+    {
+        3 => $"Triple {segment}",
+        2 => $"Double {segment}",
+        _ => $"Single {segment}"
+    };
+}

@@ -9,7 +9,8 @@ ALogicBase                 Basisklasse aller Services (UnitOfWork, MessageLog)
 UnitsOfWork/               UnitOfWork (SaveChangesAsync, Audit-Felder, Unveränderlichkeits-Schutz),
                            UserUnitOfWork, DartTrainingUnitOfWork, DartBotUnitOfWork
 Repositories/RepositoryBase Generisches Repository (Get…, Any, Add, Update, Delete)
-Rules/                     DartRulesBase (Segment/Multiplikator/Score), X01Rules (Bust, Checkout, Checkout-Wege),
+Rules/                     DartRulesBase (Segment/Multiplikator/Score), X01Rules (Bust, Checkout, Checkout-Wege;
+                           In-Modus Straight/Double, Out-Modus Double/Master, CountedScore für Double-In),
                            AroundTheClockRules
 Logger/MessageLog          Log in die Datenbank und den .NET-Logger
 Mail/                      EmailClient, EmailBodyFactory

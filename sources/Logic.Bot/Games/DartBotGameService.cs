@@ -3,6 +3,7 @@ using Logic.Shared;
 using Logic.Shared.Rules;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums.Bot;
+using Shared.Enums.X01;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Bot;
 using Shared.Interfaces.Logger;
@@ -103,6 +104,8 @@ namespace Logic.Bot.Games
                     GameMode = model.GameMode,
                     Status = DartBotGameStatusEnum.Running,
                     StartingScore = model.StartingScore,
+                    InMode = model.InMode,
+                    OutMode = model.OutMode,
                     BestOfLegs = model.BestOfLegs,
                     StartedAt = now,
                     Players = [userPlayer, botPlayer]
@@ -304,7 +307,10 @@ namespace Logic.Bot.Games
                     profile.ThrowConsistency,
                     profile.TacticalIntelligence,
                     profile.PressureResistance,
-                    profile.RiskTaking)));
+                    profile.RiskTaking),
+                game.InMode,
+                game.OutMode,
+                IsOpened(game, leg, botPlayer)));
 
             var visit = NewVisit(game, leg, botPlayer, scoreBefore, opponentScoreBefore);
             visit.ScoreAfter = result.ScoreAfter;
@@ -357,6 +363,7 @@ namespace Logic.Bot.Games
             var remaining = scoreBefore;
             var visitScore = 0;
             var isFinished = false;
+            var isOpened = IsOpened(game, leg, userPlayer);
 
             for (var index = 0; index < throws.Count; index++)
             {
@@ -375,6 +382,14 @@ namespace Logic.Bot.Games
 
                 var score = _rules.CalculateScore(dart.Segment, dart.Multiplier);
 
+                // Double-In: vor der Eröffnung zählt der Dart nicht (Score bleibt der Trefferwert).
+                if (!isOpened && _rules.IsOpeningDart(dart.Segment, dart.Multiplier, game.InMode))
+                {
+                    isOpened = true;
+                }
+
+                var countedScore = isOpened ? score : 0;
+
                 visit.Throws.Add(new DartBotGameThrowEntity
                 {
                     ThrowNumber = throwNumber,
@@ -385,22 +400,22 @@ namespace Logic.Bot.Games
                     DartsLeftInVisit = DartsPerVisit - throwNumber
                 });
 
-                if (_rules.IsBust(scoreBefore, visitScore + score, dart.Segment, dart.Multiplier))
+                if (_rules.IsBust(scoreBefore, visitScore + countedScore, dart.Segment, dart.Multiplier, game.OutMode))
                 {
                     visit.IsBust = true;
                     isFinished = true;
                     continue;
                 }
 
-                if (_rules.IsCheckout(scoreBefore, visitScore + score, dart.Segment, dart.Multiplier))
+                if (_rules.IsCheckout(scoreBefore, visitScore + countedScore, dart.Segment, dart.Multiplier, game.OutMode))
                 {
                     visit.IsCheckout = true;
                     isFinished = true;
                     continue;
                 }
 
-                visitScore += score;
-                remaining -= score;
+                visitScore += countedScore;
+                remaining -= countedScore;
             }
 
             if (!isFinished && throws.Count < DartsPerVisit)
@@ -496,6 +511,11 @@ namespace Logic.Bot.Games
                 throw new ArgumentException($"Best of legs must be one of: {string.Join(", ", AllowedBestOfLegs)}.");
             }
 
+            if (!Enum.IsDefined(model.InMode) || !Enum.IsDefined(model.OutMode))
+            {
+                throw new ArgumentException("Invalid in or out mode.");
+            }
+
             if (model.GameMode is not (DartBotGameModeEnum.Training or DartBotGameModeEnum.Match or DartBotGameModeEnum.Tournament))
             {
                 throw new ArgumentException("Only Training, Match or Tournament games can be started against a bot.");
@@ -535,6 +555,13 @@ namespace Logic.Bot.Games
             return game.Players.Single(p => p != lastVisit.Player);
         }
 
+        /// <summary>
+        /// Hat der Spieler das Leg bereits eröffnet? Bei Straight-In immer; bei Double-In, sobald eine seiner
+        /// Aufnahmen in diesem Leg gepunktet hat (Bust-Aufnahmen zählen nicht).
+        /// </summary>
+        private static bool IsOpened(DartBotGameEntity game, DartBotGameLegEntity leg, DartBotGamePlayerEntity player) =>
+            game.InMode == X01InModeEnum.Straight || GetRemaining(game, leg, player) < game.StartingScore;
+
         private static int GetRemaining(DartBotGameEntity game, DartBotGameLegEntity leg, DartBotGamePlayerEntity player)
         {
             var lastVisit = leg.Visits
@@ -556,6 +583,10 @@ namespace Logic.Bot.Games
                 GameMode = game.GameMode,
                 Status = game.Status,
                 StartingScore = game.StartingScore,
+                InMode = game.InMode,
+                OutMode = game.OutMode,
+                IsUserOpened = IsOpened(game, leg, userPlayer),
+                IsBotOpened = IsOpened(game, leg, botPlayer),
                 BestOfLegs = game.BestOfLegs,
                 BotId = botPlayer.DartBotId ?? 0,
                 BotName = botPlayer.DisplayName,

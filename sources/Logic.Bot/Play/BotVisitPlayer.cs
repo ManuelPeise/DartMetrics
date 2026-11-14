@@ -1,13 +1,15 @@
-using Logic.Bot.Simulation;
+﻿using Logic.Bot.Simulation;
 using Logic.Bot.Tactics;
 using Logic.Shared.Rules;
+using Shared.Enums.X01;
 using Shared.Interfaces.Bot;
 using Shared.Models.Bot;
 
 namespace Logic.Bot.Play
 {
     /// <summary>
-    /// Ablauf je Dart: Ziel wählen -> werfen -> Treffer auflösen -> Bust/Checkout prüfen (X01Rules, Double-Out).
+    /// Ablauf je Dart: Ziel wählen -> werfen -> Treffer auflösen -> Bust/Checkout prüfen (X01Rules mit In-/Out-Modus).
+    /// Double-In: vor der Eröffnung zählen Darts 0, der eröffnende Double zählt bereits.
     /// Nach Bust oder Checkout endet die Aufnahme sofort.
     /// </summary>
     public sealed class BotVisitPlayer : IBotVisitPlayer
@@ -38,6 +40,7 @@ namespace Logic.Bot.Play
             var visitForm = _throwSimulator.DrawVisitForm(context.Profile);
             var remaining = context.ScoreBefore;
             var visitScore = 0;
+            var isOpened = context.IsOpened || context.InMode == X01InModeEnum.Straight;
 
             for (var throwNumber = 1; throwNumber <= DartsPerVisit; throwNumber++)
             {
@@ -47,9 +50,13 @@ namespace Logic.Bot.Play
                     remaining,
                     dartsAvailable,
                     context.OpponentScoreBefore,
-                    context.Profile));
+                    context.Profile,
+                    context.InMode,
+                    context.OutMode,
+                    isOpened));
 
-                var isFinishingDart = target.IsDouble && target.Score == remaining;
+                var isFinishingDart = isOpened && target.Score == remaining &&
+                                      _rules.IsFinishingDart(target.Segment, target.Multiplier, context.OutMode);
                 var isPressure = isFinishingDart || context.OpponentScoreBefore <= OpponentPressureThreshold;
 
                 var aimPoint = DartBoardGeometry.GetAimPoint(target);
@@ -72,17 +79,23 @@ namespace Logic.Bot.Play
                     DartsLeftInVisit = DartsPerVisit - throwNumber
                 });
 
-                var dartScore = hit.Score;
+                if (!isOpened && _rules.IsOpeningDart(hit.Segment, hit.Multiplier, context.InMode))
+                {
+                    isOpened = true;
+                }
+
+                // Vor der Eröffnung (Double-In) zählt der Dart nicht.
+                var dartScore = isOpened ? hit.Score : 0;
 
                 // X01Rules prüft gegen den Stand zu Beginn der Aufnahme.
-                if (_rules.IsBust(context.ScoreBefore, visitScore + dartScore, hit.Segment, hit.Multiplier))
+                if (_rules.IsBust(context.ScoreBefore, visitScore + dartScore, hit.Segment, hit.Multiplier, context.OutMode))
                 {
                     result.IsBust = true;
                     result.ScoreAfter = context.ScoreBefore;
                     return result;
                 }
 
-                if (_rules.IsCheckout(context.ScoreBefore, visitScore + dartScore, hit.Segment, hit.Multiplier))
+                if (_rules.IsCheckout(context.ScoreBefore, visitScore + dartScore, hit.Segment, hit.Multiplier, context.OutMode))
                 {
                     result.IsCheckout = true;
                     result.ScoreAfter = 0;
