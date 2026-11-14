@@ -1,0 +1,18 @@
+@* Kennzahlen als Kacheln, z. B. im Trainingsergebnis. *@
+<dl class="pa-stats">
+    @foreach (var stat in Stats)
+    {
+        <div class="pa-stat @(stat.Highlight ? "pa-stat--highlight" : "")">
+            <dt>@stat.Label</dt>
+            <dd>@stat.Value</dd>
+            @if (!string.IsNullOrEmpty(stat.Hint))
+            {
+                <small>@stat.Hint</small>
+            }
+        </div>
+    }
+</dl>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PlayerStat> Stats { get; set; } = [];
+}

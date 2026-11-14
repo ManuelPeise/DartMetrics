@@ -1,0 +1,264 @@
+@page "/player/training/segment"
+@using global::Shared.Models.Training
+@inject ITrainingApi TrainingApi
+
+<PageTitle>Segment-Training – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="Training" Title="Segment"
+                  Subtitle="@(_phase == Phase.Setup ? "Wähle ein Zielfeld und triff es so oft wie möglich." : $"Ziel {TargetLabel} · {_numberOfVisits} Aufnahmen")">
+    <Actions>
+        @if (_phase == Phase.Playing)
+        {
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+        }
+        else
+        {
+            <a href="player/training" class="pl-btn pl-btn--link">← Alle Trainings</a>
+        }
+    </Actions>
+</PlayerPageHeader>
+
+@if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" />
+}
+
+@switch (_phase)
+{
+    case Phase.Setup:
+        <div class="pa-setup">
+            <PlayerChoiceGroup Label="Feld" Options="MultiplierOptions" Value="_multiplier" ValueChanged="OnMultiplierChanged" />
+            <PlayerChoiceGroup Label="Segment" Options="SegmentOptions" Value="_segment" ValueChanged="OnSegmentChanged" />
+            <PlayerChoiceGroup Label="Aufnahmen" Options="VisitOptions" @bind-Value="_numberOfVisits" />
+            <div class="pa-setup__actions">
+                <button type="button" class="pl-btn pl-btn--primary" disabled="@_busy" @onclick="StartAsync">
+                    @(_busy ? "Startet …" : $"{TargetLabel} trainieren")
+                </button>
+            </div>
+        </div>
+        break;
+
+    case Phase.Playing:
+        <div class="pa-play">
+            <div class="pa-play__info">
+                <PlayerScoreboard Label="Ziel" Value="@TargetLabel" Status="@_status" Tone="@_tone">
+                    <div class="pa-progress" style="margin-top: 1rem" role="progressbar"
+                         aria-valuemin="0" aria-valuemax="@_numberOfVisits" aria-valuenow="@(_visitNumber - 1)">
+                        <div class="pa-progress__fill" style="width: @((_visitNumber - 1) * 100 / _numberOfVisits)%"></div>
+                    </div>
+                </PlayerScoreboard>
+                <PlayerStatGrid Stats="LiveStats" />
+            </div>
+            <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" Disabled="_busy" />
+        </div>
+        break;
+
+    case Phase.Result when _result is not null:
+        <div class="pa-result">
+            <PlayerScoreboard Label="@($"Trefferquote auf {TargetLabel}")" Value="@($"{_result.HitRate:0.#} %")"
+                              Status="@($"{_result.TotalHits} Treffer bei {_result.TotalThrows} Darts")"
+                              Tone="@(_result.TotalHits > 0 ? "success" : null)" />
+            <PlayerStatGrid Stats="ResultStats" />
+            <div class="pa-setup__actions">
+                <button type="button" class="pl-btn pl-btn--primary" @onclick="Restart">Neues Training</button>
+                <a href="player/training" class="pl-btn pl-btn--ghost">Alle Trainings</a>
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    private enum Phase { Setup, Playing, Result }
+
+    private const int DartsPerVisit = 3;
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> MultiplierOptions =
+    [
+        new(1, "Single"), new(2, "Double"), new(3, "Triple")
+    ];
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> VisitOptions =
+    [
+        new(5, "5"), new(10, "10"), new(20, "20")
+    ];
+
+    private Phase _phase = Phase.Setup;
+    private bool _busy;
+    private string? _error;
+
+    private int _segment = 20;
+    private int _multiplier = 3;
+    private int _numberOfVisits = 10;
+
+    private int _trainingId;
+    private int _visitNumber = 1;
+    private int _throwNumber = 1;
+    private int _hits;
+    private int _dartsThrown;
+    private readonly List<DartThrowInput> _darts = [];
+    private bool _clearDartsOnNext;
+    private string? _status;
+    private string? _tone;
+
+    private SegmentTrainingResult? _result;
+
+    /// <summary>Segmente 1–20 und 25; bei Triple ohne 25.</summary>
+    private IReadOnlyList<PlayerChoice<int>> SegmentOptions =>
+        Enumerable.Range(1, 20).Select(s => new PlayerChoice<int>(s, s.ToString()))
+            .Concat(_multiplier == 3
+                ? Array.Empty<PlayerChoice<int>>()
+                : new[] { new PlayerChoice<int>(25, _multiplier == 2 ? "Bull" : "25") })
+            .ToList();
+
+    private string TargetLabel => new DartThrowInput(_segment, _multiplier).Label;
+
+    private IReadOnlyList<PlayerStat> LiveStats =>
+    [
+        new("Aufnahme", $"{Math.Min(_visitNumber, _numberOfVisits)} / {_numberOfVisits}"),
+        new("Treffer", _hits.ToString()),
+        new("Quote", _dartsThrown == 0 ? "–" : $"{_hits * 100.0 / _dartsThrown:0} %")
+    ];
+
+    private IReadOnlyList<PlayerStat> ResultStats => _result is null ? [] :
+    [
+        new("Treffer", _result.TotalHits.ToString(), Highlight: true),
+        new("Darts", _result.TotalThrows.ToString()),
+        new("Ø Treffer je Aufnahme", $"{_result.AverageHitsPerVisit:0.0}"),
+        new("Ø Punkte je Aufnahme", $"{_result.AverageScorePerVisit:0.0}"),
+        new("Beste Aufnahme", _result.BestVisitScore.ToString()),
+        new("Misses", _result.Misses.ToString())
+    ];
+
+    private void OnMultiplierChanged(int multiplier)
+    {
+        _multiplier = multiplier;
+
+        if (_segment == 25 && multiplier == 3)
+        {
+            _segment = 20;
+        }
+    }
+
+    private void OnSegmentChanged(int segment) => _segment = segment;
+
+    private async Task StartAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await TrainingApi.StartSegmentAsync(new StartSegmentTrainingModel
+        {
+            TargetSegment = _segment,
+            TargetMultiplier = _multiplier,
+            NumberOfVisits = _numberOfVisits
+        });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _trainingId = result.Value;
+        _visitNumber = 1;
+        _throwNumber = 1;
+        _hits = 0;
+        _dartsThrown = 0;
+        _darts.Clear();
+        _clearDartsOnNext = false;
+        _status = null;
+        _tone = null;
+        _phase = Phase.Playing;
+    }
+
+    private async Task AddDartAsync(DartThrowInput dart)
+    {
+        if (_clearDartsOnNext)
+        {
+            _darts.Clear();
+            _clearDartsOnNext = false;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = await TrainingApi.AddSegmentThrowAsync(new SegmentTrainingThrow
+        {
+            TrainingId = _trainingId,
+            VisitNumber = _visitNumber,
+            ThrowNumber = _throwNumber,
+            Segment = dart.Segment,
+            Multiplier = dart.Multiplier
+        });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        var value = result.Value!;
+        _darts.Add(dart);
+        _dartsThrown = value.TotalThrows;
+        _hits = value.TotalHits;
+        _status = value.IsHit ? "Treffer!" : null;
+        _tone = value.IsHit ? "success" : null;
+
+        if (value.IsFinished)
+        {
+            await LoadResultAsync();
+            return;
+        }
+
+        if (value.IsVisitFinished)
+        {
+            _visitNumber++;
+            _throwNumber = 1;
+            _clearDartsOnNext = true;
+        }
+        else
+        {
+            _throwNumber++;
+        }
+    }
+
+    private async Task FinishAsync()
+    {
+        _busy = true;
+        var result = await TrainingApi.FinishSegmentAsync(_trainingId);
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        await LoadResultAsync();
+    }
+
+    private async Task LoadResultAsync()
+    {
+        var result = await TrainingApi.GetSegmentResultAsync(_trainingId);
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _result = result.Value;
+        _phase = Phase.Result;
+    }
+
+    private void Restart()
+    {
+        _result = null;
+        _error = null;
+        _phase = Phase.Setup;
+    }
+}

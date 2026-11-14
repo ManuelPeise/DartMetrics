@@ -1,0 +1,245 @@
+@page "/player/training/checkout"
+@using global::Shared.Models.Shared
+@using global::Shared.Models.Training
+@inject ITrainingApi TrainingApi
+
+<PageTitle>Checkout-Training – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="Training" Title="Checkout"
+                  Subtitle="@(_phase == Phase.Setup ? "Übe ein Finish: bis zu drei Darts pro Versuch, Abschluss mit Double." : $"Ziel {_targetScore} · Double-Out")">
+    <Actions>
+        @if (_phase == Phase.Playing)
+        {
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+        }
+        else
+        {
+            <a href="player/training" class="pl-btn pl-btn--link">← Alle Trainings</a>
+        }
+    </Actions>
+</PlayerPageHeader>
+
+@if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" />
+}
+
+@switch (_phase)
+{
+    case Phase.Setup:
+        <div class="pa-setup">
+            <PlayerChoiceGroup Label="Zielwert" Options="TargetOptions" @bind-Value="_targetScore" />
+            <div class="pl-field">
+                <label for="checkout-target">Eigener Zielwert (2–170)</label>
+                <input id="checkout-target" class="pl-input" type="number" min="2" max="170" inputmode="numeric"
+                       value="@_targetScore" @onchange="OnTargetChanged" />
+            </div>
+            <div class="pa-setup__actions">
+                <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || !IsValidTarget)" @onclick="StartAsync">
+                    @(_busy ? "Startet …" : "Training starten")
+                </button>
+            </div>
+        </div>
+        break;
+
+    case Phase.Playing:
+        <div class="pa-play">
+            <div class="pa-play__info">
+                <PlayerScoreboard Label="@($"Versuch {_attemptNumber} · Rest")" Value="@_remaining.ToString()" Status="@_status" Tone="@_tone">
+                    <CheckoutHint Suggestions="_suggestions" />
+                </PlayerScoreboard>
+                <PlayerStatGrid Stats="LiveStats" />
+            </div>
+            <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" Disabled="_busy" />
+        </div>
+        break;
+
+    case Phase.Result when _result is not null:
+        <div class="pa-result">
+            <PlayerScoreboard Label="@($"Checkout-Quote auf {_result.TargetScore}")" Value="@($"{_result.CheckoutRate:0.#} %")"
+                              Status="@($"{_result.SuccessfulAttempts} von {_result.TotalAttempts} Versuchen")"
+                              Tone="@(_result.SuccessfulAttempts > 0 ? "success" : null)" />
+            <PlayerStatGrid Stats="ResultStats" />
+            <div class="pa-setup__actions">
+                <button type="button" class="pl-btn pl-btn--primary" @onclick="Restart">Neues Training</button>
+                <a href="player/training" class="pl-btn pl-btn--ghost">Alle Trainings</a>
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    private enum Phase { Setup, Playing, Result }
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> TargetOptions =
+    [
+        new(40, "40", "D20"),
+        new(81, "81", "T19 · D12"),
+        new(100, "100", "T20 · D20"),
+        new(121, "121", "3 Darts"),
+        new(170, "170", "Big Fish")
+    ];
+
+    private Phase _phase = Phase.Setup;
+    private bool _busy;
+    private string? _error;
+
+    private int _targetScore = 40;
+
+    private int _trainingId;
+    private int _attemptNumber = 1;
+    private int _throwNumber = 1;
+    private int _remaining;
+    private int _successful;
+    private int _dartsThrown;
+    private readonly List<DartThrowInput> _darts = [];
+    private bool _clearDartsOnNext;
+    private List<CheckoutSuggestion>? _suggestions;
+    private string? _status;
+    private string? _tone;
+
+    private CheckoutTrainingResult? _result;
+
+    private bool IsValidTarget => _targetScore is >= 2 and <= 170;
+
+    private IReadOnlyList<PlayerStat> LiveStats =>
+    [
+        new("Versuche", (_attemptNumber - 1).ToString()),
+        new("Checkouts", _successful.ToString()),
+        new("Quote", _attemptNumber <= 1 ? "–" : $"{_successful * 100.0 / (_attemptNumber - 1):0} %"),
+        new("Darts", _dartsThrown.ToString())
+    ];
+
+    private IReadOnlyList<PlayerStat> ResultStats => _result is null ? [] :
+    [
+        new("Checkouts", _result.SuccessfulAttempts.ToString(), Highlight: true),
+        new("Versuche", _result.TotalAttempts.ToString()),
+        new("Darts", _result.TotalThrows.ToString()),
+        new("Ø Darts je Checkout", _result.SuccessfulAttempts == 0 ? "–" : $"{_result.AverageDartsPerCheckout:0.0}"),
+        new("Schnellster Checkout", _result.SuccessfulAttempts == 0 ? "–" : $"{_result.FewestDartsForCheckout} Darts"),
+        new("Ø pro Dart", $"{_result.AverageScorePerThrow:0.0}")
+    ];
+
+    private void OnTargetChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value))
+        {
+            _targetScore = value;
+        }
+    }
+
+    private async Task StartAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        var result = await TrainingApi.StartCheckoutAsync(new StartCheckoutTrainingModel { TargetScore = _targetScore });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _trainingId = result.Value;
+        _attemptNumber = 1;
+        _throwNumber = 1;
+        _remaining = _targetScore;
+        _successful = 0;
+        _dartsThrown = 0;
+        _darts.Clear();
+        _clearDartsOnNext = false;
+        _suggestions = null;
+        _status = null;
+        _tone = null;
+        _phase = Phase.Playing;
+    }
+
+    private async Task AddDartAsync(DartThrowInput dart)
+    {
+        if (_clearDartsOnNext)
+        {
+            _darts.Clear();
+            _clearDartsOnNext = false;
+            _remaining = _targetScore;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = await TrainingApi.AddCheckoutThrowAsync(new CheckoutTrainingThrow
+        {
+            TrainingId = _trainingId,
+            AttemptNumber = _attemptNumber,
+            ThrowNumber = _throwNumber,
+            Segment = dart.Segment,
+            Multiplier = dart.Multiplier
+        });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        var value = result.Value!;
+        _darts.Add(dart);
+        _dartsThrown++;
+        _successful = value.SuccessfulAttempts;
+        _remaining = value.IsCheckout ? 0 : value.RemainingScore;
+        _suggestions = value.CheckoutSuggestions;
+
+        if (value.IsAttemptFinished)
+        {
+            (_status, _tone) = value.IsCheckout ? ("Checkout! Nächster Versuch", "success")
+                : value.IsBust ? ("Bust – nächster Versuch", "danger")
+                : ("Nicht geschafft – nächster Versuch", (string?)null);
+
+            _attemptNumber++;
+            _throwNumber = 1;
+            _clearDartsOnNext = true;
+            _suggestions = null;
+        }
+        else
+        {
+            _status = null;
+            _tone = null;
+            _throwNumber++;
+        }
+    }
+
+    private async Task FinishAsync()
+    {
+        _busy = true;
+        var result = await TrainingApi.FinishCheckoutAsync(_trainingId);
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        var loaded = await TrainingApi.GetCheckoutResultAsync(_trainingId);
+
+        if (!loaded.IsSuccess)
+        {
+            _error = loaded.Error;
+            return;
+        }
+
+        _result = loaded.Value;
+        _phase = Phase.Result;
+    }
+
+    private void Restart()
+    {
+        _result = null;
+        _error = null;
+        _phase = Phase.Setup;
+    }
+}

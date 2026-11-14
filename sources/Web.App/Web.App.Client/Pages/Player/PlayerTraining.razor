@@ -3,37 +3,19 @@
 <PageTitle>Training – DartMetrics</PageTitle>
 
 <PlayerPageHeader Eyebrow="Üben" Title="Training"
-                  Subtitle="X01, Around the Clock, Checkout und Segment – jeder Dart zählt." />
+                  Subtitle="Wähle ein Training. Jeder Dart wird einzeln erfasst und ausgewertet." />
 
-<PlayerEmptyState Icon="PlayerIconName.Training" Title="Kommt bald"
-                  Text="Die Trainings werden im nächsten Schritt freigeschaltet. Die Wurfeingabe kannst du unten schon ausprobieren." />
-
-<section class="pa-section" aria-labelledby="pad-title">
-    <h2 class="pa-section__title" id="pad-title">Wurfeingabe testen</h2>
-    <p class="pa-page-subtitle" style="margin-bottom: 1rem">Nur zur Vorschau – es wird nichts gespeichert.</p>
-
-    <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="Undo" CanUndo="@(_darts.Count > 0)" />
-</section>
-
-@code {
-    // Vorschau: eine Aufnahme mit bis zu drei Darts, danach beginnt die nächste.
-    private readonly List<DartThrowInput> _darts = [];
-
-    private void AddDart(DartThrowInput dart)
-    {
-        if (_darts.Count == 3)
-        {
-            _darts.Clear();
-        }
-
-        _darts.Add(dart);
-    }
-
-    private void Undo()
-    {
-        if (_darts.Count > 0)
-        {
-            _darts.RemoveAt(_darts.Count - 1);
-        }
-    }
-}
+<div class="pa-grid">
+    <PlayerCard Title="X01" Icon="PlayerIconName.Training" Href="player/training/x01"
+                Text="301 oder 501 allein spielen – mit Straight- oder Double-In und Double- oder Master-Out."
+                Meta="Starten →" />
+    <PlayerCard Title="Around the Clock" Icon="PlayerIconName.Play" Href="player/training/around-the-clock" Accent="green"
+                Text="Triff die Segmente 1 bis 20 der Reihe nach, danach 25 und Bull."
+                Meta="Starten →" />
+    <PlayerCard Title="Checkout" Icon="PlayerIconName.Chart" Href="player/training/checkout" Accent="red"
+                Text="Übe ein Finish immer wieder: bis zu drei Darts pro Versuch, Double-Out."
+                Meta="Starten →" />
+    <PlayerCard Title="Segment" Icon="PlayerIconName.Training" Href="player/training/segment"
+                Text="Ein Zielfeld über mehrere Aufnahmen treffen – Trefferquote im Blick."
+                Meta="Starten →" />
+</div>

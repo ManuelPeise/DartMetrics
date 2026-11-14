@@ -1,0 +1,23 @@
+@* Große Hauptanzeige während eines Trainings (Rest, Ziel …) mit optionaler Statuszeile. *@
+<section class="pa-scoreboard @(Tone switch { "success" => "pa-scoreboard--success", "danger" => "pa-scoreboard--danger", _ => "" })" aria-live="polite">
+    <p class="pa-scoreboard__label">@Label</p>
+    <p class="pa-scoreboard__value">@Value</p>
+    @if (!string.IsNullOrEmpty(Status))
+    {
+        <p class="pa-scoreboard__status">@Status</p>
+    }
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    [Parameter] public string? Status { get; set; }
+
+    /// <summary>"success", "danger" oder leer.</summary>
+    [Parameter] public string? Tone { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

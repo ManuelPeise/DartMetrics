@@ -506,3 +506,194 @@ a.pa-card:hover {
 
     .pa-pad__key, .pa-pad__mod { min-height: 52px; }
 }
+
+/* ==========================================================================
+   Training: Auswahl, Spielansicht, Ergebnis
+   ========================================================================== */
+
+.pa-setup {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 640px;
+    padding: 1.5rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+}
+
+.pa-choice {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.pa-choice__label {
+    margin-bottom: 0.5rem;
+    color: var(--pl-ink-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.pa-choice__options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.5rem;
+}
+
+.pa-choice__option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: var(--pa-touch);
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pl-wood-950);
+    color: var(--pl-ink);
+    font: 600 0.95rem var(--pl-font-body);
+    cursor: pointer;
+    transition: border-color var(--pa-transition), background var(--pa-transition);
+}
+
+    .pa-choice__option small { color: var(--pl-ink-muted); font-size: 0.72rem; font-weight: 400; }
+
+    .pa-choice__option:hover:not(:disabled) { border-color: rgba(209, 164, 95, 0.5); }
+
+    .pa-choice__option.is-selected {
+        border-color: var(--pl-brass);
+        background: rgba(209, 164, 95, 0.16);
+        color: var(--pl-brass-strong);
+    }
+
+.pa-setup__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.pa-play {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.pa-play__info { display: grid; gap: 1rem; }
+
+.pa-scoreboard {
+    padding: 1.5rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background:
+        linear-gradient(135deg, rgba(209, 164, 95, 0.12), transparent 60%),
+        var(--pa-surface);
+    text-align: center;
+}
+
+.pa-scoreboard__label {
+    margin: 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.pa-scoreboard__value {
+    margin: 0.25rem 0;
+    font-family: var(--pl-font-display);
+    font-size: clamp(3.5rem, 9vw, 5.5rem);
+    font-weight: 700;
+    line-height: 1;
+}
+
+.pa-scoreboard__status {
+    margin: 0;
+    color: var(--pl-brass-strong);
+    font-weight: 600;
+}
+
+.pa-scoreboard--success { border-color: rgba(31, 138, 59, 0.7); }
+
+    .pa-scoreboard--success .pa-scoreboard__status { color: #cdeed6; }
+
+.pa-scoreboard--danger { border-color: rgba(200, 35, 47, 0.7); }
+
+    .pa-scoreboard--danger .pa-scoreboard__status { color: #ffd2d5; }
+
+.pa-checkout-hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.75rem 0 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.8rem;
+}
+
+    .pa-checkout-hint strong {
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(209, 164, 95, 0.16);
+        color: var(--pl-brass-strong);
+        font-size: 0.85rem;
+    }
+
+.pa-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.6rem;
+    margin: 0;
+}
+
+.pa-stat {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pa-surface);
+}
+
+    .pa-stat dt {
+        color: var(--pl-ink-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .pa-stat dd {
+        margin: 0.2rem 0 0;
+        font-family: var(--pl-font-display);
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .pa-stat small { color: var(--pl-ink-muted); font-size: 0.72rem; }
+
+.pa-stat--highlight { border-color: rgba(209, 164, 95, 0.6); }
+
+    .pa-stat--highlight dd { color: var(--pl-brass-strong); }
+
+.pa-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--pl-line);
+    overflow: hidden;
+}
+
+.pa-progress__fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--pl-brass);
+    transition: width 0.3s ease;
+}
+
+.pa-result { display: grid; gap: 1.25rem; }
+
+@media (max-width: 1023px) {
+    .pa-play { grid-template-columns: minmax(0, 1fr); }
+}

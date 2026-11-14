@@ -1,0 +1,18 @@
+@using global::Shared.Models.Shared
+@* Zeigt den ersten (empfohlenen) Checkout-Weg, z. B. "T20 · T20 · D20". *@
+@if (Suggestions is { Count: > 0 })
+{
+    <p class="pa-checkout-hint">
+        <span>Checkout</span>
+        @foreach (var dart in Suggestions[0].Darts)
+        {
+            <strong>@Label(dart)</strong>
+        }
+    </p>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<CheckoutSuggestion>? Suggestions { get; set; }
+
+    private static string Label(CheckoutDart dart) => new DartThrowInput(dart.Segment, dart.Multiplier).Label;
+}

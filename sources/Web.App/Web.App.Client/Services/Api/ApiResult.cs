@@ -57,6 +57,23 @@ namespace Web.App.Client.Services.Api
             }
         }
 
+        /// <summary>Für Aufrufe ohne Antwortinhalt (z. B. Beenden): true bei Erfolg.</summary>
+        public static async Task<ApiResult<bool>> ExecuteAsync(Task<HttpResponseMessage> request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                using var response = await request;
+
+                return response.IsSuccessStatusCode
+                    ? ApiResult<bool>.Success(true)
+                    : ApiResult<bool>.Failure(await ReadErrorAsync(response, cancellationToken));
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<bool>.Failure("Der Server ist nicht erreichbar. Bitte später erneut versuchen.");
+            }
+        }
+
         private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             try

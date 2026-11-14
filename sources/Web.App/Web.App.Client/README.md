@@ -10,14 +10,16 @@ Layout/               MainLayout (Fallback), PublicLayout (öffentliche Seiten),
 Layout/Player/        PlayerLayout, PlayerTopBar, PlayerBottomNav, PlayerNavigation (Menü + Rollen)
 Components/Player/    Bausteine des Spieler-Bereichs: PlayerCard, PlayerPageHeader, PlayerIcon,
                       PlayerEmptyState, PlayerLoadingState, PlayerErrorState,
-                      DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel)
+                      DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel),
+                      PlayerChoiceGroup, PlayerScoreboard, PlayerStatGrid, CheckoutHint
 Pages/                Home, Login, Logout, Register, VerifyEmail, AccessDenied, NotFound
-Pages/Player/         Start, Training, Gegen Bot spielen, Statistiken, Profil
+Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen, Statistiken, Profil
+  Training/           X01, Around the Clock, Checkout, Segment (Einstellung → Spiel → Ergebnis)
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
 Routing/AppAreas      Grenze zwischen WASM und Server-Bereich (/admin)
 Services/             AccountService (Login, Registrierung, E-Mail-Bestätigung, Logout über /bff),
                       ApiClient (API über den BFF-Proxy /bff/api/**), BffHttpClient + CsrfHeaderHandler
-Services/Api/         Typisierte API-Clients je Fachbereich (IProfileApi, IBotGameApi), ApiResult<T>
+Services/Api/         Typisierte API-Clients je Fachbereich (IProfileApi, IBotGameApi, ITrainingApi), ApiResult<T>
 ```
 
 Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Spieler-Bereich, Präfix `pa-`), beide in `Web.App/wwwroot/css`.

@@ -96,6 +96,7 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | `AuthenticationStateProvider` | `BffAuthenticationStateProvider` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Anmeldestatus aus `/bff/user` |
 | – | `CsrfHeaderHandler` | [Web.App.Client](Web.App/Web.App.Client/README.md) | T | Setzt den CSRF-Header für BFF-Aufrufe |
 | `IProfileApi` | `ProfileApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetProfileAsync` (Profile/GetProfile) |
+| `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
 | `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetAvailableBotsAsync` (DartBotGame/GetAvailableDartBots) |
 
 ## Web-Bereiche
