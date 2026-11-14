@@ -40,7 +40,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Docker läuft nicht. Bitte Docker Desktop star
 
 if (-not (Test-Path (Join-Path $root '.env'))) { throw '.env fehlt im Lösungsordner.' }
 
-$services = if ($All) { @() } else { @('api') }   # leer = alle Dienste
+# [string[]] erzwingt ein Array: sonst wird ein einzelnes 'api' zum String, und @services
+# splattet ihn zeichenweise ('a', 'p', 'i') -> "no such service: a".
+[string[]] $services = if ($All) { @() } else { @('api') }   # leer = alle Dienste
 
 if ($Pull) {
     Invoke-Step 'Neue Basis-Images holen' { docker compose pull --ignore-buildable @services }

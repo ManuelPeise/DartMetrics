@@ -8,9 +8,12 @@ WORKDIR /src
 COPY Web.Core/Web.Core.csproj                         Web.Core/
 COPY Service.Api/Service.Api.csproj                   Service.Api/
 COPY Data.DartContext/Data.DartContext.csproj         Data.DartContext/
+COPY Logic.Administration/Logic.Administration.csproj Logic.Administration/
 COPY Logic.Authentication/Logic.Authentication.csproj Logic.Authentication/
+COPY Logic.Bot/Logic.Bot.csproj                       Logic.Bot/
 COPY Logic.Profile/Logic.Profile.csproj               Logic.Profile/
 COPY Logic.Shared/Logic.Shared.csproj                 Logic.Shared/
+COPY Logic.Training/Logic.Training.csproj             Logic.Training/
 COPY Shared.Enums/Shared.Enums.csproj                 Shared.Enums/
 COPY Shared.Interfaces/Shared.Interfaces.csproj       Shared.Interfaces/
 COPY Shared.Models/Shared.Models.csproj               Shared.Models/
