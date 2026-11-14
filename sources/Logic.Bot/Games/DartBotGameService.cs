@@ -635,7 +635,16 @@ namespace Logic.Bot.Games
                 BotRatingAfter = botPlayer.RatingAfter,
                 StartedAt = game.StartedAt,
                 FinishedAt = game.FinishedAt,
-                CurrentLegVisits = leg.Visits
+                CurrentLegVisits = ToVisitSummaries(leg, botPlayer),
+                PreviousLegVisits = game.Legs.FirstOrDefault(l => l.LegNumber == leg.LegNumber - 1) is { } previousLeg
+                    ? ToVisitSummaries(previousLeg, botPlayer)
+                    : []
+            };
+        }
+
+        private static List<DartBotVisitSummary> ToVisitSummaries(DartBotGameLegEntity leg, DartBotGamePlayerEntity botPlayer)
+        {
+            return leg.Visits
                     .OrderBy(v => v.TurnNumber)
                     .Select(v => new DartBotVisitSummary
                     {
@@ -660,8 +669,8 @@ namespace Logic.Bot.Games
                             })
                             .ToList()
                     })
-                    .ToList()
-            };
+                    .ToList();
         }
+
     }
 }

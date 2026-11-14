@@ -58,6 +58,12 @@ namespace Shared.Models.Bot
 
         /// <summary>Alle Aufnahmen des aktuellen (bzw. letzten) Legs in zeitlicher Reihenfolge.</summary>
         public List<DartBotVisitSummary> CurrentLegVisits { get; set; } = [];
+
+        /// <summary>
+        /// Aufnahmen des vorherigen Legs (leer im ersten Leg). Nach einem Leg-Wechsel enthält es den entscheidenden
+        /// Checkout, der in CurrentLegVisits nicht mehr vorkommt.
+        /// </summary>
+        public List<DartBotVisitSummary> PreviousLegVisits { get; set; } = [];
     }
 
     public class DartBotVisitSummary

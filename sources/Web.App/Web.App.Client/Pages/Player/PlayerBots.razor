@@ -371,17 +371,19 @@
         }
     }
 
-    /// <summary>Neue Aufnahmen seit dem letzten Stand (im neuen Leg: alle Aufnahmen dieses Legs).</summary>
+    /// <summary>
+    /// Neue Aufnahmen seit dem letzten Stand. Nach einem Leg-Wechsel: der Rest des alten Legs (inkl. Checkout)
+    /// aus PreviousLegVisits und alle Aufnahmen des neuen Legs.
+    /// </summary>
     private static List<DartBotVisitSummary> FindNewVisits(DartBotGameState previous, DartBotGameState current, bool isBot)
     {
-        var lastKnownTurn = current.CurrentLegNumber == previous.CurrentLegNumber
-            ? previous.CurrentLegVisits.Select(v => v.TurnNumber).DefaultIfEmpty(0).Max()
-            : 0;
+        var lastKnownTurn = previous.CurrentLegVisits.Select(v => v.TurnNumber).DefaultIfEmpty(0).Max();
 
-        return current.CurrentLegVisits
-            .Where(v => v.IsBot == isBot && v.TurnNumber > lastKnownTurn)
-            .OrderBy(v => v.TurnNumber)
-            .ToList();
+        var visits = current.CurrentLegNumber == previous.CurrentLegNumber
+            ? current.CurrentLegVisits.Where(v => v.TurnNumber > lastKnownTurn)
+            : current.PreviousLegVisits.Where(v => v.TurnNumber > lastKnownTurn).Concat(current.CurrentLegVisits);
+
+        return visits.Where(v => v.IsBot == isBot).ToList();
     }
 
     private async Task AnimateBotVisitAsync(DartBotVisitSummary visit)
