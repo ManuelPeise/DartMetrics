@@ -1,4 +1,4 @@
-# CLAUDE.md – DartMetrics
+﻿# CLAUDE.md – DartMetrics
 
 Arbeitsregeln für Claude (und alle anderen) in dieser Lösung.
 
@@ -128,7 +128,8 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 ## Arbeitsablauf
 
 - Branches: `feature/#<Nr>-<kurzbeschreibung>` (z. B. `feature/#07-implement-bot-ai`), Merge nach `master`.
-- Vor dem Commit: Solution bauen (`dotnet build DartMetrics.slnx`), bei Datenmodelländerungen Migration anlegen und prüfen.
+- Vor dem Commit: Solution bauen (`dotnet build DartMetrics.slnx`) und Tests laufen lassen (`dotnet test DartMetrics.slnx`), bei Datenmodelländerungen Migration anlegen und prüfen.
+- Tests: `Logic.Bot.Tests` (xUnit, ohne Datenbank). Zufall über `IRandomSource` injizieren, nie `Random` direkt verwenden.
 - Deployment der API: `scripts/update-containers.ps1` bzw. `.sh` (baut nur die API neu, Daten bleiben).
 
 ## Bekannte offene Punkte

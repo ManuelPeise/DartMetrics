@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/01 Web/">
     <Project Path="Web.App/Web.App.Client/Web.App.Client.csproj" Id="9603d7e2-c96e-49f9-a41c-aa6e76d100fe" />
     <Project Path="Web.App/Web.App/Web.App.csproj" Id="8697e861-1540-42ed-a099-2c8ef7b35c18" />
@@ -15,6 +15,9 @@
     <Project Path="Logic.Profile/Logic.Profile.csproj" Id="39721a6e-6c50-4624-8603-c742251272f0" />
     <Project Path="Logic.Shared/Logic.Shared.csproj" Id="537fad96-5606-4f25-8fbd-a9fa3602404f" />
     <Project Path="Logic.Training/Logic.Training.csproj" Id="e095f72b-64d7-4b95-a682-ce110d1c1ca3" />
+  </Folder>
+  <Folder Name="/06 Tests/">
+    <Project Path="Logic.Bot.Tests/Logic.Bot.Tests.csproj" />
   </Folder>
   <Folder Name="/04 Data/">
     <Project Path="Data.DartContext/Data.DartContext.csproj" Id="d8d659d5-2abb-4846-87dd-9ca774ffd5a5" />
