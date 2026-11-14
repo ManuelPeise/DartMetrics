@@ -845,3 +845,36 @@ a.pa-card:hover {
 @media (prefers-reduced-motion: reduce) {
     .pa-bot-dart { animation: none; }
 }
+
+/* Profil: Elo-Verlauf */
+.pa-section__hint { color: var(--pl-ink-muted); margin: 0.75rem 0 0; }
+
+.pa-history {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    border: 1px solid var(--pl-line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+    .pa-history__item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.7rem 1rem;
+        border-top: 1px solid var(--pl-line);
+    }
+
+        .pa-history__item:first-child { border-top: 0; }
+
+        .pa-history__item strong { display: block; }
+
+        .pa-history__item small { color: var(--pl-ink-muted); font-size: 0.75rem; }
+
+    .pa-history__rating { font-weight: 700; white-space: nowrap; }
+
+        .pa-history__rating.is-up small { color: #cdeed6; }
+
+        .pa-history__rating.is-down small { color: rgba(200, 35, 47, 0.9); }

@@ -31,9 +31,9 @@ namespace Logic.Profile
 
                 var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.Id == currentUser.UserId);
                 
-                if(userEntity == null || userEntity.UserCredentials == null)
+                if(userEntity == null)
                 {
-                    throw new ArgumentException("User not found in database.");
+                    throw new KeyNotFoundException("User not found in database.");
                 }
 
                 return new UserProfileModel
@@ -67,9 +67,11 @@ namespace Logic.Profile
 
                 EnsureModelNotNull(userEntity, "Could not find user in database.");
 
-                userEntity.FirstName = model.FirstName;
-                userEntity.LastName = model.LastName;
-                userEntity.DisplayName = model.DisplayName;
+                userEntity.FirstName = RequiredName(model.FirstName, nameof(model.FirstName));
+                userEntity.LastName = RequiredName(model.LastName, nameof(model.LastName));
+                userEntity.DisplayName = string.IsNullOrWhiteSpace(model.DisplayName)
+                    ? null
+                    : LimitedName(model.DisplayName.Trim(), nameof(model.DisplayName));
 
                 await UnitOfWork.SaveChangesAsync();
 
@@ -131,8 +133,27 @@ namespace Logic.Profile
             catch (Exception exception)
             {
                 await MessageLog.LogMessage("An error occurred while changing password.", nameof(UserProfileService), exception);
+
+                throw;
             }
         }
+
+        private const int MaxNameLength = 100;
+
+        private static string RequiredName(string? value, string field)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException($"{field} is required.", field);
+            }
+
+            return LimitedName(value.Trim(), field);
+        }
+
+        private static string LimitedName(string value, string field) =>
+            value.Length <= MaxNameLength
+                ? value
+                : throw new ArgumentException($"{field} must not exceed {MaxNameLength} characters.", field);
 
         private void EnsureModelNotNull<TModel>(TModel model, string error)
         {

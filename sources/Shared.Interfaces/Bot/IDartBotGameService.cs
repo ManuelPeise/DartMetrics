@@ -19,6 +19,9 @@ namespace Shared.Interfaces.Bot
         /// <summary>Laufendes Spiel des aktuellen Benutzers (das zuletzt gestartete) oder null.</summary>
         Task<DartBotGameState?> GetRunningGameAsync();
 
+        /// <summary>Elo-Verlauf des aktuellen Benutzers, neueste zuerst.</summary>
+        Task<List<DartBotRatingHistoryEntry>> GetRatingHistoryAsync(int take);
+
         /// <summary>Aktive Bots für die Gegnerwahl, sortiert nach Level.</summary>
         Task<List<DartBotSummary>> GetAvailableBotsAsync();
     }

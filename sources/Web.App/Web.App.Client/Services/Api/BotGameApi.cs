@@ -1,4 +1,4 @@
-using global::Shared.Models.Bot;
+﻿using global::Shared.Models.Bot;
 
 namespace Web.App.Client.Services.Api
 {
@@ -15,6 +15,9 @@ namespace Web.App.Client.Services.Api
 
         public Task<ApiResult<List<DartBotSummary>>> GetAvailableBotsAsync(CancellationToken ct = default) =>
             ApiResponse.ReadAsync<List<DartBotSummary>>(_api.GetAsync(Controller + "GetAvailableDartBots", ct), ct);
+
+        public Task<ApiResult<List<DartBotRatingHistoryEntry>>> GetRatingHistoryAsync(int take = 20, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<List<DartBotRatingHistoryEntry>>(_api.GetAsync($"{Controller}GetDartBotRatingHistory?take={take}", ct), ct);
 
         public Task<ApiResult<DartBotGameState?>> GetRunningGameAsync(CancellationToken ct = default) =>
             ApiResponse.ReadOptionalAsync<DartBotGameState>(_api.GetAsync(Controller + "GetRunningDartBotGame", ct), ct);

@@ -1,8 +1,257 @@
 @page "/player/profile"
+@using global::Shared.Models.Authentication
+@using global::Shared.Models.Bot
+@using global::Shared.Models.User
+@inject IProfileApi ProfileApi
+@inject IBotGameApi BotGameApi
 
 <PageTitle>Profil – DartMetrics</PageTitle>
 
-<PlayerPageHeader Eyebrow="Konto" Title="Profil" Subtitle="Deine Daten und dein Passwort." />
+<PlayerPageHeader Eyebrow="Konto" Title="Profil" Subtitle="Deine Wertung, deine Daten und dein Passwort." />
 
-<PlayerEmptyState Icon="PlayerIconName.User" Title="Kommt bald"
-                  Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+@if (_loading)
+{
+    <PlayerLoadingState />
+}
+else if (_profile is null)
+{
+    <PlayerErrorState Text="@(_loadError ?? "Das Profil konnte nicht geladen werden.")" OnRetry="LoadAsync" />
+}
+else
+{
+    <section class="pa-section" aria-labelledby="elo-title">
+        <h2 class="pa-section__title" id="elo-title">Elo</h2>
+        <PlayerStatGrid Stats="EloStats" />
+
+        @if (_history is { Count: > 0 })
+        {
+            <ul class="pa-history" aria-label="Letzte Bot-Spiele">
+                @foreach (var entry in _history)
+                {
+                    var diff = entry.RatingAfter - entry.RatingBefore;
+                    <li class="pa-history__item">
+                        <span>
+                            <strong>@(entry.IsWin ? "Sieg" : "Niederlage") gegen @entry.OpponentName</strong>
+                            <small>@entry.FinishedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+                        </span>
+                        <span class="pa-history__rating @(diff >= 0 ? "is-up" : "is-down")">
+                            @entry.RatingAfter <small>@(diff >= 0 ? $"+{diff}" : diff.ToString())</small>
+                        </span>
+                    </li>
+                }
+            </ul>
+        }
+        else if (_historyError is null)
+        {
+            <p class="pa-section__hint">Noch keine gewerteten Spiele. Spiele gegen einen Bot, um deine Wertung zu verändern.</p>
+        }
+        else
+        {
+            <p class="pl-alert" role="alert">@_historyError</p>
+        }
+    </section>
+
+    <section class="pa-section" aria-labelledby="data-title">
+        <h2 class="pa-section__title" id="data-title">Persönliche Daten</h2>
+
+        <form class="pl-form" @onsubmit="SaveProfileAsync" @onsubmit:preventDefault>
+            @if (_profileMessage is not null)
+            {
+                <p class="pl-alert @(_profileSaved ? "pl-alert--success" : "")" role="@(_profileSaved ? "status" : "alert")">@_profileMessage</p>
+            }
+
+            <div class="pl-field">
+                <label for="firstName">Vorname</label>
+                <input id="firstName" class="pl-input" autocomplete="given-name" maxlength="100" @bind="_firstName" />
+            </div>
+            <div class="pl-field">
+                <label for="lastName">Nachname</label>
+                <input id="lastName" class="pl-input" autocomplete="family-name" maxlength="100" @bind="_lastName" />
+            </div>
+            <div class="pl-field">
+                <label for="displayName">Anzeigename <span class="pl-optional">optional</span></label>
+                <input id="displayName" class="pl-input" autocomplete="nickname" maxlength="100" @bind="_displayName" />
+            </div>
+            <div class="pl-field">
+                <label for="email">E-Mail</label>
+                <input id="email" class="pl-input" value="@_profile.EmailAddress" readonly />
+            </div>
+
+            <button type="submit" class="pl-btn pl-btn--primary" disabled="@_savingProfile">
+                @(_savingProfile ? "Speichert …" : "Speichern")
+            </button>
+        </form>
+    </section>
+
+    <section class="pa-section" aria-labelledby="password-title">
+        <h2 class="pa-section__title" id="password-title">Passwort ändern</h2>
+
+        <form class="pl-form" @onsubmit="ChangePasswordAsync" @onsubmit:preventDefault>
+            @if (_passwordMessage is not null)
+            {
+                <p class="pl-alert @(_passwordChanged ? "pl-alert--success" : "")" role="@(_passwordChanged ? "status" : "alert")">@_passwordMessage</p>
+            }
+
+            <div class="pl-field">
+                <label for="currentPassword">Aktuelles Passwort</label>
+                <input id="currentPassword" type="password" class="pl-input" autocomplete="current-password" @bind="_currentPassword" />
+            </div>
+            <div class="pl-field">
+                <label for="newPassword">Neues Passwort</label>
+                <input id="newPassword" type="password" class="pl-input" autocomplete="new-password" @bind="_newPassword" />
+            </div>
+            <div class="pl-field">
+                <label for="repeatPassword">Neues Passwort wiederholen</label>
+                <input id="repeatPassword" type="password" class="pl-input" autocomplete="new-password" @bind="_repeatPassword" />
+            </div>
+
+            <button type="submit" class="pl-btn pl-btn--primary" disabled="@_changingPassword">
+                @(_changingPassword ? "Ändert …" : "Passwort ändern")
+            </button>
+        </form>
+    </section>
+}
+
+@code {
+    private const int HistoryCount = 20;
+
+    private bool _loading = true;
+    private string? _loadError;
+    private UserProfileModel? _profile;
+
+    private List<DartBotRatingHistoryEntry>? _history;
+    private string? _historyError;
+
+    private string? _firstName;
+    private string? _lastName;
+    private string? _displayName;
+    private bool _savingProfile;
+    private bool _profileSaved;
+    private string? _profileMessage;
+
+    private string? _currentPassword;
+    private string? _newPassword;
+    private string? _repeatPassword;
+    private bool _changingPassword;
+    private bool _passwordChanged;
+    private string? _passwordMessage;
+
+    private IReadOnlyList<PlayerStat> EloStats
+    {
+        get
+        {
+            IReadOnlyList<DartBotRatingHistoryEntry> games = _history ?? [];
+            var wins = games.Count(g => g.IsWin);
+
+            return
+            [
+                new("Aktuell", _profile?.Rating.ToString() ?? "–", Highlight: true),
+                new("Spiele", games.Count.ToString(), Hint: games.Count == HistoryCount ? "letzte 20" : null),
+                new("Siege", wins.ToString()),
+                new("Bestwert", games.Count == 0 ? "–" : games.Max(g => g.RatingAfter).ToString())
+            ];
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+
+        var historyTask = BotGameApi.GetRatingHistoryAsync(HistoryCount);
+        var profile = await ProfileApi.GetProfileAsync();
+        var history = await historyTask;
+
+        _profile = profile.Value;
+        _loadError = profile.Error;
+        _history = history.Value;
+        _historyError = history.IsSuccess ? null : "Der Elo-Verlauf ist gerade nicht erreichbar.";
+
+        if (_profile is not null)
+        {
+            _firstName = _profile.FirstName;
+            _lastName = _profile.LastName;
+            _displayName = _profile.DisplayName;
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        _profileSaved = false;
+
+        if (string.IsNullOrWhiteSpace(_firstName) || string.IsNullOrWhiteSpace(_lastName))
+        {
+            _profileMessage = "Vor- und Nachname sind erforderlich.";
+            return;
+        }
+
+        _savingProfile = true;
+        _profileMessage = null;
+
+        var result = await ProfileApi.UpdateProfileAsync(new UserProfileModel
+        {
+            UserId = _profile!.UserId,
+            FirstName = _firstName.Trim(),
+            LastName = _lastName.Trim(),
+            DisplayName = string.IsNullOrWhiteSpace(_displayName) ? null : _displayName.Trim(),
+            EmailAddress = _profile.EmailAddress
+        });
+
+        _savingProfile = false;
+
+        if (!result.IsSuccess)
+        {
+            _profileMessage = result.Error;
+            return;
+        }
+
+        _profile.FirstName = result.Value!.FirstName;
+        _profile.LastName = result.Value.LastName;
+        _profile.DisplayName = result.Value.DisplayName;
+        _profileSaved = true;
+        _profileMessage = "Gespeichert.";
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        _passwordChanged = false;
+
+        if (string.IsNullOrEmpty(_currentPassword) || string.IsNullOrEmpty(_newPassword))
+        {
+            _passwordMessage = "Bitte aktuelles und neues Passwort eingeben.";
+            return;
+        }
+
+        if (_newPassword != _repeatPassword)
+        {
+            _passwordMessage = "Die neuen Passwörter stimmen nicht überein.";
+            return;
+        }
+
+        _changingPassword = true;
+        _passwordMessage = null;
+
+        var result = await ProfileApi.ChangePasswordAsync(new ChangePasswordRequest
+        {
+            CurrentPassword = _currentPassword,
+            Password = _newPassword,
+            PasswordReplication = _repeatPassword
+        });
+
+        _changingPassword = false;
+
+        if (!result.IsSuccess)
+        {
+            _passwordMessage = result.Error;
+            return;
+        }
+
+        _currentPassword = _newPassword = _repeatPassword = null;
+        _passwordChanged = true;
+        _passwordMessage = "Passwort geändert.";
+    }
+}

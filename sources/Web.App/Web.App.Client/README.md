@@ -13,7 +13,7 @@ Components/Player/    Bausteine des Spieler-Bereichs: PlayerCard, PlayerPageHead
                       DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel),
                       PlayerChoiceGroup, PlayerScoreboard, PlayerStatGrid, CheckoutHint
 Pages/                Home, Login, Logout, Register, VerifyEmail, AccessDenied, NotFound
-Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken, Profil
+Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken, Profil (Elo + Verlauf, Daten, Passwort)
   Training/           X01, Around the Clock, Checkout, Segment (Einstellung → Spiel → Ergebnis; offenes Training wird beim Öffnen fortgesetzt)
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
 Routing/AppAreas      Grenze zwischen WASM und Server-Bereich (/admin)

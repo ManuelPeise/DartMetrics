@@ -49,6 +49,12 @@ namespace Service.Api.Controllers.Bot
             return state is null ? NoContent() : Ok(state);
         }
 
+        [HttpGet(Name = "GetDartBotRatingHistory")]
+        public async Task<IActionResult> GetDartBotRatingHistory([FromQuery] int take = 20)
+        {
+            return Ok(await _dartBotGameService.GetRatingHistoryAsync(take));
+        }
+
         [HttpGet(Name = "GetAvailableDartBots")]
         public async Task<IActionResult> GetAvailableDartBots()
         {

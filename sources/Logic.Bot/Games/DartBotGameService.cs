@@ -246,6 +246,41 @@ namespace Logic.Bot.Games
             }
         }
 
+        private const int MaxRatingHistory = 100;
+
+        public async Task<List<DartBotRatingHistoryEntry>> GetRatingHistoryAsync(int take)
+        {
+            try
+            {
+                var currentUser = GetCurrentUser();
+                var count = Math.Clamp(take, 1, MaxRatingHistory);
+
+                var players = await UnitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
+                    p => p.UserId == currentUser.UserId && p.RatingBefore != null && p.RatingAfter != null,
+                    asNoTracking: true,
+                    include: q => q.Include(p => p.Game).ThenInclude(g => g.Players));
+
+                return players
+                    .OrderByDescending(p => p.Game.FinishedAt ?? p.Game.StartedAt)
+                    .Take(count)
+                    .Select(p => new DartBotRatingHistoryEntry
+                    {
+                        GameId = p.DartBotGameId,
+                        FinishedAt = p.Game.FinishedAt ?? p.Game.StartedAt,
+                        OpponentName = p.Game.Players.FirstOrDefault(o => o.Id != p.Id)?.DisplayName ?? "",
+                        IsWin = p.Game.WinnerPlayerId == p.Id,
+                        RatingBefore = p.RatingBefore!.Value,
+                        RatingAfter = p.RatingAfter!.Value
+                    })
+                    .ToList();
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading rating history.", nameof(DartBotGameService), exception);
+                throw;
+            }
+        }
+
         public async Task<DartBotGameState?> GetRunningGameAsync()
         {
             try

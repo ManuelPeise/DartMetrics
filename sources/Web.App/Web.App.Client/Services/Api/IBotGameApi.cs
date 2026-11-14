@@ -1,4 +1,4 @@
-using global::Shared.Models.Bot;
+﻿using global::Shared.Models.Bot;
 
 namespace Web.App.Client.Services.Api
 {
@@ -9,6 +9,8 @@ namespace Web.App.Client.Services.Api
 
         /// <summary>Laufendes Spiel oder null (zum Fortsetzen nach dem Neuladen).</summary>
         Task<ApiResult<DartBotGameState?>> GetRunningGameAsync(CancellationToken cancellationToken = default);
+
+        Task<ApiResult<List<DartBotRatingHistoryEntry>>> GetRatingHistoryAsync(int take = 20, CancellationToken cancellationToken = default);
 
         Task<ApiResult<DartBotGameState>> StartGameAsync(StartDartBotGameModel model, CancellationToken cancellationToken = default);
 
