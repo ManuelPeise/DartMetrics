@@ -1,8 +1,9 @@
-@page "/login"
+﻿@page "/login"
 @layout PublicLayout
 @using Web.App.Client.Routing
 @inject IAccountService AccountService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Anmelden – DartMetrics</PageTitle>
 
@@ -61,7 +62,7 @@
                 return;
             }
 
-            var target = AppAreas.SafeReturnUrl(ReturnUrl);
+            var target = await GetTargetAsync();
 
             Navigation.NavigateTo(target, forceLoad: AppAreas.IsServerArea(target));
         }
@@ -73,5 +74,24 @@
         {
             _busy = false;
         }
+    }
+
+    /// <summary>
+    /// Ziel nach dem Login: Admins landen immer im Admin-Bereich (eine angeforderte Admin-Seite bleibt erhalten),
+    /// alle anderen auf der angeforderten Seite bzw. der Startseite.
+    /// </summary>
+    private async Task<string> GetTargetAsync()
+    {
+        var returnUrl = AppAreas.SafeReturnUrl(ReturnUrl);
+
+        // Nach LoginAsync ist der Anmeldestatus bereits neu geladen (Refresh im AccountService).
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.IsInRole("Admin"))
+        {
+            return AppAreas.IsServerArea(returnUrl) ? returnUrl : AppAreas.AdminPath;
+        }
+
+        return returnUrl;
     }
 }
