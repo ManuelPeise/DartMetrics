@@ -935,3 +935,170 @@
     .adm-sidebar,
     .adm-main { animation: none; transition: none; }
 }
+
+/* ==========================================================================
+   Formulare (wie .pl-input im öffentlichen Bereich)
+   ========================================================================== */
+
+.adm-form {
+    display: grid;
+    gap: var(--adm-space-4);
+}
+
+.adm-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--adm-space-4);
+}
+
+.adm-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--adm-space-1);
+    min-width: 0;
+}
+
+.adm-field__label {
+    color: var(--adm-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.adm-field__hint { color: var(--adm-text-muted); font-size: 0.75rem; }
+
+.adm-field__error { color: #ff7b84; font-size: 0.75rem; }
+
+.adm-input,
+.adm-select {
+    width: 100%;
+    min-height: var(--adm-touch);
+    box-sizing: border-box;
+    padding: 0 var(--adm-space-3);
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-sm);
+    background: rgba(18, 11, 9, 0.6);
+    color: var(--adm-text);
+    font: 400 0.95rem var(--adm-font-body);
+    transition: border-color var(--adm-transition), box-shadow var(--adm-transition);
+}
+
+    .adm-input::placeholder { color: rgba(185, 171, 156, 0.55); }
+
+    .adm-input:hover:not(:disabled),
+    .adm-select:hover:not(:disabled) { border-color: rgba(209, 164, 95, 0.45); }
+
+    .adm-input:focus,
+    .adm-select:focus {
+        outline: none;
+        border-color: var(--adm-accent);
+        box-shadow: var(--adm-focus);
+    }
+
+    .adm-input:disabled,
+    .adm-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.adm-field--error .adm-input,
+.adm-field--error .adm-select { border-color: var(--adm-danger); }
+
+.adm-select option { background: var(--adm-surface-raised); color: var(--adm-text); }
+
+.adm-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--adm-space-2);
+    min-height: var(--adm-touch);
+    color: var(--adm-text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+    .adm-checkbox input { accent-color: var(--adm-accent); width: 18px; height: 18px; }
+
+.adm-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--adm-space-2);
+}
+
+.adm-alert {
+    padding: var(--adm-space-3) var(--adm-space-4);
+    border-left: 3px solid var(--adm-danger);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-danger-soft);
+    color: var(--adm-danger-text);
+    font-size: 0.85rem;
+}
+
+.adm-alert--success {
+    border-left-color: var(--adm-success);
+    background: var(--adm-success-soft);
+    color: var(--adm-success-text);
+}
+
+/* ---------- Toolbar über Tabellen ---------- */
+
+.adm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--adm-space-3);
+    padding: var(--adm-space-3) var(--adm-space-5);
+    border-bottom: 1px solid var(--adm-line);
+}
+
+.adm-toolbar__meta { color: var(--adm-text-muted); font-size: 0.8rem; }
+
+/* ---------- Bot-Seite ---------- */
+
+.adm-bots-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: var(--adm-space-4);
+    align-items: start;
+}
+
+.adm-cell-title strong { display: block; }
+
+.adm-cell-title small { color: var(--adm-text-muted); font-size: 0.75rem; }
+
+.adm-skill-bars {
+    display: grid;
+    gap: 4px;
+    min-width: 140px;
+}
+
+.adm-skill {
+    display: grid;
+    grid-template-columns: 64px 1fr 32px;
+    align-items: center;
+    gap: var(--adm-space-2);
+    color: var(--adm-text-muted);
+    font-size: 0.7rem;
+}
+
+.adm-skill__track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--adm-line);
+    overflow: hidden;
+}
+
+.adm-skill__fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--adm-accent);
+}
+
+.adm-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@media (max-width: 1199px) {
+    .adm-bots-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+    .adm-toolbar { padding: var(--adm-space-3) var(--adm-space-4); }
+
+    .adm-form-actions .adm-btn { flex: 1; }
+}

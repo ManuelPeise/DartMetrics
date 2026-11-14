@@ -1,0 +1,39 @@
+<div class="adm-field @(string.IsNullOrEmpty(Error) ? "" : "adm-field--error")">
+    <label class="adm-field__label" for="@Id">@Label</label>
+    <input id="@Id" class="adm-input" type="@Type" value="@Value" placeholder="@Placeholder"
+           maxlength="@MaxLength" disabled="@Disabled" autocomplete="off"
+           aria-invalid="@(string.IsNullOrEmpty(Error) ? null : "true")"
+           @oninput="OnInputAsync" />
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <span class="adm-field__error">@Error</span>
+    }
+    else if (!string.IsNullOrEmpty(Hint))
+    {
+        <span class="adm-field__hint">@Hint</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public string Type { get; set; } = "text";
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Parameter] public int? MaxLength { get; set; }
+
+    [Parameter] public string? Hint { get; set; }
+
+    [Parameter] public string? Error { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    private Task OnInputAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString());
+}
