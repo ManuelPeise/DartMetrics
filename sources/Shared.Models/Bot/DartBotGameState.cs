@@ -1,4 +1,4 @@
-using Shared.Enums.Bot;
+﻿using Shared.Enums.Bot;
 
 namespace Shared.Models.Bot
 {
@@ -34,6 +34,13 @@ namespace Shared.Models.Bot
 
         /// <summary>null solange das Spiel läuft oder abgebrochen wurde.</summary>
         public bool? IsUserWinner { get; set; }
+
+        /// <summary>Nach Spielende: XP und Elo-Änderung des Bots (sonst null).</summary>
+        public long? BotXpGained { get; set; }
+
+        public int? BotRatingBefore { get; set; }
+
+        public int? BotRatingAfter { get; set; }
 
         public DateTime StartedAt { get; set; }
 

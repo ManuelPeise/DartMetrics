@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Logic.Shared;
 using Logic.Shared.Rules;
 using Microsoft.EntityFrameworkCore;
@@ -28,16 +28,19 @@ namespace Logic.Bot.Games
 
         private readonly IClaimsHelper _claimsHelper;
         private readonly IBotVisitPlayer _botVisitPlayer;
+        private readonly IDartBotLearningService _learningService;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
             IUnitOfWork unitOfWork,
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
-            IBotVisitPlayer botVisitPlayer) : base(unitOfWork, messageLog)
+            IBotVisitPlayer botVisitPlayer,
+            IDartBotLearningService learningService) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
+            _learningService = learningService;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -157,6 +160,12 @@ namespace Logic.Bot.Games
 
                 PlayBotUntilUserTurn(game, now);
 
+                // Spiel entschieden -> Lernschritt in derselben Transaktion (genau einmal, siehe LearningProcessedAt).
+                if (game.Status == DartBotGameStatusEnum.Finished)
+                {
+                    await _learningService.ApplyGameResultAsync(game, now);
+                }
+
                 await UnitOfWork.SaveChangesAsync();
 
                 return BuildState(game);
@@ -216,6 +225,35 @@ namespace Logic.Bot.Games
             catch (Exception exception)
             {
                 await MessageLog.LogMessage($"Error loading dart bot game {gameId}.", nameof(DartBotGameService), exception);
+
+                throw;
+            }
+        }
+
+        public async Task<List<DartBotSummary>> GetAvailableBotsAsync()
+        {
+            try
+            {
+                GetCurrentUser();
+
+                var bots = await UnitOfWork.DartBotUnitOfWork.DartBotRepository.GetWhereAsync(b => b.IsActive, asNoTracking: true);
+
+                return bots
+                    .OrderBy(b => b.DevelopmentLevel)
+                    .ThenBy(b => b.Name)
+                    .Select(b => new DartBotSummary
+                    {
+                        Id = b.Id,
+                        Name = b.Name,
+                        Alias = b.Alias,
+                        DevelopmentLevel = b.DevelopmentLevel,
+                        Rating = b.Rating
+                    })
+                    .ToList();
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading available dart bots.", nameof(DartBotGameService), exception);
 
                 throw;
             }
@@ -528,6 +566,9 @@ namespace Logic.Bot.Games
                 BotRemaining = GetRemaining(game, leg, botPlayer),
                 IsUserTurn = game.Status == DartBotGameStatusEnum.Running && GetPlayerOnTurn(game, leg) == userPlayer,
                 IsUserWinner = game.Status == DartBotGameStatusEnum.Finished ? game.WinnerPlayer == userPlayer : null,
+                BotXpGained = botPlayer.XpGained,
+                BotRatingBefore = botPlayer.RatingBefore,
+                BotRatingAfter = botPlayer.RatingAfter,
                 StartedAt = game.StartedAt,
                 FinishedAt = game.FinishedAt,
                 CurrentLegVisits = leg.Visits

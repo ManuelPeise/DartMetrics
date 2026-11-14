@@ -1,4 +1,4 @@
-using Shared.Models.Bot;
+﻿using Shared.Models.Bot;
 
 namespace Shared.Interfaces.Bot
 {
@@ -15,5 +15,8 @@ namespace Shared.Interfaces.Bot
         Task AbortGameAsync(int gameId);
 
         Task<DartBotGameState> GetGameAsync(int gameId);
+
+        /// <summary>Aktive Bots für die Gegnerwahl, sortiert nach Level.</summary>
+        Task<List<DartBotSummary>> GetAvailableBotsAsync();
     }
 }
