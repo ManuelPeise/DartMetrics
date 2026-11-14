@@ -1,5 +1,6 @@
 ﻿using Data.DartContext;
 using Data.DartContext.Entities;
+using Data.DartContext.Entities.Bot;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces.UnitsOfWork;
@@ -12,10 +13,10 @@ namespace Logic.Shared.UnitsOfWork
         private readonly DartDatabaseContext _dartDatabaseContext;
 
         public IUserUnitOfWork UserUnitOfWork { get; }
-
         public IDartTrainingUnitOfWork DartTrainingUnitOfWork { get; }
+        public IDartBotUnitOfWork DartBotUnitOfWork { get; }
 
-        
+
         public UnitOfWork(DartDatabaseContext dartDatabaseContext, IHttpContextAccessor httpContextAccessor)
         {
             _dartDatabaseContext = dartDatabaseContext;
@@ -23,17 +24,29 @@ namespace Logic.Shared.UnitsOfWork
 
             UserUnitOfWork = new UserUnitOfWork(_dartDatabaseContext);
             DartTrainingUnitOfWork = new DartTrainingUnitOfWork(_dartDatabaseContext);
+            DartBotUnitOfWork = new DartBotUnitOfWork(_dartDatabaseContext);
         }
 
-        public Task<bool> SaveChangesAsync()
+        public async Task<bool> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            var currentUserName = GetCurrentUserName();
+            EnsureImmutableEntitiesUnchanged();
 
-            StampAuditFields(currentUserName);
+            StampAuditFields(GetCurrentUserName());
 
-            var savedRows = _dartDatabaseContext.SaveChangesAsync();
+            return await _dartDatabaseContext.SaveChangesAsync(cancellationToken) > 0;
+        }
 
-            return savedRows.ContinueWith(task => task.Result > 0);
+        private void EnsureImmutableEntitiesUnchanged()
+        {
+            foreach (var entry in _dartDatabaseContext.ChangeTracker.Entries())
+            {
+                if (entry.Entity is DartBotProfileVersionEntity or DartBotModelEntity
+                    && entry.State is EntityState.Modified or EntityState.Deleted)
+                {
+                    throw new InvalidOperationException(
+                        $"{entry.Entity.GetType().Name} (Id {((AEntityBase)entry.Entity).Id}) ist unveränderlich und darf nicht geändert oder gelöscht werden.");
+                }
+            }
         }
 
         private void StampAuditFields(string currentUser)

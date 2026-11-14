@@ -1,4 +1,5 @@
-﻿using Data.DartContext.Entities.Log;
+﻿using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Log;
 using Data.DartContext.Entities.Training;
 using Data.DartContext.Entities.User;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,19 @@ namespace Data.DartContext
         public DbSet<TrainingGameEntity> TrainingGames => Set<TrainingGameEntity>();
         public DbSet<TrainingGameVisitEntity> TrainingGameVisits => Set<TrainingGameVisitEntity>();
         public DbSet<TrainingGameThrowEntity> TrainingGameThrows => Set<TrainingGameThrowEntity>();
+
+        // DartBot
+        public DbSet<DartBotEntity> DartBots => Set<DartBotEntity>();
+        public DbSet<DartBotProfileVersionEntity> DartBotProfileVersions => Set<DartBotProfileVersionEntity>();
+        public DbSet<DartBotGameEntity> DartBotGames => Set<DartBotGameEntity>();
+        public DbSet<DartBotGamePlayerEntity> DartBotGamePlayers => Set<DartBotGamePlayerEntity>();
+        public DbSet<DartBotGameLegEntity> DartBotGameLegs => Set<DartBotGameLegEntity>();
+        public DbSet<DartBotGameVisitEntity> DartBotGameVisits => Set<DartBotGameVisitEntity>();
+        public DbSet<DartBotGameThrowEntity> DartBotGameThrows => Set<DartBotGameThrowEntity>();
+        public DbSet<DartBotTrainingDatasetEntity> DartBotTrainingDatasets => Set<DartBotTrainingDatasetEntity>();
+        public DbSet<DartBotModelTrainingEntity> DartBotModelTrainings => Set<DartBotModelTrainingEntity>();
+        public DbSet<DartBotModelEntity> DartBotModels => Set<DartBotModelEntity>();
+        public DbSet<DartBotActiveModelEntity> DartBotActiveModels => Set<DartBotActiveModelEntity>();
         
 
         public DartDatabaseContext(DbContextOptions options): base(options)

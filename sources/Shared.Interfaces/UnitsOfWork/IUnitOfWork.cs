@@ -6,6 +6,7 @@ namespace Shared.Interfaces.UnitsOfWork
     {
         IUserUnitOfWork UserUnitOfWork { get; }
         IDartTrainingUnitOfWork DartTrainingUnitOfWork { get; }
-        Task<bool> SaveChangesAsync();
+        IDartBotUnitOfWork DartBotUnitOfWork { get; }
+        Task<bool> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

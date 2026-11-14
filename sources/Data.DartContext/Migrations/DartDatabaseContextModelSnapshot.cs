@@ -19,6 +19,817 @@ namespace Data.DartContext.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotActiveModelEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ActivatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ActivatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("ModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ModelType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModelType")
+                        .IsUnique();
+
+                    b.HasIndex("ModelType", "ModelId");
+
+                    b.ToTable("DartBotActiveModels", (string)null);
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Alias")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DevelopmentLevel")
+                        .HasColumnType("int");
+
+                    b.Property<long>("ExperiencePoints")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Rating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1000);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Alias")
+                        .IsUnique();
+
+                    b.ToTable("DartBots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBot_DevelopmentLevel", "`DevelopmentLevel` >= 0");
+
+                            t.HasCheckConstraint("CK_DartBot_ExperiencePoints", "`ExperiencePoints` >= 0");
+
+                            t.HasCheckConstraint("CK_DartBot_Rating", "`Rating` >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("BestOfLegs")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("GameMode")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("StartingScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("WinnerPlayerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WinnerPlayerId");
+
+                    b.HasIndex("GameMode", "Status", "FinishedAt");
+
+                    b.ToTable("DartBotGames", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotGame_BestOfLegs", "`BestOfLegs` > 0 AND `BestOfLegs` % 2 = 1");
+
+                            t.HasCheckConstraint("CK_DartBotGame_FinishedAt", "`FinishedAt` IS NULL OR `FinishedAt` >= `StartedAt`");
+
+                            t.HasCheckConstraint("CK_DartBotGame_StartingScore", "`StartingScore` IN (301, 501)");
+
+                            t.HasCheckConstraint("CK_DartBotGame_StatusFinishedAt", "(`Status` = 1 AND `FinishedAt` IS NULL) OR (`Status` <> 1 AND `FinishedAt` IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_DartBotGame_Winner", "`WinnerPlayerId` IS NULL OR `Status` = 2");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameLegEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartBotGameId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("LegNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("StartingPlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("WinnerPlayerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DartBotGameId", "LegNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DartBotGameId", "StartingPlayerId");
+
+                    b.HasIndex("DartBotGameId", "WinnerPlayerId");
+
+                    b.ToTable("DartBotGameLegs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotGameLeg_FinishedAt", "`FinishedAt` IS NULL OR `FinishedAt` >= `StartedAt`");
+
+                            t.HasCheckConstraint("CK_DartBotGameLeg_LegNumber", "`LegNumber` >= 1");
+
+                            t.HasCheckConstraint("CK_DartBotGameLeg_Winner", "`WinnerPlayerId` IS NULL OR `FinishedAt` IS NOT NULL");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartBotGameId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DartBotId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("LearningProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("PlayerNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlayerType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProfileVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RatingAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RatingBefore")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ThrowModelId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("XpGained")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetModelId");
+
+                    b.HasIndex("ThrowModelId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("DartBotGameId", "DartBotId")
+                        .IsUnique();
+
+                    b.HasIndex("DartBotGameId", "PlayerNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DartBotId", "ProfileVersionId");
+
+                    b.ToTable("DartBotGamePlayers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerNumber", "`PlayerNumber` IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerType", "(`PlayerType` = 2 AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) OR (`PlayerType` = 1 AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL AND `RatingBefore` IS NULL AND `RatingAfter` IS NULL AND `LearningProcessedAt` IS NULL)");
+
+                            t.HasCheckConstraint("CK_DartBotGamePlayer_XpGained", "`XpGained` IS NULL OR `XpGained` >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameThrowEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartBotGameVisitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DartsLeftInVisit")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("HitX")
+                        .HasColumnType("float");
+
+                    b.Property<float?>("HitY")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Multiplier")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreBeforeThrow")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Segment")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetMultiplier")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetSegment")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("TargetX")
+                        .HasColumnType("float");
+
+                    b.Property<float?>("TargetY")
+                        .HasColumnType("float");
+
+                    b.Property<int>("ThrowNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DartBotGameVisitId", "ThrowNumber")
+                        .IsUnique();
+
+                    b.ToTable("DartBotGameThrows", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotGameThrow_DartsLeftInVisit", "`DartsLeftInVisit` = 3 - `ThrowNumber`");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_HitXY", "(`HitX` IS NULL) = (`HitY` IS NULL)");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_Score", "`Score` = `Segment` * `Multiplier`");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_ScoreBeforeThrow", "`ScoreBeforeThrow` BETWEEN 2 AND 501");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_SegmentMultiplier", "((`Segment` BETWEEN 1 AND 20 AND `Multiplier` BETWEEN 1 AND 3) OR (`Segment` = 25 AND `Multiplier` BETWEEN 1 AND 2) OR (`Segment` = 0 AND `Multiplier` = 0))");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_Target", "(`TargetSegment` IS NULL AND `TargetMultiplier` IS NULL) OR ((`TargetSegment` BETWEEN 1 AND 20 AND `TargetMultiplier` BETWEEN 1 AND 3) OR (`TargetSegment` = 25 AND `TargetMultiplier` BETWEEN 1 AND 2))");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_TargetXY", "(`TargetX` IS NULL) = (`TargetY` IS NULL)");
+
+                            t.HasCheckConstraint("CK_DartBotGameThrow_ThrowNumber", "`ThrowNumber` BETWEEN 1 AND 3");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameVisitEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartBotGameId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DartBotGameLegId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DartBotGamePlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DartsUsed")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsBust")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsCheckout")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("OpponentScoreBefore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreBefore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TurnNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("VisitNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DartBotGameId", "DartBotGameLegId");
+
+                    b.HasIndex("DartBotGameId", "DartBotGamePlayerId");
+
+                    b.HasIndex("DartBotGameLegId", "TurnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DartBotGameLegId", "DartBotGamePlayerId", "VisitNumber")
+                        .IsUnique();
+
+                    b.ToTable("DartBotGameVisits", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotGameVisit_BustCheckout", "NOT (`IsBust` = 1 AND `IsCheckout` = 1)");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_Checkout", "(`IsCheckout` = 1 AND `ScoreAfter` = 0 AND `DartsUsed` >= 1) OR (`IsCheckout` = 0 AND `ScoreAfter` > 0)");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_DartsUsed", "`DartsUsed` BETWEEN 0 AND 3");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_OpponentScoreBefore", "`OpponentScoreBefore` BETWEEN 2 AND 501");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_ScoreAfter", "`ScoreAfter` BETWEEN 0 AND `ScoreBefore` AND `ScoreBefore` - `ScoreAfter` <= 180 AND (`IsBust` = 0 OR `ScoreAfter` = `ScoreBefore`)");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 2 AND 501");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_TurnNumber", "`TurnNumber` >= 1");
+
+                            t.HasCheckConstraint("CK_DartBotGameVisit_VisitNumber", "`VisitNumber` >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("FeatureSchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MlNetVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("ModelType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("TrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("TrainingId")
+                        .IsUnique();
+
+                    b.HasIndex("ModelType", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("DartBotModels", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotModel_SizeBytes", "`SizeBytes` >= 0");
+
+                            t.HasCheckConstraint("CK_DartBotModel_VersionNumber", "`VersionNumber` >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("FeatureSchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("HyperparametersJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("MetricsJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("MlNetVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("ModelType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RandomSeed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TrainerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<long>("TrainingDataCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.HasIndex("ModelType", "Status");
+
+                    b.ToTable("DartBotModelTrainings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotModelTraining_FinishedAt", "`Status` NOT IN (3, 4) OR `FinishedAt` IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_DartBotModelTraining_TrainingDataCount", "`TrainingDataCount` >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChangeReason")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartBotId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PlayingStyle")
+                        .HasColumnType("int");
+
+                    b.Property<float>("PressureResistance")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("PreviousVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReasonText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<float>("RiskTaking")
+                        .HasColumnType("float");
+
+                    b.Property<float>("TacticalIntelligence")
+                        .HasColumnType("float");
+
+                    b.Property<float>("ThrowConsistency")
+                        .HasColumnType("float");
+
+                    b.Property<float>("ThrowPrecision")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("TriggeringGameId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModelId");
+
+                    b.HasIndex("PreviousVersionId");
+
+                    b.HasIndex("TriggeringGameId");
+
+                    b.HasIndex("DartBotId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("DartBotProfileVersions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_GameLearning", "`ChangeReason` <> 2 OR `TriggeringGameId` IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_PressureResistance", "`PressureResistance` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_RiskTaking", "`RiskTaking` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_TacticalIntelligence", "`TacticalIntelligence` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_ThrowConsistency", "`ThrowConsistency` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_ThrowPrecision", "`ThrowPrecision` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_VersionNumber", "`VersionNumber` >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("FeatureSchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FromGameId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GeneratorParametersJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("GeneratorTargetModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GeneratorThrowModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RandomSeed")
+                        .HasColumnType("int");
+
+                    b.Property<long>("RowCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SourceType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int?>("ToGameId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeneratorTargetModelId");
+
+                    b.HasIndex("GeneratorThrowModelId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.ToTable("DartBotTrainingDatasets", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotTrainingDataset_GameRange", "`FromGameId` IS NULL OR `ToGameId` IS NULL OR `FromGameId` <= `ToGameId`");
+
+                            t.HasCheckConstraint("CK_DartBotTrainingDataset_RowCount", "`RowCount` >= 0");
+
+                            t.HasCheckConstraint("CK_DartBotTrainingDataset_SizeBytes", "`SizeBytes` >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Log.LogMessageEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -693,6 +1504,206 @@ namespace Data.DartContext.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotActiveModelEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
+                        .WithMany()
+                        .HasForeignKey("ModelType", "ModelId")
+                        .HasPrincipalKey("ModelType", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", "WinnerPlayer")
+                        .WithMany()
+                        .HasForeignKey("WinnerPlayerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("WinnerPlayer");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameLegEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGameEntity", "Game")
+                        .WithMany("Legs")
+                        .HasForeignKey("DartBotGameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", "StartingPlayer")
+                        .WithMany()
+                        .HasForeignKey("DartBotGameId", "StartingPlayerId")
+                        .HasPrincipalKey("DartBotGameId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", "WinnerPlayer")
+                        .WithMany()
+                        .HasForeignKey("DartBotGameId", "WinnerPlayerId")
+                        .HasPrincipalKey("DartBotGameId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Game");
+
+                    b.Navigation("StartingPlayer");
+
+                    b.Navigation("WinnerPlayer");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGameEntity", "Game")
+                        .WithMany("Players")
+                        .HasForeignKey("DartBotGameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotEntity", "DartBot")
+                        .WithMany("GamePlayers")
+                        .HasForeignKey("DartBotId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "TargetModel")
+                        .WithMany()
+                        .HasForeignKey("TargetModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "ThrowModel")
+                        .WithMany()
+                        .HasForeignKey("ThrowModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.User.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "ProfileVersion")
+                        .WithMany("GamePlayers")
+                        .HasForeignKey("DartBotId", "ProfileVersionId")
+                        .HasPrincipalKey("DartBotId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DartBot");
+
+                    b.Navigation("Game");
+
+                    b.Navigation("ProfileVersion");
+
+                    b.Navigation("TargetModel");
+
+                    b.Navigation("ThrowModel");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameThrowEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGameVisitEntity", "Visit")
+                        .WithMany("Throws")
+                        .HasForeignKey("DartBotGameVisitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameVisitEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGameLegEntity", "Leg")
+                        .WithMany("Visits")
+                        .HasForeignKey("DartBotGameId", "DartBotGameLegId")
+                        .HasPrincipalKey("DartBotGameId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", "Player")
+                        .WithMany("Visits")
+                        .HasForeignKey("DartBotGameId", "DartBotGamePlayerId")
+                        .HasPrincipalKey("DartBotGameId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Leg");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", "Training")
+                        .WithOne("ResultingModel")
+                        .HasForeignKey("Data.DartContext.Entities.Bot.DartBotModelEntity", "TrainingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Training");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", "Dataset")
+                        .WithMany("Trainings")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotEntity", "DartBot")
+                        .WithMany("ProfileVersions")
+                        .HasForeignKey("DartBotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
+                        .WithMany()
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "PreviousVersion")
+                        .WithMany()
+                        .HasForeignKey("PreviousVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotGameEntity", "TriggeringGame")
+                        .WithMany()
+                        .HasForeignKey("TriggeringGameId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DartBot");
+
+                    b.Navigation("Model");
+
+                    b.Navigation("PreviousVersion");
+
+                    b.Navigation("TriggeringGame");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "GeneratorTargetModel")
+                        .WithMany()
+                        .HasForeignKey("GeneratorTargetModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "GeneratorThrowModel")
+                        .WithMany()
+                        .HasForeignKey("GeneratorThrowModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GeneratorTargetModel");
+
+                    b.Navigation("GeneratorThrowModel");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Training.CheckoutTrainingEntity", "CheckoutTraining")
@@ -820,6 +1831,50 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotEntity", b =>
+                {
+                    b.Navigation("GamePlayers");
+
+                    b.Navigation("ProfileVersions");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameEntity", b =>
+                {
+                    b.Navigation("Legs");
+
+                    b.Navigation("Players");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameLegEntity", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameVisitEntity", b =>
+                {
+                    b.Navigation("Throws");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
+                {
+                    b.Navigation("ResultingModel");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
+                {
+                    b.Navigation("GamePlayers");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
+                {
+                    b.Navigation("Trainings");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
