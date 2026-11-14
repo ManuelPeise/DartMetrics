@@ -27,8 +27,8 @@
 {
     case Phase.Setup:
         <div class="pa-setup">
-            <PlayerChoiceGroup Label="Feld" Options="MultiplierOptions" Value="_multiplier" ValueChanged="OnMultiplierChanged" />
-            <PlayerChoiceGroup Label="Segment" Options="SegmentOptions" Value="_segment" ValueChanged="OnSegmentChanged" />
+            <PlayerChoiceGroup TValue="int" Label="Feld" Options="MultiplierOptions" Value="_multiplier" ValueChanged="OnMultiplierChanged" />
+            <PlayerChoiceGroup TValue="int" Label="Segment" Options="SegmentOptions" Value="_segment" ValueChanged="OnSegmentChanged" />
             <PlayerChoiceGroup Label="Aufnahmen" Options="VisitOptions" @bind-Value="_numberOfVisits" />
             <div class="pa-setup__actions">
                 <button type="button" class="pl-btn pl-btn--primary" disabled="@_busy" @onclick="StartAsync">

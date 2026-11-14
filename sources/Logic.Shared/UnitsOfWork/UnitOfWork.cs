@@ -53,6 +53,15 @@ namespace Logic.Shared.UnitsOfWork
         {
             var now = DateTime.UtcNow;
 
+            // Neuer Nebenläufigkeitsstempel bei jeder Änderung (die WHERE-Klausel prüft den alten Wert).
+            foreach (var entry in _dartDatabaseContext.ChangeTracker.Entries<IConcurrencyStamped>())
+            {
+                if (entry.State is EntityState.Added or EntityState.Modified)
+                {
+                    entry.Entity.ConcurrencyStamp = Guid.NewGuid();
+                }
+            }
+
             foreach (var entry in _dartDatabaseContext.ChangeTracker.Entries<AEntityBase>())
             {
                 if (entry.State == EntityState.Added)

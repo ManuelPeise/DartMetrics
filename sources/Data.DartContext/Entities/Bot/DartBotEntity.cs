@@ -1,11 +1,11 @@
-namespace Data.DartContext.Entities.Bot
+﻿namespace Data.DartContext.Entities.Bot
 {
     /// <summary>
     /// Stammdaten eines virtuellen Spielers. Bots werden deaktiviert, nicht gelöscht.
     /// XP, Level und Rating ändern sich laufend; die Fähigkeiten liegen versioniert in <see cref="DartBotProfileVersionEntity"/>.
     /// Aktuelle Profilversion = höchste VersionNumber.
     /// </summary>
-    public class DartBotEntity : AEntityBase
+    public class DartBotEntity : AEntityBase, IConcurrencyStamped
     {
         public string Name { get; set; } = null!;
 
@@ -20,6 +20,9 @@ namespace Data.DartContext.Entities.Bot
 
         /// <summary>Elo-Wertung; ändert sich nur in abgeschlossenen Spielen gegen Menschen.</summary>
         public int Rating { get; set; } = 1000;
+
+        /// <summary>Schützt XP, Elo und Level, wenn zwei Spiele gegen denselben Bot gleichzeitig enden.</summary>
+        public Guid ConcurrencyStamp { get; set; }
 
         public ICollection<DartBotProfileVersionEntity> ProfileVersions { get; set; } = [];
 

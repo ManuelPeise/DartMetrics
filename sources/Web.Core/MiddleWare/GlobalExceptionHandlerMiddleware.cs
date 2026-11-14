@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Core.MiddleWare
 {
@@ -35,6 +36,7 @@ namespace Web.Core.MiddleWare
 
                 var statusCode = exception switch
                 {
+                    DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
                     ArgumentException => StatusCodes.Status400BadRequest,
                     KeyNotFoundException => StatusCodes.Status404NotFound,
                     UnauthorizedAccessException => StatusCodes.Status403Forbidden,
@@ -49,11 +51,15 @@ namespace Web.Core.MiddleWare
                         400 => "Bad Request",
                         403 => "Forbidden",
                         404 => "Not Found",
+                        409 => "Conflict",
                         _ => "Internal Server Error"
                     },
-                    Detail = statusCode == 500
-                        ? "An unexpected error occurred."
-                        : exception.Message,
+                    Detail = statusCode switch
+                    {
+                        500 => "An unexpected error occurred.",
+                        409 => "The data was changed in the meantime. Please reload and try again.",
+                        _ => exception.Message
+                    },
                     Instance = context.Request.Path
                 };
 

@@ -126,3 +126,8 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 
 - DartBot-Architektur und Datenmodell: Claude-Doc „DartBot – Finaler Architektur- und Datenmodellplan“.
 - Deployment: `docker-compose.yml`, `Web.Core/Dockerfile`, `scripts/update-containers.ps1` / `.sh`.
+
+## Optimistische Nebenläufigkeit
+
+Entitäten mit `IConcurrencyStamped` (aktuell `DartBotEntity`) erhalten bei jedem Speichern einen neuen `ConcurrencyStamp`.
+Konflikte werden als `DbUpdateConcurrencyException` auf HTTP 409 abgebildet. Für Bots gibt es einen Delta-Merge mit einem Retry (siehe `Logic.Bot/README.md`).

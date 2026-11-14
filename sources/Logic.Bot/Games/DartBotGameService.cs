@@ -169,7 +169,20 @@ namespace Logic.Bot.Games
                     await _learningService.ApplyGameResultAsync(game, now);
                 }
 
-                await UnitOfWork.SaveChangesAsync();
+                try
+                {
+                    await UnitOfWork.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException concurrencyException)
+                {
+                    // Bot wurde parallel geändert (anderes Spiel endete gleichzeitig): einmal mit neuem Stand speichern.
+                    if (!await _learningService.MergeConcurrentBotUpdatesAsync(concurrencyException))
+                    {
+                        throw;
+                    }
+
+                    await UnitOfWork.SaveChangesAsync();
+                }
 
                 return BuildState(game);
             }

@@ -25,3 +25,11 @@ DI/BotServiceRegistration          AddBotServices()
 - Alle Werte konfigurierbar über `DartBotOptions` (Abschnitt `"DartBot"`).
 - Zufall über `IRandomSource` (für reproduzierbare Tests austauschbar).
 - Später: `MlTargetSelector` hinter `ITargetSelector`.
+
+## Nebenläufigkeit
+
+`DartBotEntity` hat ein `ConcurrencyStamp` (Guid, Concurrency-Token; neu gesetzt im `UnitOfWork` bei jedem Insert/Update).
+Enden zwei Spiele gegen denselben Bot gleichzeitig, wirft das zweite Speichern eine `DbUpdateConcurrencyException`.
+`DartBotGameService.AddUserVisitAsync` ruft dann `DartBotLearningService.MergeConcurrentBotUpdatesAsync` auf:
+die eigenen XP- und Elo-Deltas werden auf den aktuellen Datenbankstand gerechnet, das Level wird nie zurückgestuft, danach wird einmal erneut gespeichert.
+Betrifft der Konflikt andere Entitäten oder scheitert auch der zweite Versuch, liefert die API 409 (`GlobalExceptionHandlerMiddleware`).

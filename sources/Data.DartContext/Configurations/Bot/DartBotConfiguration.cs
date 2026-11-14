@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -20,6 +20,8 @@ namespace Data.DartContext.Configurations.Bot
             builder.Property(x => x.Rating).HasDefaultValue(1000);
 
             builder.HasIndex(x => x.Alias).IsUnique();
+
+            builder.Property(x => x.ConcurrencyStamp).IsConcurrencyToken();
 
             // Beziehungen werden auf der abhängigen Seite konfiguriert (ProfileVersion, GamePlayer).
 

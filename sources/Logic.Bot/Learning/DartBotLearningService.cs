@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Shared.Enums.Bot;
@@ -89,6 +89,44 @@ namespace Logic.Bot.Learning
             botPlayer.RatingBefore = ratingBefore;
             botPlayer.RatingAfter = ratingAfter;
             botPlayer.LearningProcessedAt = now;
+        }
+
+        public async Task<bool> MergeConcurrentBotUpdatesAsync(DbUpdateConcurrencyException exception)
+        {
+            if (exception.Entries.Any(e => e.Entity is not DartBotEntity))
+            {
+                return false;
+            }
+
+            foreach (var entry in exception.Entries)
+            {
+                var bot = (DartBotEntity)entry.Entity;
+                var databaseValues = await entry.GetDatabaseValuesAsync();
+
+                if (databaseValues is null)
+                {
+                    return false;
+                }
+
+                // Eigene Änderung als Differenz zum geladenen Stand, auf den neuen Datenbankstand anwenden.
+                var original = entry.OriginalValues;
+                var xpDelta = bot.ExperiencePoints - original.GetValue<long>(nameof(DartBotEntity.ExperiencePoints));
+                var ratingDelta = bot.Rating - original.GetValue<int>(nameof(DartBotEntity.Rating));
+
+                var databaseXp = databaseValues.GetValue<long>(nameof(DartBotEntity.ExperiencePoints));
+                var databaseRating = databaseValues.GetValue<int>(nameof(DartBotEntity.Rating));
+                var databaseLevel = databaseValues.GetValue<int>(nameof(DartBotEntity.DevelopmentLevel));
+
+                entry.OriginalValues.SetValues(databaseValues);
+
+                bot.ExperiencePoints = databaseXp + xpDelta;
+                bot.Rating = Math.Max(0, databaseRating + ratingDelta);
+
+                // Level nie zurückstufen; ein Aufstieg im parallelen Spiel bleibt erhalten.
+                bot.DevelopmentLevel = Math.Max(databaseLevel, Math.Max(bot.DevelopmentLevel, LevelForExperience(bot.ExperiencePoints)));
+            }
+
+            return true;
         }
 
         /// <summary>Höchstes Level, dessen XP-Schwelle erreicht ist (gedeckelt auf MaxLevel).</summary>
