@@ -1,4 +1,4 @@
-@page "/player"
+﻿@page "/player"
 @using global::Shared.Models.Bot
 @inject IProfileApi ProfileApi
 @inject IBotGameApi BotGameApi
@@ -6,7 +6,7 @@
 <PageTitle>Start – DartMetrics</PageTitle>
 
 <PlayerPageHeader Eyebrow="@DateText" Title="@Greeting"
-                  Subtitle="Bereit für die nächste Runde? Trainiere gezielt oder fordere einen Bot heraus." />
+                  Subtitle="@Subtitle" />
 
 <div class="pa-grid">
     <PlayerCard Title="Training" Icon="PlayerIconName.Training" Href="player/training"
@@ -39,10 +39,11 @@
     else
     {
         <div class="pa-grid">
-            @foreach (var bot in _bots.Take(MaxBotsShown))
+            @foreach (var bot in _bots.OrderBy(b => _rating is { } r ? Math.Abs(b.Rating - r) : 0).Take(MaxBotsShown))
             {
                 <PlayerCard Title="@bot.Name" Icon="PlayerIconName.Bot" Href="player/bots"
-                            Text="@($"Level {bot.DevelopmentLevel} · Elo {bot.Rating}")" Meta="Herausfordern →" />
+                            Text="@($"Level {bot.DevelopmentLevel} · Elo {bot.Rating}")"
+                            Meta="@(EloMatch.IsGoodMatch(_rating, bot.Rating) ? "Passender Gegner →" : "Herausfordern →")" />
             }
         </div>
     }
@@ -54,6 +55,11 @@
     private static readonly System.Globalization.CultureInfo German = new("de-DE");
 
     private string? _firstName;
+    private int? _rating;
+
+    private string Subtitle => _rating is { } rating
+        ? $"Dein Elo: {rating}. Trainiere gezielt oder fordere einen Bot heraus."
+        : "Bereit für die nächste Runde? Trainiere gezielt oder fordere einen Bot heraus.";
 
     private List<DartBotSummary>? _bots;
     private bool _botsLoading = true;
@@ -90,6 +96,7 @@
         if (result.IsSuccess)
         {
             _firstName = string.IsNullOrWhiteSpace(result.Value!.DisplayName) ? result.Value.FirstName : result.Value.DisplayName;
+            _rating = result.Value.Rating;
             StateHasChanged();
         }
     }

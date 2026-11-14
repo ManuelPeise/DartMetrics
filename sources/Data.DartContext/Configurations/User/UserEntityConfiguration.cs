@@ -8,7 +8,9 @@ namespace Data.DartContext.Configurations.User
     {
         protected override void ConfigureEntity(EntityTypeBuilder<UserEntity> builder)
         {
-            builder.ToTable("Users");
+            builder.ToTable("Users", table => table.HasCheckConstraint("CK_User_Rating", "`Rating` >= 0"));
+
+            builder.Property(u => u.Rating).HasDefaultValue(1000);
 
             builder.Property(u => u.FirstName).HasMaxLength(100).IsRequired();
             builder.Property(u => u.LastName).HasMaxLength(100).IsRequired();

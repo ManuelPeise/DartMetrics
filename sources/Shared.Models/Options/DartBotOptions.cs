@@ -53,7 +53,8 @@ namespace Shared.Models.Options
         public int EloK { get; set; } = 32;
 
         /// <summary>
-        /// Elo-Wert, mit dem menschliche Gegner gerechnet werden (User haben noch keine eigene Wertung).
+        /// Elo eines menschlichen Gegners, falls der Benutzer nicht mehr geladen werden kann (Fallback).
+        /// Regulär wird mit UserEntity.Rating gerechnet.
         /// </summary>
         [Range(0, 5000)]
         public int HumanOpponentRating { get; set; } = 1000;

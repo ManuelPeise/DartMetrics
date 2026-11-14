@@ -11,7 +11,7 @@ namespace Logic.Bot.Learning
     /// <summary>
     /// Lernschritt nach einem Spiel gegen einen Menschen:
     /// 1. XP vergeben (Spiel, Sieg, gewonnene Legs).
-    /// 2. Elo anpassen.
+    /// 2. Elo anpassen – für Bot und Mensch, beide mit den Werten vor dem Spiel.
     /// 3. Level aus der Gesamt-XP bestimmen; bei Aufstieg neue Profilversion mit höheren Fähigkeiten.
     /// RiskTaking und PlayingStyle sind Vorlieben und bleiben beim Aufstieg unverändert.
     /// </summary>
@@ -33,20 +33,51 @@ namespace Logic.Bot.Learning
                 return;
             }
 
-            var hasHumanOpponent = game.Players.Any(p => p.PlayerType == DartBotPlayerTypeEnum.User);
+            var userPlayer = game.Players.FirstOrDefault(p => p.PlayerType == DartBotPlayerTypeEnum.User);
 
-            if (!hasHumanOpponent)
+            if (userPlayer is null)
             {
                 return;
             }
 
-            foreach (var botPlayer in game.Players.Where(p => p.PlayerType == DartBotPlayerTypeEnum.Bot && p.LearningProcessedAt == null))
+            // Beide Seiten rechnen mit den Werten VOR dem Spiel.
+            var user = userPlayer.UserId is { } userId
+                ? await _unitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.Id == userId)
+                : null;
+            var userRatingBefore = userPlayer.RatingBefore ?? user?.Rating ?? _options.Learning.HumanOpponentRating;
+            int? botRatingBefore = null;
+
+            foreach (var botPlayer in game.Players.Where(p => p.PlayerType == DartBotPlayerTypeEnum.Bot))
             {
-                await ApplyToBotAsync(game, botPlayer, now);
+                botRatingBefore ??= botPlayer.RatingBefore;
+
+                if (botPlayer.LearningProcessedAt == null)
+                {
+                    botRatingBefore = await ApplyToBotAsync(game, botPlayer, userRatingBefore, now);
+                }
+            }
+
+            if (user is not null && userPlayer.LearningProcessedAt == null && botRatingBefore is { } opponentRating)
+            {
+                var actual = game.WinnerPlayer == userPlayer ? 1.0 : 0.0;
+
+                userPlayer.RatingBefore = userRatingBefore;
+                userPlayer.RatingAfter = NewRating(userRatingBefore, opponentRating, actual);
+                userPlayer.LearningProcessedAt = now;
+                user.Rating = userPlayer.RatingAfter.Value;
             }
         }
 
-        private async Task ApplyToBotAsync(DartBotGameEntity game, DartBotGamePlayerEntity botPlayer, DateTime now)
+        /// <summary>Elo-Formel mit K aus den Optionen, nie unter 0.</summary>
+        private int NewRating(int ownRating, int opponentRating, double actual)
+        {
+            var expected = 1.0 / (1.0 + Math.Pow(10, (opponentRating - ownRating) / 400.0));
+
+            return Math.Max(0, (int)Math.Round(ownRating + _options.Learning.EloK * (actual - expected)));
+        }
+
+        /// <returns>Elo des Bots vor dem Spiel.</returns>
+        private async Task<int> ApplyToBotAsync(DartBotGameEntity game, DartBotGamePlayerEntity botPlayer, int opponentRating, DateTime now)
         {
             var learning = _options.Learning;
 
@@ -65,11 +96,9 @@ namespace Logic.Bot.Learning
 
             bot.ExperiencePoints += xpGained;
 
-            // 2. Elo (menschliche Gegner mit festem Wert, solange User keine eigene Wertung haben)
+            // 2. Elo gegen das Elo des Menschen
             var ratingBefore = bot.Rating;
-            var expected = 1.0 / (1.0 + Math.Pow(10, (learning.HumanOpponentRating - ratingBefore) / 400.0));
-            var actual = isWinner ? 1.0 : 0.0;
-            var ratingAfter = Math.Max(0, (int)Math.Round(ratingBefore + learning.EloK * (actual - expected)));
+            var ratingAfter = NewRating(ratingBefore, opponentRating, isWinner ? 1.0 : 0.0);
 
             bot.Rating = ratingAfter;
 
@@ -89,6 +118,8 @@ namespace Logic.Bot.Learning
             botPlayer.RatingBefore = ratingBefore;
             botPlayer.RatingAfter = ratingAfter;
             botPlayer.LearningProcessedAt = now;
+
+            return ratingBefore;
         }
 
         public async Task<bool> MergeConcurrentBotUpdatesAsync(DbUpdateConcurrencyException exception)

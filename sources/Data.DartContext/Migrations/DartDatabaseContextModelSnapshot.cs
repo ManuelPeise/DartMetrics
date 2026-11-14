@@ -1582,6 +1582,11 @@ namespace Data.DartContext.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<int>("Rating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1000);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -1594,7 +1599,10 @@ namespace Data.DartContext.Migrations
                     b.HasIndex("EmailAddress")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_User_Rating", "`Rating` >= 0");
+                        });
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.User.UserRoleEntity", b =>

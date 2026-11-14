@@ -1,4 +1,4 @@
-# Logic.Bot
+﻿# Logic.Bot
 
 Lernfähige DartBots: Wurfsimulation, Zielwahl, Spiele gegen Menschen, Lernschritt, Verwaltung.
 
@@ -10,7 +10,7 @@ Simulation/ThrowSimulator          Treffer = Ziel + 2D-Normalverteilung (Precisi
 Tactics/RuleBasedTargetSelector    Zielwahl ohne ML: Checkout-Wege (X01Rules), T20, sicheres Setup
 Play/BotVisitPlayer                Eine Aufnahme (bis 3 Darts) inkl. Bust/Checkout
 Games/DartBotGameService           Spiel Mensch gegen Bot (Start, Aufnahme, Legs, Ende, Abbruch, Bot-Liste)
-Learning/DartBotLearningService    Nach Spielende: XP, Elo, Level-Aufstieg mit neuer Profilversion
+Learning/DartBotLearningService    Nach Spielende: XP, Elo (Bot und Spieler), Level-Aufstieg mit neuer Profilversion
 Administration/DartBotAdministration  Bots anlegen, (de)aktivieren, auflisten (nur Admin)
 DI/BotServiceRegistration          AddBotServices()
 ```

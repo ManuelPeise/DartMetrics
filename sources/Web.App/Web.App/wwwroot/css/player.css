@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    DartMetrics – Spieler-Bereich (/player)
    Baut ausschließlich auf den --pl-* Variablen aus public.css auf.
    Buttons, Alerts, Spinner und Eingaben kommen aus public.css (.pl-btn, .pl-alert, .pl-spinner, .pl-input).
@@ -730,6 +730,8 @@ a.pa-card:hover {
     .pa-bot-option strong { display: block; }
 
     .pa-bot-option small { color: var(--pl-ink-muted); font-size: 0.75rem; }
+
+    .pa-bot-option small.pa-bot-option__match { display: block; color: #cdeed6; }
 
 .pa-duel {
     display: grid;

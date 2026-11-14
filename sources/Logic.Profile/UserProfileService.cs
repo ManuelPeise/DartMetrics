@@ -43,7 +43,8 @@ namespace Logic.Profile
                     LastName = userEntity.LastName,
                     DisplayName = userEntity.DisplayName,
                     EmailAddress = userEntity.EmailAddress,
-                    IsVerified = userEntity.EmailVerifiedAt.HasValue
+                    IsVerified = userEntity.EmailVerifiedAt.HasValue,
+                    Rating = userEntity.Rating
                 };
             }
             catch (Exception exception)
@@ -79,7 +80,8 @@ namespace Logic.Profile
                     LastName = userEntity.LastName,
                     DisplayName = userEntity.DisplayName,
                     EmailAddress = userEntity.EmailAddress,
-                    IsVerified = userEntity.EmailVerifiedAt.HasValue
+                    IsVerified = userEntity.EmailVerifiedAt.HasValue,
+                    Rating = userEntity.Rating
                 };
 
             }catch(Exception exception)

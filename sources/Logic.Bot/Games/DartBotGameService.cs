@@ -646,6 +646,8 @@ namespace Logic.Bot.Games
                 BotXpGained = botPlayer.XpGained,
                 BotRatingBefore = botPlayer.RatingBefore,
                 BotRatingAfter = botPlayer.RatingAfter,
+                UserRatingBefore = userPlayer.RatingBefore,
+                UserRatingAfter = userPlayer.RatingAfter,
                 StartedAt = game.StartedAt,
                 FinishedAt = game.FinishedAt,
                 CurrentLegVisits = ToVisitSummaries(leg, botPlayer),

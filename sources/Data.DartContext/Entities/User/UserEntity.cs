@@ -20,6 +20,9 @@ namespace Data.DartContext.Entities.User
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>Elo aus Spielen gegen Bots (gleiche Skala wie DartBotEntity.Rating, Start 1000).</summary>
+        public int Rating { get; set; } = 1000;
+
         public DateTime? EmailVerifiedAt { get; set; }
 
         /// <summary>

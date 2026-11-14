@@ -1,8 +1,9 @@
-@page "/player/bots"
+﻿@page "/player/bots"
 @using global::Shared.Enums.Bot
 @using global::Shared.Enums.X01
 @using global::Shared.Models.Bot
 @inject IBotGameApi BotGameApi
+@inject IProfileApi ProfileApi
 
 <PageTitle>Gegen Bot spielen – DartMetrics</PageTitle>
 
@@ -44,14 +45,21 @@
             else
             {
                 <fieldset class="pa-choice">
-                    <legend class="pa-choice__label">Gegner</legend>
+                    <legend class="pa-choice__label">Gegner@(_userRating is { } rating ? $" · dein Elo {rating}" : "")</legend>
                     <div class="pa-bot-list">
                         @foreach (var bot in _bots)
                         {
                             <button type="button" class="pa-bot-option @(bot.Id == _botId ? "is-selected" : "")"
                                     aria-pressed="@(bot.Id == _botId ? "true" : "false")" @onclick="() => _botId = bot.Id">
                                 <PlayerIcon Name="PlayerIconName.Bot" Size="22" />
-                                <span><strong>@bot.Name</strong><small>Level @bot.DevelopmentLevel · Elo @bot.Rating</small></span>
+                                <span>
+                                    <strong>@bot.Name</strong>
+                                    <small>Level @bot.DevelopmentLevel · Elo @bot.Rating</small>
+                                    @if (EloMatch.IsGoodMatch(_userRating, bot.Rating))
+                                    {
+                                        <small class="pa-bot-option__match">Passender Gegner</small>
+                                    }
+                                </span>
                             </button>
                         }
                     </div>
@@ -222,7 +230,9 @@
         new("Elo vorher", _state.BotRatingBefore?.ToString() ?? "–"),
         new("Elo nachher", _state.BotRatingAfter?.ToString() ?? "–",
             Hint: _state.BotRatingAfter - _state.BotRatingBefore is { } diff ? (diff >= 0 ? $"+{diff}" : diff.ToString()) : null,
-            Highlight: true)
+            Highlight: true),
+        new("Dein Elo", _state.UserRatingAfter?.ToString() ?? "–",
+            Hint: _state.UserRatingAfter - _state.UserRatingBefore is { } userDiff ? (userDiff >= 0 ? $"+{userDiff}" : userDiff.ToString()) : null)
     ];
 
     protected override async Task OnInitializedAsync()
@@ -240,12 +250,19 @@
         await LoadBotsAsync();
     }
 
+    private int? _userRating;
+
     private async Task LoadBotsAsync()
     {
-        var result = await BotGameApi.GetAvailableBotsAsync();
+        var botsTask = BotGameApi.GetAvailableBotsAsync();
+        var profile = await ProfileApi.GetProfileAsync();
+        var result = await botsTask;
+
+        // Elo nur zur Markierung passender Gegner; ohne Profil bleibt die Liste unmarkiert.
+        _userRating = profile.IsSuccess ? profile.Value!.Rating : null;
         _bots = result.Value;
         _error = result.Error;
-        _botId ??= _bots?.FirstOrDefault()?.Id;
+        _botId ??= _bots?.OrderBy(b => _userRating is { } r ? Math.Abs(b.Rating - r) : 0).FirstOrDefault()?.Id;
         _phase = Phase.Setup;
     }
 

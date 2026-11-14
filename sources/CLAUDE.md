@@ -120,6 +120,7 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 - Profil = unveränderliche Versionen; aktuell ist die höchste `VersionNumber`.
 - Gemeinsame ML-Modelle für alle Bots; Profilwerte sind Eingabemerkmale.
 - Modell lernt aus allen Spielen; **Profil, XP, Level und Elo ändern sich nur in abgeschlossenen Spielen gegen Menschen**.
+- Spieler-Elo: `UserEntity.Rating` (Start 1000, gleiche Skala wie Bots). Bot und Mensch rechnen mit den Werten vor dem Spiel; die Änderung steht in `DartBotGamePlayerEntity.RatingBefore/After`. „Passender Gegner“ = Elo-Abstand ≤ 100 (`EloMatch`).
 - Lernschritt genau einmal (`LearningProcessedAt`), in derselben Transaktion wie die letzte Aufnahme.
 - Ohne aktives Modell wählt der Bot Ziele regelbasiert (`RuleBasedTargetSelector`).
 - Einstellungen: Abschnitt `"DartBot"` (`DartBotOptions`).
@@ -136,4 +137,3 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 
 Keine bekannten Fehler. Fachlich noch offen:
 
-- Benutzer haben noch kein eigenes Elo; Bots rechnen Menschen mit festem Wert (`HumanOpponentRating`).
