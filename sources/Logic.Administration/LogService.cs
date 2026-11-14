@@ -18,7 +18,7 @@ namespace Logic.Administration
             this.claimsHelper = claimsHelper;
         }
 
-        public async Task<IEnumerable<LogmessageExportModel>> GetLogMessages(string? moduleFilter = null, LogMessageTypeEnum? messageTypeFilter = null)
+        public async Task<List<LogmessageExportModel>> GetLogMessages()
         {
             try
             {
@@ -29,30 +29,20 @@ namespace Logic.Administration
                     throw new UnauthorizedAccessException("Current user is not authenticated.");
                 }
 
-                var messages = await MessageLog.GetLogMessages(messageTypeFilter);
+                var messages = await MessageLog.GetLogMessages();
 
-              return moduleFilter != null ? messages.Where(msg => msg.Module.Equals(moduleFilter, StringComparison.OrdinalIgnoreCase))
-                        .Select(msg => new LogmessageExportModel
-                        {
-                            Id = msg.Id,
-                            Message = msg.Message,
-                            Module = msg.Module,
-                            MessageType = msg.LogMessageType,
-                            ExceptionMessage = msg.ExceptionMessage,
-                            Stacktrace = msg.Stacktrace,
-                            CreatedAt = msg.CreatedAt
-                        })
-                    : messages.Select(msg => new LogmessageExportModel
-                    {
-                        Id = msg.Id,
-                        Message = msg.Message,
-                        Module = msg.Module,
-                        MessageType = msg.LogMessageType,
-                        ExceptionMessage = msg.ExceptionMessage,
-                        Stacktrace = msg.Stacktrace,
-                        CreatedAt = msg.CreatedAt
-                    });
+                var response = messages.Select(msg => new LogmessageExportModel
+                {
+                    Id = msg.Id,
+                    Message = msg.Message,
+                    Module = msg.Module,
+                    MessageType = msg.LogMessageType,
+                    ExceptionMessage = msg.ExceptionMessage,
+                    Stacktrace = msg.Stacktrace,
+                    CreatedAt = msg.CreatedAt
+                }).ToList();
 
+                return response;
             }
             catch (Exception exception)
             {
@@ -62,7 +52,7 @@ namespace Logic.Administration
             }
         }
 
-        public async Task<IEnumerable<LogmessageExportModel>> DeleteMessage(int messageId)
+        public async Task<List<LogmessageExportModel>> DeleteMessage(int messageId)
         {
             try
             {
@@ -86,7 +76,7 @@ namespace Logic.Administration
                     ExceptionMessage = msg.ExceptionMessage,
                     Stacktrace = msg.Stacktrace,
                     CreatedAt = msg.CreatedAt
-                });
+                }).ToList();
             }
             catch (Exception exception)
             {
@@ -96,7 +86,7 @@ namespace Logic.Administration
             }
         }
 
-        public async Task<IEnumerable<LogmessageExportModel>> DeleteMessages(IEnumerable<int> messageIds)
+        public async Task<List<LogmessageExportModel>> DeleteMessages(IEnumerable<int> messageIds)
         {
             try
             {
@@ -120,7 +110,7 @@ namespace Logic.Administration
                     ExceptionMessage = msg.ExceptionMessage,
                     Stacktrace = msg.Stacktrace,
                     CreatedAt = msg.CreatedAt
-                });
+                }).ToList();
             }
             catch (Exception exception)
             {

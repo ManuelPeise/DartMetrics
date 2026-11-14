@@ -5,8 +5,8 @@ namespace Shared.Interfaces.Administration
 {
     public interface ILogService
     {
-        Task<IEnumerable<LogmessageExportModel>> GetLogMessages(string? moduleFilter = null, LogMessageTypeEnum? messageTypeFilter = null);
-        Task<IEnumerable<LogmessageExportModel>> DeleteMessage(int messageId);
-        Task<IEnumerable<LogmessageExportModel>> DeleteMessages(IEnumerable<int> messageIds);
+        Task<List<LogmessageExportModel>> GetLogMessages();
+        Task<List<LogmessageExportModel>> DeleteMessage(int messageId);
+        Task<List<LogmessageExportModel>> DeleteMessages(IEnumerable<int> messageIds);
     }
 }

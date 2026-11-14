@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Shared.Enums.Logger;
 using Shared.Interfaces.Administration;
 
 namespace Service.Api.Controllers.Administration
@@ -14,17 +13,17 @@ namespace Service.Api.Controllers.Administration
         }
 
         [HttpGet(Name = "GetMessageLogs")]
-        public IActionResult GetMessageLogs([FromQuery] string? moduleFilter = null, [FromQuery] LogMessageTypeEnum? messageType = null)
+        public async Task<IActionResult> GetMessageLogs()
         {
-            var logs = _logService.GetLogMessages(moduleFilter, messageType);
+            var logs = await _logService.GetLogMessages();
             
             return Ok(logs);
         }
 
         [HttpPost(Name = "DeleteLogMessage")]
-        public IActionResult DeleteLogMessage([FromQuery] int id)
+        public async Task<IActionResult> DeleteLogMessage([FromQuery] int id)
         {
-            var log = _logService.DeleteMessage(id);
+            var log = await _logService.DeleteMessage(id);
 
             if (log == null)
             {
@@ -36,7 +35,7 @@ namespace Service.Api.Controllers.Administration
 
 
         [HttpPost(Name = "DeleteLogMessages")]
-        public IActionResult DeleteLogMessages([FromRoute] IEnumerable<int> ids)
+        public async Task<IActionResult> DeleteLogMessages([FromRoute] IEnumerable<int> ids)
         {
             var log = _logService.DeleteMessages(ids);
 
