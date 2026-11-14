@@ -1,4 +1,5 @@
 ﻿using Logic.Bot.Administration;
+using Logic.Bot.Games;
 using Logic.Bot.Models;
 using Logic.Bot.Play;
 using Logic.Bot.Simulation;
@@ -20,6 +21,7 @@ namespace Logic.Bot.DI
 
             // Services mit Datenbank.
             services.AddScoped<IDartBotAdministration, DartBotAdministration>();
+            services.AddScoped<IDartBotGameService, DartBotGameService>();
         }
     }
 }

@@ -1,14 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Enums.User;
 using Shared.Interfaces.Training;
 using Shared.Models.Training;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Service.Api.Controllers.Training
 {
-    [Route("api/[controller]/[action]")]
-    [ApiController]
+    [Authorize(Roles = nameof(UserRoleEnum.Player))]
     public class X01TrainingGameController : ApiControllerBase
     {
         private readonly IX01TrainingGame _x01TrainingGame;

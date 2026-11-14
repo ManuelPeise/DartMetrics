@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Enums.User;
 using Shared.Interfaces.Training;
 using Shared.Models.Training;
 
 namespace Service.Api.Controllers.Training
 {
+    [Authorize(Roles = nameof(UserRoleEnum.Player))]
     public class CheckoutTrainingController: ApiControllerBase
     {
         private readonly ICheckoutTraining _checkoutTraining;

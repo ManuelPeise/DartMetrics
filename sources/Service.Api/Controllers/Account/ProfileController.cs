@@ -1,9 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Enums.User;
 using Shared.Interfaces.User;
 using Shared.Models.Authentication;
 using Shared.Models.User;
+
 namespace Service.Api.Controllers.Account
 {
+    [Authorize(Roles = $"{nameof(UserRoleEnum.Admin)}, {nameof(UserRoleEnum.Player)}, {nameof(UserRoleEnum.GameMaster)}")]
     public class ProfileController : ApiControllerBase
     {
         private readonly IUserProfileService _profileService;
