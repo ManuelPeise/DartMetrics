@@ -137,4 +137,3 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 Keine bekannten Fehler. Fachlich noch offen:
 
 - Benutzer haben noch kein eigenes Elo; Bots rechnen Menschen mit festem Wert (`HumanOpponentRating`).
-- Dashboard: ML-Modelle und Trainingssessions ohne API (Platzhalter).

@@ -57,6 +57,11 @@ namespace Logic.Shared.Repositories
             return DbSet.AnyAsync(predicate, cancellationToken);
         }
 
+        public virtual Task<int> CountAsync(Expression<Func<TEntity, bool>>? predicate = null, CancellationToken cancellationToken = default) =>
+            predicate is null
+                ? DbSet.CountAsync(cancellationToken)
+                : DbSet.CountAsync(predicate, cancellationToken);
+
         public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(entity);

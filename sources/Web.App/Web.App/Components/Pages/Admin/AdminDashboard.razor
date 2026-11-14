@@ -1,7 +1,8 @@
-@page "/admin"
+﻿@page "/admin"
 @using global::Shared.Enums.Logger
 @using global::Shared.Enums.User
 @using global::Shared.Interfaces.Blazor.Api
+@using global::Shared.Models.Administration.Dashboard
 @using global::Shared.Models.Administration.Log
 @using global::Shared.Models.Administration.User
 @using global::Shared.Models.Bot
@@ -41,13 +42,17 @@
                    BadgeText="@(_botsError ? "Nicht erreichbar" : null)"
                    Status="@(_botsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
 
-    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model"
-                   Description="Verfügbare Modelle" BadgeText="Noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model" IsLoading="_statisticsLoading"
+                   Value="@_statistics?.ModelCount.ToString()"
+                   Description="@ModelsDescription"
+                   BadgeText="@(_statisticsError ? "Nicht erreichbar" : null)"
+                   Status="@(_statisticsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
 
-    <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training"
-                   Description="Erfasste Trainings" BadgeText="Noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training" IsLoading="_statisticsLoading"
+                   Value="@_statistics?.TrainingSessionCount.ToString()"
+                   Description="@TrainingsDescription"
+                   BadgeText="@(_statisticsError ? "Nicht erreichbar" : null)"
+                   Status="@(_statisticsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
 
     <AdminStatCard Label="Systemstatus" Icon="AdminIconName.Pulse" IsLoading="_healthLoading"
                    Value="@HealthValue"
@@ -92,7 +97,7 @@
                     <AdminIcon Name="AdminIconName.Model" />
                     <span>ML-Modelle<small>Aktive Modelle je Typ</small></span>
                 </span>
-                <AdminStatusBadge Text="Keine Prüfung verfügbar" Status="AdminStatus.Placeholder" />
+                <AdminStatusBadge Text="@ModelsStatusText" Status="@ModelsStatus" />
             </li>
             <li>
                 <span class="adm-status-list__name">
@@ -148,6 +153,10 @@
     private bool _botsError;
     private List<DartBotListItem>? _bots;
 
+    private bool _statisticsLoading = true;
+    private bool _statisticsError;
+    private DashboardStatistics? _statistics;
+
     private bool _logsLoading = true;
     private string? _logsError;
     private List<LogmessageExportModel>? _logs;
@@ -158,7 +167,7 @@
     {
         if (firstRender)
         {
-            await Task.WhenAll(LoadHealthAsync(), LoadUsersAsync(), LoadBotsAsync(), LoadLogsAsync());
+            await Task.WhenAll(LoadHealthAsync(), LoadUsersAsync(), LoadBotsAsync(), LoadLogsAsync(), LoadStatisticsAsync());
         }
     }
 
@@ -191,6 +200,41 @@
         _botsLoading = false;
         await InvokeAsync(StateHasChanged);
     }
+
+    private async Task LoadStatisticsAsync()
+    {
+        try
+        {
+            using var response = await Api.GetAsync("Dashboard/GetDashboardStatistics");
+            _statistics = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<DashboardStatistics>() : null;
+            _statisticsError = _statistics is null;
+        }
+        catch
+        {
+            _statisticsError = true;
+        }
+
+        _statisticsLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string ModelsDescription => _statistics is null
+        ? "Verfügbare Modelle"
+        : $"{_statistics.ActiveModelCount} aktiv";
+
+    private string TrainingsDescription => _statistics is null
+        ? "Erfasste Trainings"
+        : $"{_statistics.TrainingSessionsLast7Days} in den letzten 7 Tagen";
+
+    private string ModelsStatusText => _statisticsLoading ? "Wird geprüft"
+        : _statisticsError ? "Nicht erreichbar"
+        : _statistics!.ActiveModelCount > 0 ? $"{_statistics.ActiveModelCount} aktiv"
+        : "Regelbasiert (kein Modell aktiv)";
+
+    private AdminStatus ModelsStatus => _statisticsLoading ? AdminStatus.Neutral
+        : _statisticsError ? AdminStatus.Danger
+        : _statistics!.ActiveModelCount > 0 ? AdminStatus.Success
+        : AdminStatus.Neutral;
 
     private async Task LoadLogsAsync()
     {

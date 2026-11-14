@@ -9,6 +9,7 @@ namespace Logic.Administration.DI
         {
             services.AddScoped<ILogService, LogService>();
             services.AddScoped<IUserAdministration, UserAdministration>();
+            services.AddScoped<IDashboardStatisticsService, DashboardStatisticsService>();
         }
     }
 }

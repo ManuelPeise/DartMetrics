@@ -1,4 +1,4 @@
-# Logic.Administration
+﻿# Logic.Administration
 
 Funktionen für Administratoren.
 
@@ -7,4 +7,5 @@ Funktionen für Administratoren.
   - Eigenes Konto und Admin-Konten sind gesperrt.
   - Löschen = Anonymisieren (`DeletedAt`, Login-Daten entfernt, Bot-Spiele und Trainings bleiben).
   - Aktionen werden als Info im System-Log protokolliert.
+- `DashboardStatisticsService`: Zählwerte fürs Dashboard (ML-Modelle gesamt/aktiv, Trainingssessions gesamt/letzte 7 Tage). API: `Dashboard/GetDashboardStatistics`, nur Admin.
 - DI: `AddAdministrationServices()`.
