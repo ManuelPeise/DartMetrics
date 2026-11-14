@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Enums.User;
 using Shared.Interfaces.Administration;
 
 namespace Service.Api.Controllers.Administration
 {
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     public class MessageLogController: ApiControllerBase
     {
         private readonly ILogService _logService;

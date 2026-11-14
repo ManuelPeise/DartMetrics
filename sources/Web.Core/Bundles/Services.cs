@@ -117,6 +117,12 @@ namespace Web.Core.Bundles
                 .Bind(configuration.GetSection("Server"))
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
+
+            // Ohne Abschnitt "DartBot" gelten die Standardwerte aus DartBotOptions.
+            services.AddOptions<DartBotOptions>()
+                .Bind(configuration.GetSection("DartBot"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
         }
 
         private static void AddDiServices(this IServiceCollection services)
