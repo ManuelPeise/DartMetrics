@@ -1175,3 +1175,36 @@
     color: var(--adm-accent-strong);
     font-size: 0.8rem;
 }
+
+/* ---------- Benutzerverwaltung ---------- */
+
+.adm-filter-bar--users { grid-template-columns: minmax(0, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; }
+
+.adm-role-select { min-width: 150px; }
+
+    .adm-role-select .adm-field__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.adm-status-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--adm-space-1);
+}
+
+.adm-you {
+    margin-left: var(--adm-space-2);
+    color: var(--adm-accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 1199px) {
+    .adm-filter-bar--users { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+    .adm-filter-bar--users { grid-template-columns: minmax(0, 1fr); }
+
+    .adm-role-select { min-width: 0; width: 100%; }
+}

@@ -1530,6 +1530,9 @@ namespace Data.DartContext.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");

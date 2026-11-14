@@ -1,10 +1,286 @@
 @page "/admin/users"
+@using global::Shared.Enums.User
+@using global::Shared.Interfaces.Blazor.Api
+@using global::Shared.Models.Administration.User
+@inject IAuthorizedApiClient Api
 
 <PageTitle>Benutzerverwaltung – DartMetrics Admin</PageTitle>
 
-<AdminPageHeader Eyebrow="Administration" Title="Benutzerverwaltung" />
+<AdminPageHeader Eyebrow="Verwaltung" Title="Benutzer"
+                 Subtitle="Rollen vergeben, Konten sperren oder löschen. Admin-Konten und das eigene Konto sind geschützt.">
+    <Actions>
+        <AdminButton Variant="AdminButtonVariant.Ghost" Icon="AdminIconName.Process" IsLoading="_loading" OnClick="LoadAsync">
+            Aktualisieren
+        </AdminButton>
+    </Actions>
+</AdminPageHeader>
 
-<AdminCard>
-    <AdminEmptyState Icon="AdminIconName.Users" Title="In Vorbereitung"
-                     Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+@if (_message is not null)
+{
+    <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
+}
+
+@if (_users is not null)
+{
+    <div class="adm-stat-grid">
+        <AdminStatCard Label="Benutzer gesamt" Icon="AdminIconName.Users" Value="@_users.Count.ToString()" Description="Ohne gelöschte Konten" />
+        <AdminStatCard Label="Aktiv" Icon="AdminIconName.UserCheck" Value="@_users.Count(u => u.IsActive).ToString()"
+                       Description="@($"{_users.Count(u => !u.IsActive)} deaktiviert oder unbestätigt")" Status="AdminStatus.Success" />
+        <AdminStatCard Label="Rollen" Icon="AdminIconName.Lock" Value="@_users.Count(u => u.Role == UserRoleEnum.Admin).ToString()"
+                       Description="@($"Admins · {_users.Count(u => u.Role == UserRoleEnum.GameMaster)} GameMaster · {_users.Count(u => u.Role == UserRoleEnum.Player)} Player")" />
+    </div>
+}
+
+<AdminCard Flush="true">
+    <div class="adm-filter-bar adm-filter-bar--users">
+        <AdminInput Id="user-search" Label="Suche" Placeholder="Name, Anzeigename oder E-Mail"
+                    Value="@_search" ValueChanged="v => _search = v" />
+        <AdminSelect Id="user-role-filter" Label="Rolle" Options="RoleFilterOptions" Value="@_roleFilter" ValueChanged="v => _roleFilter = v" />
+        <AdminSelect Id="user-status-filter" Label="Status" Options="StatusFilterOptions" Value="@_statusFilter" ValueChanged="v => _statusFilter = v" />
+        <span class="adm-toolbar__meta">@Filtered.Count() von @(_users?.Count ?? 0)</span>
+    </div>
+
+    <AdminTable Items="@(_users is null ? null : Filtered.ToList())" IsLoading="@(_loading && _users is null)" ErrorText="@_loadError" OnRetry="LoadAsync">
+        <HeaderTemplate>
+            <th>Benutzer</th>
+            <th>E-Mail</th>
+            <th>Rolle</th>
+            <th>Status</th>
+            <th>Registriert</th>
+            <th><span class="adm-sr-only">Aktionen</span></th>
+        </HeaderTemplate>
+        <RowTemplate Context="user">
+            <td data-label="Benutzer" class="adm-cell-title">
+                <strong>@user.FirstName @user.LastName @if (user.IsCurrentUser) { <span class="adm-you">Du</span> }</strong>
+                @if (!string.IsNullOrWhiteSpace(user.DisplayName))
+                {
+                    <small>@user.DisplayName</small>
+                }
+            </td>
+            <td data-label="E-Mail" class="adm-table__muted">@user.EmailAddress</td>
+            <td data-label="Rolle">
+                @if (user.CanChangeRole)
+                {
+                    <div class="adm-role-select">
+                        <AdminSelect Id="@($"role-{user.Id}")" Label="@($"Rolle von {user.FirstName} {user.LastName}")"
+                                     Options="AssignableRoleOptions"
+                                     Value="@(user.Role?.ToString() ?? "")"
+                                     Disabled="@(_busyUserId is not null)"
+                                     ValueChanged="v => ChangeRoleAsync(user, v)" />
+                    </div>
+                }
+                else
+                {
+                    <AdminStatusBadge Text="@RoleText(user.Role)" Status="@(user.Role == UserRoleEnum.Admin ? AdminStatus.Warning : AdminStatus.Neutral)" />
+                }
+            </td>
+            <td data-label="Status">
+                <div class="adm-status-stack">
+                    <AdminStatusBadge Text="@(user.IsActive ? "Aktiv" : "Deaktiviert")"
+                                      Status="@(user.IsActive ? AdminStatus.Success : AdminStatus.Danger)" />
+                    @if (!user.IsEmailVerified)
+                    {
+                        <AdminStatusBadge Text="E-Mail unbestätigt" Status="AdminStatus.Placeholder" />
+                    }
+                </div>
+            </td>
+            <td data-label="Seit" class="adm-table__muted">@user.CreatedAt.ToString("dd.MM.yyyy", German)</td>
+            <td data-label="">
+                @if (user.CanManage)
+                {
+                    <div class="adm-row-actions">
+                        @if (_confirmDeleteId == user.Id)
+                        {
+                            <AdminButton Variant="AdminButtonVariant.Danger" IsLoading="@(_busyUserId == user.Id)"
+                                         OnClick="() => DeleteAsync(user)">Wirklich löschen?</AdminButton>
+                            <AdminButton Variant="AdminButtonVariant.Ghost" Disabled="@(_busyUserId is not null)"
+                                         OnClick="() => _confirmDeleteId = null">Abbrechen</AdminButton>
+                        }
+                        else
+                        {
+                            <AdminButton Variant="AdminButtonVariant.Ghost" IsLoading="@(_busyUserId == user.Id)"
+                                         Disabled="@(_busyUserId is not null)"
+                                         OnClick="() => SetActiveAsync(user, !user.IsActive)">
+                                @(user.IsActive ? "Deaktivieren" : "Aktivieren")
+                            </AdminButton>
+                            <AdminButton Variant="AdminButtonVariant.Danger" Disabled="@(_busyUserId is not null)"
+                                         OnClick="() => _confirmDeleteId = user.Id">Löschen</AdminButton>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="adm-table__muted" title="@(user.IsCurrentUser ? "Das eigene Konto kann nicht geändert werden." : "Admin-Konten sind geschützt.")">
+                        <AdminIcon Name="AdminIconName.Lock" Size="16" /> Geschützt
+                    </span>
+                }
+            </td>
+        </RowTemplate>
+        <EmptyContent>
+            @if (_users is { Count: > 0 })
+            {
+                <AdminEmptyState Icon="AdminIconName.Users" Title="Keine Treffer" Text="Kein Benutzer passt zu Suche oder Filter." />
+            }
+            else
+            {
+                <AdminEmptyState Icon="AdminIconName.Users" Title="Keine Benutzer" />
+            }
+        </EmptyContent>
+    </AdminTable>
 </AdminCard>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private static readonly IReadOnlyList<AdminSelectOption> AssignableRoleOptions =
+    [
+        new(nameof(UserRoleEnum.Player), "Player"),
+        new(nameof(UserRoleEnum.GameMaster), "GameMaster")
+    ];
+
+    private static readonly IReadOnlyList<AdminSelectOption> RoleFilterOptions =
+    [
+        new("", "Alle Rollen"),
+        new(nameof(UserRoleEnum.Admin), "Admin"),
+        new(nameof(UserRoleEnum.GameMaster), "GameMaster"),
+        new(nameof(UserRoleEnum.Player), "Player")
+    ];
+
+    private static readonly IReadOnlyList<AdminSelectOption> StatusFilterOptions =
+    [
+        new("", "Alle"),
+        new("active", "Aktiv"),
+        new("inactive", "Deaktiviert"),
+        new("unverified", "E-Mail unbestätigt")
+    ];
+
+    private List<AdminUserListItem>? _users;
+    private bool _loading = true;
+    private string? _loadError;
+
+    private string? _search;
+    private string? _roleFilter = "";
+    private string? _statusFilter = "";
+
+    private int? _busyUserId;
+    private int? _confirmDeleteId;
+
+    private string? _message;
+    private bool _messageIsError;
+
+    private IEnumerable<AdminUserListItem> Filtered =>
+        (_users ?? [])
+            .Where(u => !Enum.TryParse<UserRoleEnum>(_roleFilter, out var role) || u.Role == role)
+            .Where(u => _statusFilter switch
+            {
+                "active" => u.IsActive,
+                "inactive" => !u.IsActive,
+                "unverified" => !u.IsEmailVerified,
+                _ => true
+            })
+            .Where(u => string.IsNullOrWhiteSpace(_search) || Matches(u, _search.Trim()));
+
+    // Erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Api.GetAsync("UserAdministration/GetUsers");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _users = await response.Content.ReadFromJsonAsync<List<AdminUserListItem>>() ?? [];
+            }
+            else
+            {
+                _loadError = await ApiProblem.ReadMessageAsync(response);
+            }
+        }
+        catch
+        {
+            _loadError = "Die Benutzer konnten nicht geladen werden.";
+        }
+
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ChangeRoleAsync(AdminUserListItem user, string? value)
+    {
+        if (!Enum.TryParse<UserRoleEnum>(value, out var role) || role == user.Role)
+        {
+            return;
+        }
+
+        await RunAsync(user,
+            () => Api.PostAsync("UserAdministration/ChangeUserRole", new ChangeUserRoleModel { UserId = user.Id, Role = role }),
+            $"{user.FirstName} {user.LastName} ist jetzt {RoleText(role)}.");
+    }
+
+    private Task SetActiveAsync(AdminUserListItem user, bool isActive) =>
+        RunAsync(user,
+            () => Api.PostAsync($"UserAdministration/{(isActive ? "ActivateUser" : "DeactivateUser")}?userId={user.Id}"),
+            $"{user.FirstName} {user.LastName} wurde {(isActive ? "aktiviert" : "deaktiviert")}.");
+
+    private Task DeleteAsync(AdminUserListItem user) =>
+        RunAsync(user,
+            () => Api.PostAsync($"UserAdministration/DeleteUser?userId={user.Id}"),
+            $"{user.FirstName} {user.LastName} wurde gelöscht. Spiele und Trainings bleiben anonymisiert erhalten.");
+
+    /// <summary>Führt eine Aktion aus, zeigt das Ergebnis und lädt die Liste neu.</summary>
+    private async Task RunAsync(AdminUserListItem user, Func<Task<HttpResponseMessage>> action, string successMessage)
+    {
+        _busyUserId = user.Id;
+        _message = null;
+
+        try
+        {
+            using var response = await action();
+
+            if (response.IsSuccessStatusCode)
+            {
+                _message = successMessage;
+                _messageIsError = false;
+            }
+            else
+            {
+                _message = await ApiProblem.ReadMessageAsync(response);
+                _messageIsError = true;
+            }
+        }
+        catch
+        {
+            _message = "Die Aktion ist fehlgeschlagen.";
+            _messageIsError = true;
+        }
+
+        _busyUserId = null;
+        _confirmDeleteId = null;
+        await LoadAsync();
+    }
+
+    private static bool Matches(AdminUserListItem user, string search) =>
+        $"{user.FirstName} {user.LastName}".Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        (user.DisplayName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        user.EmailAddress.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    private static string RoleText(UserRoleEnum? role) => role switch
+    {
+        UserRoleEnum.Admin => "Admin",
+        UserRoleEnum.GameMaster => "GameMaster",
+        UserRoleEnum.Player => "Player",
+        _ => "Keine Rolle"
+    };
+}

@@ -8,6 +8,7 @@ namespace Logic.Administration.DI
         public static void AddAdministrationServices(this IServiceCollection services)
         {
             services.AddScoped<ILogService, LogService>();
+            services.AddScoped<IUserAdministration, UserAdministration>();
         }
     }
 }
