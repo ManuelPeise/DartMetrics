@@ -1,0 +1,11 @@
+@* Wird statt des Admin-Layouts gezeigt, wenn der Benutzer nicht die Rolle Admin hat. Keine Navigation, keine Admin-Inhalte. *@
+<div class="adm-access-denied">
+    <AdminCard>
+        <div class="adm-state">
+            <AdminIcon Name="AdminIconName.Lock" Size="36" />
+            <p class="adm-state__title">Kein Zugriff</p>
+            <p>Dieser Bereich ist Administratoren vorbehalten.</p>
+            <AreaLink Href="/" Class="adm-btn adm-btn--ghost">Zur Startseite</AreaLink>
+        </div>
+    </AdminCard>
+</div>

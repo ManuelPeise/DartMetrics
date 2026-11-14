@@ -1,0 +1,92 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+
+<header class="adm-header">
+    <AdminButton Variant="AdminButtonVariant.Icon" Class="adm-header__menu" Icon="AdminIconName.Menu"
+                 AriaLabel="Navigation öffnen" OnClick="() => OnOpenMenu.InvokeAsync()" />
+
+    <div class="adm-header__titles">
+        <AdminBreadcrumb Items="_breadcrumb" />
+        <p class="adm-header__title">@_title</p>
+    </div>
+
+    <div class="adm-header__actions">
+        <div class="adm-notifications">
+            <AdminButton Variant="AdminButtonVariant.Icon" Icon="AdminIconName.Bell"
+                         AriaLabel="Benachrichtigungen" OnClick="ToggleNotifications" />
+            @if (_notificationsOpen)
+            {
+                <div class="adm-notifications__panel" role="dialog" aria-label="Benachrichtigungen">
+                    Keine neuen Benachrichtigungen.
+                </div>
+            }
+        </div>
+
+        <div class="adm-header__profile">
+            <span title="@UserEmail">@UserEmail</span>
+            <span class="adm-avatar" aria-hidden="true">@Initial</span>
+            <AreaLink Href="/logout" Class="adm-btn adm-btn--icon">
+                <AdminIcon Name="AdminIconName.Logout" />
+                <span class="adm-sr-only">Abmelden</span>
+            </AreaLink>
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter] public EventCallback OnOpenMenu { get; set; }
+
+    [Parameter] public string UserEmail { get; set; } = "";
+
+    private string _title = "Admin";
+    private IReadOnlyList<AdminBreadcrumbItem> _breadcrumb = [];
+    private bool _notificationsOpen;
+
+    private string Initial => string.IsNullOrEmpty(UserEmail) ? "A" : UserEmail[..1].ToUpperInvariant();
+
+    protected override void OnInitialized()
+    {
+        UpdateTitle(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void ToggleNotifications() => _notificationsOpen = !_notificationsOpen;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateTitle(e.Location);
+        _notificationsOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateTitle(string uri)
+    {
+        var path = new Uri(uri).AbsolutePath;
+        var match = AdminNavigation.Find(path);
+
+        var items = new List<AdminBreadcrumbItem> { new("Admin", AdminNavigation.Root) };
+
+        if (match is { } found)
+        {
+            _title = found.Item.Title;
+
+            if (found.Item.Href != AdminNavigation.Root)
+            {
+                items.Add(new AdminBreadcrumbItem(found.Group.Title));
+            }
+
+            items.Add(new AdminBreadcrumbItem(found.Item.Title, found.Item.Href));
+        }
+        else
+        {
+            _title = "Admin";
+        }
+
+        _breadcrumb = items;
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

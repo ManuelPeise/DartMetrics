@@ -1,0 +1,65 @@
+<aside class="adm-sidebar" aria-label="Admin-Navigation">
+    <a href="@AdminNavigation.Root" class="adm-sidebar__brand" title="DartMetrics Admin">
+        <img src="img/dart_board.png" alt="" width="34" height="34" />
+        <span class="adm-hide-collapsed">Dart<span class="adm-sidebar__brand-accent">Metrics</span></span>
+        <span class="adm-sidebar__tag adm-hide-collapsed">ADMIN</span>
+    </a>
+
+    <nav class="adm-sidebar__nav">
+        @foreach (var group in AdminNavigation.Groups)
+        {
+            <div class="adm-nav-group">
+                <p class="adm-nav-group__title">@group.Title</p>
+                @foreach (var item in group.Items)
+                {
+                    <NavLink href="@item.Href" class="adm-nav-link" title="@item.Title"
+                             Match="@(item.MatchExact ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                             @onclick="OnNavigate">
+                        <AdminIcon Name="item.Icon" />
+                        <span class="adm-hide-collapsed">@item.Title</span>
+                    </NavLink>
+                }
+            </div>
+        }
+
+        <div class="adm-nav-group">
+            <p class="adm-nav-group__title">Anwendung</p>
+            <AreaLink Href="/" Class="adm-nav-link">
+                <AdminIcon Name="AdminIconName.Home" />
+                <span class="adm-hide-collapsed">Zur DartMetrics-App</span>
+            </AreaLink>
+        </div>
+    </nav>
+
+    <AdminButton Variant="AdminButtonVariant.Ghost" Class="adm-sidebar__collapse"
+                 Icon="@(Collapsed ? AdminIconName.ChevronRight : AdminIconName.ChevronLeft)"
+                 AriaLabel="@(Collapsed ? "Navigation ausklappen" : "Navigation einklappen")"
+                 Title="@(Collapsed ? "Navigation ausklappen" : "Navigation einklappen")"
+                 OnClick="() => OnToggleCollapse.InvokeAsync()">
+        <span class="adm-hide-collapsed">Einklappen</span>
+    </AdminButton>
+
+    <div class="adm-sidebar__footer">
+        <span class="adm-avatar" title="@UserEmail">@Initial</span>
+        <div class="adm-sidebar__user adm-hide-collapsed">
+            <strong>@UserEmail</strong>
+            <span>Administrator</span>
+        </div>
+        <AreaLink Href="/logout" Class="adm-btn adm-btn--icon adm-hide-collapsed">
+            <AdminIcon Name="AdminIconName.Logout" />
+            <span class="adm-sr-only">Abmelden</span>
+        </AreaLink>
+    </div>
+</aside>
+
+@code {
+    [Parameter] public bool Collapsed { get; set; }
+
+    [Parameter] public EventCallback OnToggleCollapse { get; set; }
+
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
+    [Parameter] public string UserEmail { get; set; } = "";
+
+    private string Initial => string.IsNullOrEmpty(UserEmail) ? "A" : UserEmail[..1].ToUpperInvariant();
+}

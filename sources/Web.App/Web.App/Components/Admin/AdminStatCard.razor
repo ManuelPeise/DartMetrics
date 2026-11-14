@@ -1,0 +1,43 @@
+<article class="adm-stat @StatusClass">
+    <div class="adm-stat__icon"><AdminIcon Name="Icon" Size="22" /></div>
+    <div class="adm-stat__body">
+        <p class="adm-stat__label">@Label</p>
+        @if (IsLoading)
+        {
+            <p class="adm-stat__value"><span class="adm-spinner" role="status"><span class="adm-sr-only">Wird geladen</span></span></p>
+        }
+        else
+        {
+            <p class="adm-stat__value @(Value is null ? "adm-stat__value--muted" : "")">@(Value ?? "–")</p>
+        }
+        <p class="adm-stat__description">@Description</p>
+        @if (BadgeText is not null)
+        {
+            <div class="adm-stat__footer"><AdminStatusBadge Text="@BadgeText" Status="Status" /></div>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired] public AdminIconName Icon { get; set; }
+
+    /// <summary>null = kein Wert verfügbar (Strich).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public string? Description { get; set; }
+
+    [Parameter] public string? BadgeText { get; set; }
+
+    [Parameter] public AdminStatus Status { get; set; } = AdminStatus.Neutral;
+
+    [Parameter] public bool IsLoading { get; set; }
+
+    private string StatusClass => Status switch
+    {
+        AdminStatus.Success => "adm-stat--success",
+        AdminStatus.Danger => "adm-stat--danger",
+        _ => ""
+    };
+}

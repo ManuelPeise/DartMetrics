@@ -1,0 +1,27 @@
+<div class="adm-page-header">
+    <div>
+        @if (!string.IsNullOrEmpty(Eyebrow))
+        {
+            <p class="adm-eyebrow">@Eyebrow</p>
+        }
+        <h1 class="adm-page-title">@Title</h1>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="adm-page-subtitle">@Subtitle</p>
+        }
+    </div>
+    @if (Actions is not null)
+    {
+        <div class="adm-page-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Eyebrow { get; set; }
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

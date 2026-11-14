@@ -1,0 +1,16 @@
+<span class="adm-badge @CssClass">@Text</span>
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+
+    [Parameter] public AdminStatus Status { get; set; } = AdminStatus.Neutral;
+
+    private string CssClass => Status switch
+    {
+        AdminStatus.Success => "adm-badge--success",
+        AdminStatus.Warning => "adm-badge--warning",
+        AdminStatus.Danger => "adm-badge--danger",
+        AdminStatus.Placeholder => "adm-badge--placeholder",
+        _ => ""
+    };
+}
