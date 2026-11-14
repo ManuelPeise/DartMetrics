@@ -1160,3 +1160,18 @@
 
     .adm-row-actions { justify-content: flex-start; }
 }
+
+/* ---------- Hinweis Vorschau/Beispieldaten ---------- */
+
+.adm-preview-note {
+    display: flex;
+    align-items: center;
+    gap: var(--adm-space-2);
+    margin-bottom: var(--adm-space-4);
+    padding: var(--adm-space-2) var(--adm-space-4);
+    border: 1px dashed rgba(209, 164, 95, 0.5);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-accent-soft);
+    color: var(--adm-accent-strong);
+    font-size: 0.8rem;
+}

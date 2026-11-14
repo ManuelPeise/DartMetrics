@@ -1,11 +1,10 @@
 @page "/admin"
-@using Shared.Enums.Logger
-@using Shared.Interfaces.Blazor.Api
-@using Shared.Models.Administration.Log
-@using Shared.Models.Bot
-@inject IAuthorizedApiClient Api
+@using Web.App.Components.Admin.Preview
+@using static Web.App.Components.Admin.Preview.AdminSampleData
 
 <PageTitle>Dashboard – DartMetrics Admin</PageTitle>
+
+<AdminPreviewNote Text="Vorschau mit Beispieldaten – die Kennzahlen sind noch nicht mit dem System verbunden." />
 
 <AuthorizeView Roles="Admin" Context="auth">
     <section class="adm-welcome">
@@ -21,32 +20,23 @@
 </AuthorizeView>
 
 <div class="adm-stat-grid">
-    <AdminStatCard Label="Benutzer gesamt" Icon="AdminIconName.Users"
-                   Description="Registrierte Konten" BadgeText="Platzhalter – noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="Benutzer gesamt" Icon="AdminIconName.Users" Value="128"
+                   Description="Registrierte Konten" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
 
-    <AdminStatCard Label="Aktive Benutzer" Icon="AdminIconName.UserCheck"
-                   Description="Aktive Konten" BadgeText="Platzhalter – noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="Aktive Benutzer" Icon="AdminIconName.UserCheck" Value="97"
+                   Description="E-Mail bestätigt und aktiv" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
 
-    <AdminStatCard Label="DartBots" Icon="AdminIconName.Bot" IsLoading="_botsLoading"
-                   Value="@_bots?.Count.ToString()"
-                   Description="@BotsDescription"
-                   BadgeText="@(_botsError ? "Nicht erreichbar" : null)"
-                   Status="@(_botsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
+    <AdminStatCard Label="DartBots" Icon="AdminIconName.Bot" Value="@_bots.Count.ToString()"
+                   Description="@BotsDescription" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
 
-    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model"
-                   Description="Verfügbare Modelle" BadgeText="Platzhalter – noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model" Value="0"
+                   Description="Noch kein Modell trainiert" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
 
-    <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training"
-                   Description="Erfasste Trainings" BadgeText="Platzhalter – noch keine API"
-                   Status="AdminStatus.Placeholder" />
+    <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training" Value="1.452"
+                   Description="Erfasste Trainings" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
 
-    <AdminStatCard Label="Systemstatus" Icon="AdminIconName.Pulse" IsLoading="_healthLoading"
-                   Value="@HealthValue"
-                   Description="Erreichbarkeit der API"
-                   Status="@HealthStatus" />
+    <AdminStatCard Label="Systemstatus" Icon="AdminIconName.Pulse" Value="OK"
+                   Description="Alle Dienste erreichbar" BadgeText="Beispieldaten" Status="AdminStatus.Success" />
 </div>
 
 <div class="adm-dashboard-grid">
@@ -57,28 +47,21 @@
                     <AdminIcon Name="AdminIconName.Server" />
                     <span>API<small>DartMetrics Service.Api</small></span>
                 </span>
-                @if (_healthLoading)
-                {
-                    <span class="adm-spinner" role="status"><span class="adm-sr-only">Wird geprüft</span></span>
-                }
-                else
-                {
-                    <AdminStatusBadge Text="@HealthBadge" Status="HealthStatus" />
-                }
+                <AdminStatusBadge Text="Erreichbar" Status="AdminStatus.Success" />
             </li>
             <li>
                 <span class="adm-status-list__name">
                     <AdminIcon Name="AdminIconName.Database" />
                     <span>Datenbank<small>MySQL</small></span>
                 </span>
-                <AdminStatusBadge Text="Keine Prüfung verfügbar" Status="AdminStatus.Placeholder" />
+                <AdminStatusBadge Text="Verbunden" Status="AdminStatus.Success" />
             </li>
             <li>
                 <span class="adm-status-list__name">
                     <AdminIcon Name="AdminIconName.Model" />
                     <span>ML-Modelle<small>Aktive Modelle je Typ</small></span>
                 </span>
-                <AdminStatusBadge Text="Keine Prüfung verfügbar" Status="AdminStatus.Placeholder" />
+                <AdminStatusBadge Text="Regelbasiert" Status="AdminStatus.Warning" />
             </li>
             <li>
                 <span class="adm-status-list__name">
@@ -90,141 +73,45 @@
         </ul>
     </AdminCard>
 
-    <AdminCard Title="Letzte Aktivitäten" Subtitle="Neueste Systemereignisse aus dem Log" Flush="true">
+    <AdminCard Title="Letzte Aktivitäten" Subtitle="Neueste Systemereignisse (Beispieldaten)" Flush="true">
         <Actions>
             <a href="/admin/logs" class="adm-btn adm-btn--ghost">Alle Logs</a>
         </Actions>
         <ChildContent>
-            @if (_logsLoading)
-            {
-                <AdminLoadingState />
-            }
-            else if (_logsError)
-            {
-                <AdminErrorState Text="Die System-Logs sind gerade nicht erreichbar." OnRetry="LoadLogsAsync" />
-            }
-            else if (_logs is null || _logs.Count == 0)
-            {
-                <AdminEmptyState Title="Keine Aktivitäten" Text="Es wurden noch keine Systemereignisse protokolliert." />
-            }
-            else
-            {
-                <div class="adm-table-wrap">
-                    <table class="adm-table">
-                        <thead>
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>Typ</th>
+                            <th>Modul</th>
+                            <th>Meldung</th>
+                            <th>Zeitpunkt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in _logs)
+                        {
                             <tr>
-                                <th>Typ</th>
-                                <th>Modul</th>
-                                <th>Meldung</th>
-                                <th>Zeitpunkt</th>
+                                <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.Type)" Status="TypeStatus(log.Type)" /></td>
+                                <td data-label="Modul" class="adm-table__muted">@log.Module</td>
+                                <td data-label="Meldung"><span class="adm-table__message" title="@log.Message">@log.Message</span></td>
+                                <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAtUtc)</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var log in _logs)
-                            {
-                                <tr>
-                                    <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.MessageType)" Status="TypeStatus(log.MessageType)" /></td>
-                                    <td data-label="Modul" class="adm-table__muted">@log.Module</td>
-                                    <td data-label="Meldung"><span class="adm-table__message" title="@log.Message">@log.Message</span></td>
-                                    <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAt)</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </ChildContent>
     </AdminCard>
 </div>
 
 @code {
-    private const int RecentLogCount = 8;
-
+    // Design-Phase: Beispieldaten statt API (Anbindung nach dem Merge mit dem Bot-Branch).
     private static readonly System.Globalization.CultureInfo German = new("de-DE");
 
     private readonly DateTime _now = ToLocal(DateTime.UtcNow);
-
-    private bool _healthLoading = true;
-    private bool? _apiHealthy;
-
-    private bool _botsLoading = true;
-    private bool _botsError;
-    private List<DartBotListItem>? _bots;
-
-    private bool _logsLoading = true;
-    private bool _logsError;
-    private List<LogmessageExportModel>? _logs;
-
-    // Daten erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender)
-        {
-            return;
-        }
-
-        await Task.WhenAll(LoadHealthAsync(), LoadBotsAsync(), LoadLogsAsync());
-    }
-
-    private async Task LoadHealthAsync()
-    {
-        _healthLoading = true;
-
-        try
-        {
-            using var response = await Api.GetAsync("Health/GetHealth");
-            _apiHealthy = response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            _apiHealthy = false;
-        }
-
-        _healthLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LoadBotsAsync()
-    {
-        _botsLoading = true;
-        _botsError = false;
-
-        try
-        {
-            _bots = await Api.GetFromJsonAsync<List<DartBotListItem>>("DartBotAdministration/GetDartBots?includeInactive=true");
-        }
-        catch
-        {
-            _botsError = true;
-        }
-
-        _botsLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LoadLogsAsync()
-    {
-        _logsLoading = true;
-        _logsError = false;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var logs = await Api.GetFromJsonAsync<List<LogmessageExportModel>>("MessageLog/GetMessageLogs");
-
-            _logs = logs?
-                .OrderByDescending(l => l.CreatedAt)
-                .Take(RecentLogCount)
-                .ToList();
-        }
-        catch
-        {
-            _logsError = true;
-        }
-
-        _logsLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
+    private readonly List<SampleBot> _bots = AdminSampleData.Bots();
+    private readonly List<SampleLog> _logs = AdminSampleData.Logs().OrderByDescending(l => l.CreatedAtUtc).Take(6).ToList();
 
     private string Greeting => _now.Hour switch
     {
@@ -233,54 +120,31 @@
         _ => "Guten Abend"
     };
 
-    private string SystemSummary => _apiHealthy switch
+    private const string SystemSummary = "Alle Dienste laufen. 2 Warnungen und 1 Fehler in den letzten 24 Stunden.";
+
+    private string BotsDescription => $"{_bots.Count(b => b.IsActive)} aktiv, {_bots.Count(b => !b.IsActive)} deaktiviert";
+
+    private static string TypeText(SampleLogType type) => type switch
     {
-        null => "Systemzustand wird geprüft …",
-        true => "Die API ist erreichbar. Alle verfügbaren Prüfungen sind in Ordnung.",
-        false => "Die API ist nicht erreichbar. Bitte den Dienst prüfen."
-    };
-
-    private string? HealthValue => _apiHealthy switch
-    {
-        true => "OK",
-        false => "Fehler",
-        null => null
-    };
-
-    private string HealthBadge => _apiHealthy == true ? "Erreichbar" : "Nicht erreichbar";
-
-    private AdminStatus HealthStatus => _apiHealthy switch
-    {
-        true => AdminStatus.Success,
-        false => AdminStatus.Danger,
-        null => AdminStatus.Neutral
-    };
-
-    private string BotsDescription =>
-        _bots is null ? "Virtuelle Gegner" : $"{_bots.Count(b => b.IsActive)} aktiv, {_bots.Count(b => !b.IsActive)} deaktiviert";
-
-    private static string TypeText(LogMessageTypeEnum type) => type switch
-    {
-        LogMessageTypeEnum.Error => "Fehler",
-        LogMessageTypeEnum.Warning => "Warnung",
+        SampleLogType.Error => "Fehler",
+        SampleLogType.Warning => "Warnung",
         _ => "Info"
     };
 
-    private static AdminStatus TypeStatus(LogMessageTypeEnum type) => type switch
+    private static AdminStatus TypeStatus(SampleLogType type) => type switch
     {
-        LogMessageTypeEnum.Error => AdminStatus.Danger,
-        LogMessageTypeEnum.Warning => AdminStatus.Warning,
+        SampleLogType.Error => AdminStatus.Danger,
+        SampleLogType.Warning => AdminStatus.Warning,
         _ => AdminStatus.Neutral
     };
 
-    private static string FormatTime(DateTime createdAt) =>
-        ToLocal(DateTime.SpecifyKind(createdAt, DateTimeKind.Utc)).ToString("dd.MM.yyyy HH:mm", German);
+    private static string FormatTime(DateTime utc) => ToLocal(utc).ToString("dd.MM.yyyy HH:mm", German);
 
     private static DateTime ToLocal(DateTime utc)
     {
         try
         {
-            return TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
         }
         catch (TimeZoneNotFoundException)
         {
