@@ -243,7 +243,7 @@ namespace Logic.Training
 
                 return new X01TrainingResult
                 {
-                    TrainingId = training.Id,
+                    TrainingId = training.TrainingSessionId,
                     StartingScore = training.StartingScore,
                     InMode = training.InMode,
                     OutMode = training.OutMode,

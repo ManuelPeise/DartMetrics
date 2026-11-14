@@ -27,9 +27,9 @@ namespace Service.Api.Controllers.Training
         [HttpPost(Name = "AddSegmentTrainingThrow")]
         public async Task<IActionResult> AddSegmentTrainingThrow([FromBody] SegmentTrainingThrow model)
         {
-            await _segmentTraining.AddThrowAsync(model);
-            
-            return Ok();
+            var result = await _segmentTraining.AddThrowAsync(model);
+
+            return Ok(result);
         }
 
         [HttpPost(Name = "FinishSegmentTraining")]

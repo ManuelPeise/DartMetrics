@@ -28,35 +28,56 @@ namespace Logic.Training
             }
         }
 
-        protected async Task<SegmentTrainingEntity> LoadTraining(int trainingId, int userId)
+        // Öffentliche TrainingId ist immer die Id der TrainingSession (Rückgabe von Start…).
+        // Geladen wird daher über TrainingSessionId; der Zugriff wird über den Benutzer der Session geprüft.
+
+        protected async Task<SegmentTrainingEntity> LoadSegmentTraining(int trainingId, int userId)
         {
-            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.SegmentTrainingRepository.GetFirstOrDefaultAsync(t => t.Id == trainingId, include: t => t.Include(t => t.TrainingSession).Include(t => t.Throws));
+            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.SegmentTrainingRepository.GetFirstOrDefaultAsync(
+                t => t.TrainingSessionId == trainingId && t.TrainingSession.UserId == userId,
+                include: q => q.Include(t => t.TrainingSession).Include(t => t.Throws));
 
-            if (trainingEntity == null || trainingEntity.TrainingSession.UserId != userId)
-            {
-                throw new Exception($"Training with id: {trainingId} for user id: {userId} not found.");
-            }
+            return trainingEntity ?? throw NotFound(trainingId);
+        }
 
-            return trainingEntity;
+        protected async Task<CheckoutTrainingEntity> LoadCheckoutTraining(int trainingId, int userId)
+        {
+            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.CheckoutTrainingRepository.GetFirstOrDefaultAsync(
+                t => t.TrainingSessionId == trainingId && t.TrainingSession.UserId == userId,
+                include: q => q
+                    .Include(t => t.TrainingSession)
+                    .Include(t => t.Attempts)
+                    .ThenInclude(a => a.Throws));
+
+            return trainingEntity ?? throw NotFound(trainingId);
         }
 
         protected async Task<TrainingGameEntity> LoadX01Training(int trainingId, int userId)
         {
-            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.TrainingGameRepository
-                .GetFirstOrDefaultAsync(
-                    t => t.Id == trainingId,
-                    include: t => t
-                        .Include(t => t.TrainingSession)
-                        .Include(t => t.Visits)
-                        .ThenInclude(v => v.Throws));
+            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.TrainingGameRepository.GetFirstOrDefaultAsync(
+                t => t.TrainingSessionId == trainingId && t.TrainingSession.UserId == userId,
+                include: q => q
+                    .Include(t => t.TrainingSession)
+                    .Include(t => t.Visits)
+                    .ThenInclude(v => v.Throws));
 
-            if (trainingEntity == null || trainingEntity.TrainingSession.UserId != userId)
-            {
-                throw new Exception($"Training with id: {trainingId} for user id: {userId} not found.");
-            }
-
-            return trainingEntity;
+            return trainingEntity ?? throw NotFound(trainingId);
         }
+
+        protected async Task<AroundTheClockTrainingEntity> LoadAroundTheClockTraining(int trainingId, int userId)
+        {
+            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.AroundTheClockTrainingRepository.GetFirstOrDefaultAsync(
+                t => t.TrainingSessionId == trainingId && t.TrainingSession.UserId == userId,
+                include: q => q
+                    .Include(t => t.TrainingSession)
+                    .Include(t => t.Visits)
+                    .ThenInclude(v => v.Throws));
+
+            return trainingEntity ?? throw NotFound(trainingId);
+        }
+
+        private static KeyNotFoundException NotFound(int trainingId) =>
+            new($"Training with id {trainingId} was not found.");
 
         protected static bool IsValidSegment(int segment)
         {

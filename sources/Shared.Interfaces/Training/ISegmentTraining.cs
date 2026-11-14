@@ -6,7 +6,7 @@ namespace Shared.Interfaces.Training
     {
         Task<int> StartTrainingAsync(StartSegmentTrainingModel model);
 
-        Task AddThrowAsync(SegmentTrainingThrow model);
+        Task<SegmentTrainingThrowResult> AddThrowAsync(SegmentTrainingThrow model);
 
         Task FinishTrainingAsync(int trainingId);
 

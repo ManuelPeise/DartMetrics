@@ -59,27 +59,38 @@ namespace Logic.Training
             }
         }
 
-        public async Task AddThrowAsync(SegmentTrainingThrow model)
+        public async Task<SegmentTrainingThrowResult> AddThrowAsync(SegmentTrainingThrow model)
         {
             try
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var training = await LoadTraining(model.TrainingId, currentUser.UserId);
+                var training = await LoadSegmentTraining(model.TrainingId, currentUser.UserId);
 
-                if (IsTrainingFinishedOrMaxVisited(training, model.VisitNumber) ||
-                    !IsValidThrow(training, model.ThrowNumber, model.VisitNumber) ||
-                    !IsValidSegment(model.Segment) ||
-                    !IsValidMultiplier(model.Segment, model.Multiplier))
+                if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new Exception("Invalid throw, segment, or multiplier.");
+                    throw new ArgumentException("Training is already finished.");
                 }
 
-                var score = model.Segment * model.Multiplier;
+                if (model.VisitNumber < 1 || model.VisitNumber > training.NumberOfVisits)
+                {
+                    throw new ArgumentException($"Visit number must be between 1 and {training.NumberOfVisits}.");
+                }
 
-                var isHit =
-                    training.TargetSegment == model.Segment &&
-                    training.TargetMultiplier == model.Multiplier;
+                if (!IsValidSegment(model.Segment) || !IsValidMultiplier(model.Segment, model.Multiplier))
+                {
+                    throw new ArgumentException("Invalid segment or multiplier.");
+                }
+
+                // Darts strikt der Reihe nach: Aufnahme 1 Dart 1–3, dann Aufnahme 2 Dart 1 …
+                var (expectedVisit, expectedThrow) = NextThrowPosition(training);
+
+                if (model.VisitNumber != expectedVisit || model.ThrowNumber != expectedThrow)
+                {
+                    throw new ArgumentException($"Expected visit {expectedVisit}, dart {expectedThrow}.");
+                }
+
+                var isHit = training.TargetSegment == model.Segment && training.TargetMultiplier == model.Multiplier;
 
                 training.Throws.Add(new SegmentTrainingThrowEntity
                 {
@@ -87,16 +98,52 @@ namespace Logic.Training
                     ThrowNumber = model.ThrowNumber,
                     Segment = model.Segment,
                     Multiplier = model.Multiplier,
-                    Score = score,
+                    Score = model.Segment * model.Multiplier,
                     IsHit = isHit
                 });
 
+                var isVisitFinished = model.ThrowNumber == MaxThrows;
+                var isFinished = isVisitFinished && model.VisitNumber == training.NumberOfVisits;
+
+                if (isFinished)
+                {
+                    training.TrainingSession.FinishedAt = DateTime.UtcNow;
+                }
+
                 await UnitOfWork.SaveChangesAsync();
+
+                return new SegmentTrainingThrowResult
+                {
+                    IsHit = isHit,
+                    TotalHits = training.Throws.Count(t => t.IsHit),
+                    TotalThrows = training.Throws.Count,
+                    IsVisitFinished = isVisitFinished,
+                    IsFinished = isFinished
+                };
             }
             catch (Exception exception)
             {
                 await MessageLog.LogMessage("Error adding throw to segment training.", nameof(SegmentTraining), exception);
+
+                throw;
             }
+        }
+
+        private static (int VisitNumber, int ThrowNumber) NextThrowPosition(SegmentTrainingEntity training)
+        {
+            var last = training.Throws
+                .OrderBy(t => t.VisitNumber)
+                .ThenBy(t => t.ThrowNumber)
+                .LastOrDefault();
+
+            if (last is null)
+            {
+                return (1, 1);
+            }
+
+            return last.ThrowNumber < MaxThrows
+                ? (last.VisitNumber, last.ThrowNumber + 1)
+                : (last.VisitNumber + 1, 1);
         }
 
         public async Task FinishTrainingAsync(int trainingId)
@@ -105,7 +152,7 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var trainingsEntity = await LoadTraining(trainingId, currentUser.UserId);
+                var trainingsEntity = await LoadSegmentTraining(trainingId, currentUser.UserId);
 
                 if (trainingsEntity.TrainingSession.FinishedAt.HasValue)
                 {
@@ -131,7 +178,7 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var trainingsEntity = await LoadTraining(trainingId, currentUser.UserId);
+                var trainingsEntity = await LoadSegmentTraining(trainingId, currentUser.UserId);
 
                 return GetSegmentTrainingResult(trainingsEntity);
             }
@@ -143,20 +190,8 @@ namespace Logic.Training
             }
         }
 
-        private bool IsTrainingFinishedOrMaxVisited(SegmentTrainingEntity trainingEntity, int visited)
-        {
-            return trainingEntity.TrainingSession.FinishedAt.HasValue || visited >= trainingEntity.NumberOfVisits;
-        }
 
-        private bool IsExistingThrow(SegmentTrainingEntity entity, int throwNumber, int numberOfVisits)
-        {
-            return entity.Throws.Any(t => t.ThrowNumber == throwNumber || t.ThrowNumber >= numberOfVisits);
-        }
 
-        private bool IsValidThrow(SegmentTrainingEntity entity, int throwNumber, int numberOfVisits)
-        {
-            return entity.Throws.Count < MaxThrows || !IsExistingThrow(entity, throwNumber, numberOfVisits);
-        }
 
         private SegmentTrainingResult GetSegmentTrainingResult(SegmentTrainingEntity trainingEntity)
         {
@@ -173,7 +208,7 @@ namespace Logic.Training
 
             return new SegmentTrainingResult
             {
-                TrainingId = trainingEntity.Id,
+                TrainingId = trainingEntity.TrainingSessionId,
                 TargetSegment = trainingEntity.TargetSegment,
                 TargetMultiplier = trainingEntity.TargetMultiplier,
                 NumberOfVisits = trainingEntity.NumberOfVisits,

@@ -55,19 +55,7 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var training = await UnitOfWork.DartTrainingUnitOfWork
-                    .AroundTheClockTrainingRepository
-                    .GetFirstOrDefaultAsync(
-                        t => t.Id == model.TrainingId,
-                        include: t => t
-                            .Include(t => t.TrainingSession)
-                            .Include(t => t.Visits)
-                            .ThenInclude(v => v.Throws));
-
-                if (training == null || training.TrainingSession.UserId != currentUser.UserId)
-                {
-                    throw new Exception("Training not found.");
-                }
+                var training = await LoadAroundTheClockTraining(model.TrainingId, currentUser.UserId);
 
 
                 if (training.TrainingSession.FinishedAt != null)
@@ -192,16 +180,7 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var training = await UnitOfWork.DartTrainingUnitOfWork
-                    .AroundTheClockTrainingRepository
-                    .GetFirstOrDefaultAsync(
-                        t => t.Id == trainingId,
-                        include: t => t.Include(t => t.TrainingSession));
-
-                if (training == null || training.TrainingSession.UserId != currentUser.UserId)
-                {
-                    throw new Exception("Training not found.");
-                }
+                var training = await LoadAroundTheClockTraining(trainingId, currentUser.UserId);
 
                 if (training.TrainingSession.FinishedAt != null)
                 {
@@ -226,17 +205,7 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                var training = await UnitOfWork.DartTrainingUnitOfWork
-                    .AroundTheClockTrainingRepository
-                    .GetFirstOrDefaultAsync(
-                        t => t.Id == trainingId,
-                        include: t => t
-                            .Include(t => t.TrainingSession)
-                            .Include(t => t.Visits)
-                            .ThenInclude(v => v.Throws));
-
-                if (training == null || training.TrainingSession.UserId != currentUser.UserId)
-                    throw new Exception("Training not found.");
+                var training = await LoadAroundTheClockTraining(trainingId, currentUser.UserId);
 
                 var throws = training.Visits
                     .OrderBy(v => v.VisitNumber)

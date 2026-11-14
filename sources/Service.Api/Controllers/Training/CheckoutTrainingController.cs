@@ -27,9 +27,9 @@ namespace Service.Api.Controllers.Training
         [HttpPost(Name = "AddCheckoutTrainingThrow")]
         public async Task<IActionResult> AddCheckoutTrainingThrow([FromBody] CheckoutTrainingThrow model)
         {
-            await _checkoutTraining.AddThrowAsync(model);
+            var result = await _checkoutTraining.AddThrowAsync(model);
 
-            return Ok();
+            return Ok(result);
         }
 
         [HttpPost(Name = "FinishCheckoutTraining")]
