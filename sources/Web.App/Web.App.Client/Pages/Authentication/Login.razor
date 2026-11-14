@@ -78,7 +78,7 @@
 
     /// <summary>
     /// Ziel nach dem Login: Admins landen immer im Admin-Bereich (eine angeforderte Admin-Seite bleibt erhalten),
-    /// alle anderen auf der angeforderten Seite bzw. der Startseite.
+    /// Player und GameMaster auf der angeforderten Seite bzw. im Spieler-Bereich.
     /// </summary>
     private async Task<string> GetTargetAsync()
     {
@@ -92,6 +92,7 @@
             return AppAreas.IsServerArea(returnUrl) ? returnUrl : AppAreas.AdminPath;
         }
 
-        return returnUrl;
+        // Ohne gezielt angeforderte Seite in den Spieler-Bereich statt auf die öffentliche Startseite.
+        return returnUrl == "/" ? PlayerNavigation.Root : returnUrl;
     }
 }

@@ -1,0 +1,15 @@
+@* Smartphone: Navigation am unteren Rand, daumenfreundlich. *@
+<nav class="pa-bottom-nav" aria-label="Schnellnavigation">
+    <ul>
+        @foreach (var item in PlayerNavigation.Items)
+        {
+            <li>
+                <NavLink href="@item.Href" class="pa-bottom-nav__item"
+                         Match="@(item.MatchExact ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <PlayerIcon Name="item.Icon" Size="22" />
+                    <span>@item.ShortTitle</span>
+                </NavLink>
+            </li>
+        }
+    </ul>
+</nav>

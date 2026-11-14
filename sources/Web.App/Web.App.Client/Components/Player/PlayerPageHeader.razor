@@ -1,0 +1,24 @@
+<div class="pa-page-header">
+    <div>
+        @if (!string.IsNullOrEmpty(Eyebrow))
+        {
+            <p class="pl-eyebrow">@Eyebrow</p>
+        }
+        <h1 class="pa-page-title">@Title</h1>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="pa-page-subtitle">@Subtitle</p>
+        }
+    </div>
+    @Actions
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Eyebrow { get; set; }
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

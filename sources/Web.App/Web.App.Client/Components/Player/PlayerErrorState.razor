@@ -1,0 +1,13 @@
+<div class="pl-alert" role="alert">
+    @Text
+    @if (OnRetry.HasDelegate)
+    {
+        <button type="button" class="pl-btn pl-btn--link" @onclick="OnRetry">Erneut versuchen</button>
+    }
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = "Daten konnten nicht geladen werden.";
+
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

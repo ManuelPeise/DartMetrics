@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @layout PublicLayout
 
 <PageTitle>DartMetrics – Jeder Wurf zählt</PageTitle>
@@ -15,6 +15,11 @@
 <AuthorizeView>
     <Authorized>
         <p class="pl-lead">Willkommen zurück, <strong>@context.User.Identity?.Name</strong>.</p>
+        <AuthorizeView Roles="@PlayerNavigation.Roles" Context="playerContext">
+            <div class="pl-actions">
+                <a href="player" class="pl-btn pl-btn--primary">Zum Spielbereich</a>
+            </div>
+        </AuthorizeView>
     </Authorized>
     <NotAuthorized>
         <div class="pl-actions">

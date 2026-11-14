@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Web.App.Client.Authentication;
 using Web.App.Client.Services;
+using Web.App.Client.Services.Api;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -18,5 +19,9 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredServ
 
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ApiClient>();
+
+// Typisierte API-Clients (Seiten kennen keine URLs)
+builder.Services.AddScoped<IProfileApi, ProfileApi>();
+builder.Services.AddScoped<IBotGameApi, BotGameApi>();
 
 await builder.Build().RunAsync();

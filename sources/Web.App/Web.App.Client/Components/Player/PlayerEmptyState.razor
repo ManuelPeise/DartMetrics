@@ -1,0 +1,19 @@
+<div class="pa-state">
+    <PlayerIcon Name="Icon" Size="32" />
+    <p class="pa-state__title">@Title</p>
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <p>@Text</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public PlayerIconName Icon { get; set; } = PlayerIconName.Inbox;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

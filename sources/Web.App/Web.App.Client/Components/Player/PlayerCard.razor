@@ -1,0 +1,51 @@
+@* Karte mit Icon, Titel und Text; mit Href als Link (z. B. Schnellstart). *@
+@if (string.IsNullOrEmpty(Href))
+{
+    <article class="pa-card @AccentClass">@Body</article>
+}
+else
+{
+    <a href="@Href" class="pa-card @AccentClass">@Body</a>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public string? Meta { get; set; }
+
+    [Parameter] public PlayerIconName? Icon { get; set; }
+
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>"brass" (Standard), "red" oder "green" – die Farben der Dartscheibe.</summary>
+    [Parameter] public string Accent { get; set; } = "brass";
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string AccentClass => Accent switch
+    {
+        "red" => "pa-card--red",
+        "green" => "pa-card--green",
+        _ => ""
+    };
+
+    private RenderFragment Body => __builder =>
+    {
+        @if (Icon is not null)
+        {
+            <span class="pa-card__icon"><PlayerIcon Name="Icon.Value" Size="22" /></span>
+        }
+        <h2 class="pa-card__title">@Title</h2>
+        @if (!string.IsNullOrEmpty(Text))
+        {
+            <p class="pa-card__text">@Text</p>
+        }
+        @ChildContent
+        @if (!string.IsNullOrEmpty(Meta))
+        {
+            <span class="pa-card__meta">@Meta</span>
+        }
+    };
+}

@@ -1,0 +1,109 @@
+@page "/player"
+@using global::Shared.Models.Bot
+@inject IProfileApi ProfileApi
+@inject IBotGameApi BotGameApi
+
+<PageTitle>Start – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="@DateText" Title="@Greeting"
+                  Subtitle="Bereit für die nächste Runde? Trainiere gezielt oder fordere einen Bot heraus." />
+
+<div class="pa-grid">
+    <PlayerCard Title="Training" Icon="PlayerIconName.Training" Href="player/training"
+                Text="X01, Around the Clock, Checkout oder Segment – jeder Dart wird erfasst."
+                Meta="Training starten →" />
+    <PlayerCard Title="Gegen Bot spielen" Icon="PlayerIconName.Bot" Href="player/bots" Accent="red"
+                Text="301 oder 501 gegen einen virtuellen Gegner, der mit jedem Spiel dazulernt."
+                Meta="Gegner wählen →" />
+    <PlayerCard Title="Statistiken" Icon="PlayerIconName.Chart" Href="player/statistics" Accent="green"
+                Text="Averages, Doppelquoten und deine Entwicklung über die Zeit."
+                Meta="Ansehen →" />
+</div>
+
+<section class="pa-section" aria-labelledby="bots-title">
+    <h2 class="pa-section__title" id="bots-title">Deine Gegner</h2>
+
+    @if (_botsLoading)
+    {
+        <PlayerLoadingState />
+    }
+    else if (_botsError is not null)
+    {
+        <PlayerErrorState Text="@_botsError" OnRetry="LoadBotsAsync" />
+    }
+    else if (_bots is null || _bots.Count == 0)
+    {
+        <PlayerEmptyState Icon="PlayerIconName.Bot" Title="Noch keine Gegner"
+                          Text="Sobald ein Administrator Bots anlegt, kannst du hier gegen sie antreten." />
+    }
+    else
+    {
+        <div class="pa-grid">
+            @foreach (var bot in _bots.Take(MaxBotsShown))
+            {
+                <PlayerCard Title="@bot.Name" Icon="PlayerIconName.Bot" Href="player/bots"
+                            Text="@($"Level {bot.DevelopmentLevel} · Elo {bot.Rating}")" Meta="Herausfordern →" />
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private const int MaxBotsShown = 3;
+
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private string? _firstName;
+
+    private List<DartBotSummary>? _bots;
+    private bool _botsLoading = true;
+    private string? _botsError;
+
+    private string DateText => DateTime.Now.ToString("dddd, d. MMMM", German);
+
+    private string Greeting
+    {
+        get
+        {
+            var hello = DateTime.Now.Hour switch
+            {
+                < 11 => "Guten Morgen",
+                < 18 => "Hallo",
+                _ => "Guten Abend"
+            };
+
+            return string.IsNullOrWhiteSpace(_firstName) ? hello : $"{hello}, {_firstName}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // WebAssembly ohne Prerendering: einmaliges Laden in OnInitializedAsync.
+        await Task.WhenAll(LoadProfileAsync(), LoadBotsAsync());
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        var result = await ProfileApi.GetProfileAsync();
+
+        // Profil ist nur für die Begrüßung nötig; ohne Profil bleibt es beim neutralen Gruß.
+        if (result.IsSuccess)
+        {
+            _firstName = string.IsNullOrWhiteSpace(result.Value!.DisplayName) ? result.Value.FirstName : result.Value.DisplayName;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadBotsAsync()
+    {
+        _botsLoading = true;
+        _botsError = null;
+
+        var result = await BotGameApi.GetAvailableBotsAsync();
+
+        _bots = result.Value;
+        _botsError = result.Error;
+        _botsLoading = false;
+        StateHasChanged();
+    }
+}

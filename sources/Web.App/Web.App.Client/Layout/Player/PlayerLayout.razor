@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+
+@*
+    Layout für angemeldete Spieler (/player, WebAssembly).
+    Seitenschutz kommt über [Authorize(Roles = "Player,GameMaster")] aus Pages/Player/_Imports.razor;
+    die API prüft zusätzlich serverseitig.
+*@
+<div class="pa-shell">
+    <PlayerTopBar />
+
+    <main class="pa-content" id="player-content">
+        @Body
+    </main>
+
+    <PlayerBottomNav />
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ein unerwarteter Fehler ist aufgetreten.
+    <a href="." class="reload">Neu laden</a>
+    <span class="dismiss">🗙</span>
+</div>

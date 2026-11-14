@@ -1,0 +1,33 @@
+<header class="pa-topbar">
+    <a href="@PlayerNavigation.Root" class="pa-brand" title="DartMetrics">
+        <img src="img/dart_board.png" alt="" width="32" height="32" />
+        <span>Dart<span class="pa-brand-accent">Metrics</span></span>
+    </a>
+
+    <nav class="pa-nav" aria-label="Hauptnavigation">
+        @foreach (var item in PlayerNavigation.Items)
+        {
+            <NavLink href="@item.Href" class="pa-nav-link" title="@item.Title"
+                     Match="@(item.MatchExact ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                <PlayerIcon Name="item.Icon" Size="18" />
+                <span class="pa-nav-link__label">@item.Title</span>
+            </NavLink>
+        }
+    </nav>
+
+    <AuthorizeView>
+        <div class="pa-user">
+            <span class="pa-user__name">@context.User.Identity?.Name</span>
+            <span class="pa-avatar" aria-hidden="true">@Initial(context.User.Identity?.Name)</span>
+            <AreaLink Href="/logout" Class="pa-icon-btn">
+                <PlayerIcon Name="PlayerIconName.Logout" />
+                <span class="pa-sr-only">Abmelden</span>
+            </AreaLink>
+        </div>
+    </AuthorizeView>
+</header>
+
+@code {
+    private static string Initial(string? name) =>
+        string.IsNullOrEmpty(name) ? "?" : name[..1].ToUpperInvariant();
+}
