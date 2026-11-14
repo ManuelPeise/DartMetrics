@@ -1,0 +1,30 @@
+namespace Web.App.Components.Admin
+{
+    public enum AdminIconName
+    {
+        Dashboard,
+        Users,
+        UserCheck,
+        Bot,
+        Model,
+        Chart,
+        Logs,
+        Settings,
+        Training,
+        Pulse,
+        Server,
+        Database,
+        Process,
+        Bell,
+        Menu,
+        More,
+        ChevronLeft,
+        ChevronRight,
+        Logout,
+        Home,
+        Lock,
+        Alert,
+        Inbox,
+        Close
+    }
+}

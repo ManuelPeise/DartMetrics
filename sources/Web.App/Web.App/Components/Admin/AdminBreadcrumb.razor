@@ -1,0 +1,23 @@
+<nav aria-label="Brotkrümelnavigation">
+    <ol class="adm-breadcrumb">
+        @for (var i = 0; i < Items.Count; i++)
+        {
+            var item = Items[i];
+            var isLast = i == Items.Count - 1;
+            <li>
+                @if (isLast || item.Href is null)
+                {
+                    <span aria-current="@(isLast ? "page" : null)">@item.Title</span>
+                }
+                else
+                {
+                    <a href="@item.Href">@item.Title</a>
+                }
+            </li>
+        }
+    </ol>
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<AdminBreadcrumbItem> Items { get; set; } = [];
+}

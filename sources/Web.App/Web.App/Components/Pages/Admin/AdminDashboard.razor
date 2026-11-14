@@ -1,10 +1,161 @@
 @page "/admin"
-@attribute [Authorize(Roles = "Admin")]
+@using Web.App.Components.Admin.Preview
+@using static Web.App.Components.Admin.Preview.AdminSampleData
 
-<PageTitle>Admin</PageTitle>
+<PageTitle>Dashboard – DartMetrics Admin</PageTitle>
 
-<h1>Admin</h1>
+<AdminPreviewNote Text="Vorschau mit Beispieldaten – die Kennzahlen sind noch nicht mit dem System verbunden." />
 
-<AuthorizeView>
-    <p>Angemeldet als <strong>@context.User.Identity?.Name</strong></p>
+<AuthorizeView Roles="Admin" Context="auth">
+    <section class="adm-welcome">
+        <div>
+            <h1 class="adm-welcome__title">@Greeting, @Name(auth.User)</h1>
+            <p class="adm-welcome__text">@SystemSummary</p>
+        </div>
+        <p class="adm-welcome__date">
+            <strong>@_now.ToString("dddd", German)</strong>
+            @_now.ToString("d. MMMM yyyy", German)
+        </p>
+    </section>
 </AuthorizeView>
+
+<div class="adm-stat-grid">
+    <AdminStatCard Label="Benutzer gesamt" Icon="AdminIconName.Users" Value="128"
+                   Description="Registrierte Konten" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
+
+    <AdminStatCard Label="Aktive Benutzer" Icon="AdminIconName.UserCheck" Value="97"
+                   Description="E-Mail bestätigt und aktiv" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
+
+    <AdminStatCard Label="DartBots" Icon="AdminIconName.Bot" Value="@_bots.Count.ToString()"
+                   Description="@BotsDescription" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
+
+    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model" Value="0"
+                   Description="Noch kein Modell trainiert" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
+
+    <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training" Value="1.452"
+                   Description="Erfasste Trainings" BadgeText="Beispieldaten" Status="AdminStatus.Placeholder" />
+
+    <AdminStatCard Label="Systemstatus" Icon="AdminIconName.Pulse" Value="OK"
+                   Description="Alle Dienste erreichbar" BadgeText="Beispieldaten" Status="AdminStatus.Success" />
+</div>
+
+<div class="adm-dashboard-grid">
+    <AdminCard Title="Systemübersicht" Subtitle="Status der Komponenten" Flush="true">
+        <ul class="adm-status-list">
+            <li>
+                <span class="adm-status-list__name">
+                    <AdminIcon Name="AdminIconName.Server" />
+                    <span>API<small>DartMetrics Service.Api</small></span>
+                </span>
+                <AdminStatusBadge Text="Erreichbar" Status="AdminStatus.Success" />
+            </li>
+            <li>
+                <span class="adm-status-list__name">
+                    <AdminIcon Name="AdminIconName.Database" />
+                    <span>Datenbank<small>MySQL</small></span>
+                </span>
+                <AdminStatusBadge Text="Verbunden" Status="AdminStatus.Success" />
+            </li>
+            <li>
+                <span class="adm-status-list__name">
+                    <AdminIcon Name="AdminIconName.Model" />
+                    <span>ML-Modelle<small>Aktive Modelle je Typ</small></span>
+                </span>
+                <AdminStatusBadge Text="Regelbasiert" Status="AdminStatus.Warning" />
+            </li>
+            <li>
+                <span class="adm-status-list__name">
+                    <AdminIcon Name="AdminIconName.Process" />
+                    <span>Hintergrundprozesse<small>Training, Exporte</small></span>
+                </span>
+                <AdminStatusBadge Text="Keine eingerichtet" Status="AdminStatus.Neutral" />
+            </li>
+        </ul>
+    </AdminCard>
+
+    <AdminCard Title="Letzte Aktivitäten" Subtitle="Neueste Systemereignisse (Beispieldaten)" Flush="true">
+        <Actions>
+            <a href="/admin/logs" class="adm-btn adm-btn--ghost">Alle Logs</a>
+        </Actions>
+        <ChildContent>
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>Typ</th>
+                            <th>Modul</th>
+                            <th>Meldung</th>
+                            <th>Zeitpunkt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in _logs)
+                        {
+                            <tr>
+                                <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.Type)" Status="TypeStatus(log.Type)" /></td>
+                                <td data-label="Modul" class="adm-table__muted">@log.Module</td>
+                                <td data-label="Meldung"><span class="adm-table__message" title="@log.Message">@log.Message</span></td>
+                                <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAtUtc)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </ChildContent>
+    </AdminCard>
+</div>
+
+@code {
+    // Design-Phase: Beispieldaten statt API (Anbindung nach dem Merge mit dem Bot-Branch).
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private readonly DateTime _now = ToLocal(DateTime.UtcNow);
+    private readonly List<SampleBot> _bots = AdminSampleData.Bots();
+    private readonly List<SampleLog> _logs = AdminSampleData.Logs().OrderByDescending(l => l.CreatedAtUtc).Take(6).ToList();
+
+    private string Greeting => _now.Hour switch
+    {
+        < 11 => "Guten Morgen",
+        < 18 => "Guten Tag",
+        _ => "Guten Abend"
+    };
+
+    private const string SystemSummary = "Alle Dienste laufen. 2 Warnungen und 1 Fehler in den letzten 24 Stunden.";
+
+    private string BotsDescription => $"{_bots.Count(b => b.IsActive)} aktiv, {_bots.Count(b => !b.IsActive)} deaktiviert";
+
+    private static string TypeText(SampleLogType type) => type switch
+    {
+        SampleLogType.Error => "Fehler",
+        SampleLogType.Warning => "Warnung",
+        _ => "Info"
+    };
+
+    private static AdminStatus TypeStatus(SampleLogType type) => type switch
+    {
+        SampleLogType.Error => AdminStatus.Danger,
+        SampleLogType.Warning => AdminStatus.Warning,
+        _ => AdminStatus.Neutral
+    };
+
+    private static string FormatTime(DateTime utc) => ToLocal(utc).ToString("dd.MM.yyyy HH:mm", German);
+
+    private static DateTime ToLocal(DateTime utc)
+    {
+        try
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return utc.ToLocalTime();
+        }
+    }
+
+    private static string Name(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+        return string.IsNullOrEmpty(email) ? "Administrator" : email.Split('@')[0];
+    }
+}

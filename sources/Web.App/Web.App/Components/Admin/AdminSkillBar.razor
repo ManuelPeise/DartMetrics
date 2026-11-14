@@ -1,0 +1,14 @@
+@* Kleiner Balken für einen Fähigkeitswert 0.0 bis 1.0. *@
+<div class="adm-skill" title="@Label: @Percent %">
+    <span>@Label</span>
+    <span class="adm-skill__track"><span class="adm-skill__fill" style="width: @(Percent)%"></span></span>
+    <span class="adm-num">@Percent</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter] public float Value { get; set; }
+
+    private int Percent => (int)Math.Round(Math.Clamp(Value, 0f, 1f) * 100);
+}

@@ -1,0 +1,186 @@
+@page "/admin/bots"
+@using Web.App.Components.Admin.Preview
+@using static Web.App.Components.Admin.Preview.AdminSampleData
+
+<PageTitle>DartBot-Verwaltung – DartMetrics Admin</PageTitle>
+
+<AdminPageHeader Eyebrow="Verwaltung" Title="DartBots"
+                 Subtitle="Virtuelle Gegner anlegen, aktivieren und ihre Entwicklung verfolgen." />
+
+<AdminPreviewNote />
+
+@if (_message is not null)
+{
+    <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
+}
+
+<div class="adm-bots-layout">
+    <AdminCard Title="Alle Bots" Subtitle="Fähigkeiten aus der aktuellen Profilversion" Flush="true">
+        <div class="adm-toolbar">
+            <label class="adm-checkbox">
+                <input type="checkbox" checked="@_includeInactive" @onchange="ToggleInactiveAsync" />
+                Deaktivierte anzeigen
+            </label>
+            <span class="adm-toolbar__meta">@VisibleBots.Count() @(VisibleBots.Count() == 1 ? "Bot" : "Bots")</span>
+        </div>
+
+        <AdminTable Items="VisibleBots">
+            <HeaderTemplate>
+                <th>Bot</th>
+                <th>Level</th>
+                <th>Elo</th>
+                <th>XP</th>
+                <th>Fähigkeiten</th>
+                <th>Status</th>
+                <th><span class="adm-sr-only">Aktionen</span></th>
+            </HeaderTemplate>
+            <RowTemplate Context="bot">
+                <td data-label="Bot" class="adm-cell-title">
+                    <strong>@bot.Name</strong>
+                    <small>@bot.Alias · Profil v@(bot.ProfileVersion)@(bot.PlayingStyle is null ? "" : " · " + bot.PlayingStyle)</small>
+                </td>
+                <td data-label="Level" class="adm-num">@bot.Level</td>
+                <td data-label="Elo" class="adm-num">@bot.Rating</td>
+                <td data-label="XP" class="adm-num">@bot.Xp.ToString("N0", German)</td>
+                <td data-label="Skills">
+                    <div class="adm-skill-bars">
+                        <AdminSkillBar Label="Präzision" Value="bot.Precision" />
+                        <AdminSkillBar Label="Konstanz" Value="bot.Consistency" />
+                        <AdminSkillBar Label="Taktik" Value="bot.Tactics" />
+                        <AdminSkillBar Label="Druck" Value="bot.Pressure" />
+                        <AdminSkillBar Label="Risiko" Value="bot.Risk" />
+                    </div>
+                </td>
+                <td data-label="Status">
+                    <AdminStatusBadge Text="@(bot.IsActive ? "Aktiv" : "Deaktiviert")"
+                                      Status="@(bot.IsActive ? AdminStatus.Success : AdminStatus.Neutral)" />
+                </td>
+                <td data-label="">
+                    @if (bot.IsActive)
+                    {
+                        <AdminButton Variant="AdminButtonVariant.Ghost" IsLoading="@(_busyBotId == bot.Id)"
+                                     Disabled="@(_busyBotId is not null)" OnClick="() => SetActiveAsync(bot, false)">
+                            Deaktivieren
+                        </AdminButton>
+                    }
+                    else
+                    {
+                        <AdminButton Variant="AdminButtonVariant.Ghost" IsLoading="@(_busyBotId == bot.Id)"
+                                     Disabled="@(_busyBotId is not null)" OnClick="() => SetActiveAsync(bot, true)">
+                            Aktivieren
+                        </AdminButton>
+                    }
+                </td>
+            </RowTemplate>
+            <EmptyContent>
+                <AdminEmptyState Icon="AdminIconName.Bot" Title="Noch keine Bots"
+                                 Text="Lege rechts den ersten Bot an. Er startet auf Level 0." />
+            </EmptyContent>
+        </AdminTable>
+    </AdminCard>
+
+    <AdminCard Title="Neuer Bot" Subtitle="Startet auf Level 0 mit den Startwerten aus der Konfiguration">
+        <form class="adm-form" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+            <AdminInput Id="bot-name" Label="Name" @bind-Value="_name" MaxLength="100"
+                        Placeholder="z. B. Robo Taylor" Error="@_nameError" Disabled="_creating" />
+
+            <AdminInput Id="bot-alias" Label="Alias" @bind-Value="_alias" MaxLength="50"
+                        Placeholder="z. B. robo-taylor" Hint="Muss eindeutig sein." Error="@_aliasError" Disabled="_creating" />
+
+            <AdminSelect Id="bot-style" Label="Spielstil" Options="StyleOptions" @bind-Value="_style"
+                         Hint="Optional, nur zur Beschreibung." Disabled="_creating" />
+
+            <div class="adm-form-actions">
+                <AdminButton Type="submit" IsLoading="_creating" Icon="AdminIconName.Bot">Bot anlegen</AdminButton>
+            </div>
+        </form>
+    </AdminCard>
+</div>
+
+@code {
+    // Design-Phase: lokale Beispieldaten, Aktionen wirken nur in dieser Ansicht.
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private static readonly IReadOnlyList<AdminSelectOption> StyleOptions =
+    [
+        new("", "Kein Spielstil"),
+        new("Ausgewogen", "Ausgewogen"),
+        new("Aggressiv", "Aggressiv"),
+        new("Defensiv", "Defensiv")
+    ];
+
+    private readonly List<SampleBot> _bots = AdminSampleData.Bots();
+    private bool _includeInactive;
+    private int? _busyBotId;
+
+    private string? _name;
+    private string? _alias;
+    private string? _style = "";
+    private string? _nameError;
+    private string? _aliasError;
+    private bool _creating;
+
+    private string? _message;
+    private bool _messageIsError;
+
+    private IEnumerable<SampleBot> VisibleBots =>
+        _bots.Where(b => _includeInactive || b.IsActive).OrderBy(b => b.Name);
+
+    private void ToggleInactiveAsync(ChangeEventArgs e) => _includeInactive = e.Value is true;
+
+    private async Task SetActiveAsync(SampleBot bot, bool isActive)
+    {
+        _busyBotId = bot.Id;
+        _message = null;
+
+        // Ladezustand der Buttons sichtbar machen.
+        await Task.Delay(400);
+
+        bot.IsActive = isActive;
+        ShowMessage($"{bot.Name} wurde {(isActive ? "aktiviert" : "deaktiviert")}.", isError: false);
+        _busyBotId = null;
+    }
+
+    private async Task CreateAsync()
+    {
+        _message = null;
+        _nameError = string.IsNullOrWhiteSpace(_name) ? "Bitte einen Namen eingeben." : null;
+        _aliasError = string.IsNullOrWhiteSpace(_alias) ? "Bitte einen Alias eingeben." : null;
+
+        if (_aliasError is null && _bots.Any(b => string.Equals(b.Alias, _alias!.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            _aliasError = "Dieser Alias ist bereits vergeben.";
+        }
+
+        if (_nameError is not null || _aliasError is not null)
+        {
+            return;
+        }
+
+        _creating = true;
+        await Task.Delay(500);
+
+        _bots.Add(new SampleBot
+        {
+            Id = _bots.Max(b => b.Id) + 1,
+            Name = _name!.Trim(),
+            Alias = _alias!.Trim(),
+            PlayingStyle = string.IsNullOrEmpty(_style) ? null : _style,
+            Precision = 0.15f,
+            Consistency = 0.2f,
+            Tactics = 0.2f,
+            Pressure = 0.2f
+        });
+
+        ShowMessage($"{_name.Trim()} wurde angelegt.", isError: false);
+        _name = _alias = null;
+        _style = "";
+        _creating = false;
+    }
+
+    private void ShowMessage(string text, bool isError)
+    {
+        _message = text;
+        _messageIsError = isError;
+    }
+}

@@ -1,0 +1,216 @@
+@page "/admin/logs"
+@using Web.App.Components.Admin.Preview
+@using static Web.App.Components.Admin.Preview.AdminSampleData
+
+<PageTitle>System-Logs – DartMetrics Admin</PageTitle>
+
+<AdminPageHeader Eyebrow="System" Title="System-Logs"
+                 Subtitle="Fehler, Warnungen und Hinweise aus allen Modulen.">
+    <Actions>
+        <AdminButton Variant="AdminButtonVariant.Ghost" Icon="AdminIconName.Process" IsLoading="_loading" OnClick="LoadAsync">
+            Aktualisieren
+        </AdminButton>
+    </Actions>
+</AdminPageHeader>
+
+<AdminPreviewNote />
+
+@if (_message is not null)
+{
+    <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
+}
+
+<AdminCard Flush="true">
+    <div class="adm-filter-bar">
+        <AdminInput Id="log-search" Label="Suche" Placeholder="Meldung, Modul oder Fehlertext"
+                    Value="@_search" ValueChanged="OnSearchChanged" />
+        <AdminSelect Id="log-type" Label="Typ" Options="TypeOptions" Value="@_type" ValueChanged="OnTypeChanged" />
+        <span class="adm-toolbar__meta">@Filtered.Count() von @_logs.Count</span>
+    </div>
+
+    <AdminTable Items="Visible">
+        <HeaderTemplate>
+            <th>Typ</th>
+            <th>Zeitpunkt</th>
+            <th>Modul</th>
+            <th>Meldung</th>
+            <th><span class="adm-sr-only">Aktionen</span></th>
+        </HeaderTemplate>
+        <RowTemplate Context="log">
+            <td data-label="Typ"><AdminStatusBadge Text="@TypeText(log.Type)" Status="TypeStatus(log.Type)" /></td>
+            <td data-label="Zeit" class="adm-table__muted">@FormatTime(log.CreatedAtUtc)</td>
+            <td data-label="Modul" class="adm-table__muted">@log.Module</td>
+            <td data-label="Meldung">
+                <span class="adm-table__message" title="@log.Message">@log.Message</span>
+                @if (_openId == log.Id)
+                {
+                    <div class="adm-log-details">
+                        @if (!string.IsNullOrWhiteSpace(log.Exception))
+                        {
+                            <h3>Exception</h3>
+                            <pre>@log.Exception</pre>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(log.Stacktrace))
+                        {
+                            <h3>Stacktrace</h3>
+                            <pre>@log.Stacktrace</pre>
+                        }
+                        @if (string.IsNullOrWhiteSpace(log.Exception) && string.IsNullOrWhiteSpace(log.Stacktrace))
+                        {
+                            <h3>Details</h3>
+                            <pre>Keine weiteren Details.</pre>
+                        }
+                    </div>
+                }
+            </td>
+            <td data-label="">
+                <div class="adm-row-actions">
+                    <AdminButton Variant="AdminButtonVariant.Ghost" OnClick="() => ToggleDetails(log.Id)">
+                        @(_openId == log.Id ? "Schließen" : "Details")
+                    </AdminButton>
+                    @if (_confirmDeleteId == log.Id)
+                    {
+                        <AdminButton Variant="AdminButtonVariant.Danger" IsLoading="@(_deletingId == log.Id)"
+                                     OnClick="() => DeleteAsync(log.Id)">Wirklich löschen?</AdminButton>
+                        <AdminButton Variant="AdminButtonVariant.Ghost" Disabled="@(_deletingId is not null)"
+                                     OnClick="() => _confirmDeleteId = null">Abbrechen</AdminButton>
+                    }
+                    else
+                    {
+                        <AdminButton Variant="AdminButtonVariant.Icon" Icon="AdminIconName.Close"
+                                     AriaLabel="Eintrag löschen" Title="Eintrag löschen"
+                                     Disabled="@(_deletingId is not null)"
+                                     OnClick="() => _confirmDeleteId = log.Id" />
+                    }
+                </div>
+            </td>
+        </RowTemplate>
+        <EmptyContent>
+            @if (_logs is { Count: > 0 })
+            {
+                <AdminEmptyState Icon="AdminIconName.Logs" Title="Keine Treffer" Text="Kein Eintrag passt zu Suche oder Filter." />
+            }
+            else
+            {
+                <AdminEmptyState Icon="AdminIconName.Logs" Title="Keine Einträge" Text="Es wurden noch keine Systemereignisse protokolliert." />
+            }
+        </EmptyContent>
+    </AdminTable>
+
+    @if (Filtered.Count() > _visibleCount)
+    {
+        <div class="adm-list-footer">
+            <AdminButton Variant="AdminButtonVariant.Ghost" OnClick="ShowMore">
+                Weitere @Math.Min(PageSize, Filtered.Count() - _visibleCount) anzeigen
+            </AdminButton>
+        </div>
+    }
+</AdminCard>
+
+@code {
+    // Design-Phase: lokale Beispieldaten, Löschen wirkt nur in dieser Ansicht.
+    private const int PageSize = 50;
+
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private static readonly IReadOnlyList<AdminSelectOption> TypeOptions =
+    [
+        new("", "Alle Typen"),
+        new(nameof(SampleLogType.Error), "Fehler"),
+        new(nameof(SampleLogType.Warning), "Warnungen"),
+        new(nameof(SampleLogType.Information), "Hinweise")
+    ];
+
+    private List<SampleLog> _logs = AdminSampleData.Logs();
+    private bool _loading;
+
+    private string? _search;
+    private string? _type = "";
+    private int _visibleCount = PageSize;
+
+    private int? _openId;
+    private int? _confirmDeleteId;
+    private int? _deletingId;
+
+    private string? _message;
+    private bool _messageIsError;
+
+    private IEnumerable<SampleLog> Filtered =>
+        _logs
+            .Where(l => !Enum.TryParse<SampleLogType>(_type, out var type) || l.Type == type)
+            .Where(l => string.IsNullOrWhiteSpace(_search) || Matches(l, _search.Trim()))
+            .OrderByDescending(l => l.CreatedAtUtc);
+
+    private IEnumerable<SampleLog> Visible => Filtered.Take(_visibleCount).ToList();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        await Task.Delay(400);
+        _logs = AdminSampleData.Logs();
+        _message = null;
+        _loading = false;
+    }
+
+    private void OnSearchChanged(string? value)
+    {
+        _search = value;
+        _visibleCount = PageSize;
+    }
+
+    private void OnTypeChanged(string? value)
+    {
+        _type = value;
+        _visibleCount = PageSize;
+    }
+
+    private void ShowMore() => _visibleCount += PageSize;
+
+    private void ToggleDetails(int id) => _openId = _openId == id ? null : id;
+
+    private async Task DeleteAsync(int id)
+    {
+        _deletingId = id;
+        _message = null;
+
+        await Task.Delay(400);
+
+        _logs.RemoveAll(l => l.Id == id);
+        _message = "Eintrag gelöscht.";
+        _messageIsError = false;
+
+        _deletingId = null;
+        _confirmDeleteId = null;
+    }
+
+    private static bool Matches(SampleLog log, string search) =>
+        log.Message.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        log.Module.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        (log.Exception?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    private static string TypeText(SampleLogType type) => type switch
+    {
+        SampleLogType.Error => "Fehler",
+        SampleLogType.Warning => "Warnung",
+        _ => "Info"
+    };
+
+    private static AdminStatus TypeStatus(SampleLogType type) => type switch
+    {
+        SampleLogType.Error => AdminStatus.Danger,
+        SampleLogType.Warning => AdminStatus.Warning,
+        _ => AdminStatus.Neutral
+    };
+
+    private static string FormatTime(DateTime utc)
+    {
+        try
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")).ToString("dd.MM.yyyy HH:mm:ss", German);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss", German);
+        }
+    }
+}

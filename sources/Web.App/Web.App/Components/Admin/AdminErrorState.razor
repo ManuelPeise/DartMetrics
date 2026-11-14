@@ -1,0 +1,20 @@
+<div class="adm-state adm-state--error" role="alert">
+    <AdminIcon Name="AdminIconName.Alert" Size="32" />
+    <p class="adm-state__title">@Title</p>
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <p>@Text</p>
+    }
+    @if (OnRetry.HasDelegate)
+    {
+        <AdminButton Variant="AdminButtonVariant.Ghost" OnClick="OnRetry">Erneut versuchen</AdminButton>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Daten konnten nicht geladen werden";
+
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public EventCallback<MouseEventArgs> OnRetry { get; set; }
+}

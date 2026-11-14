@@ -1,0 +1,19 @@
+<div class="adm-state">
+    <AdminIcon Name="Icon" Size="32" />
+    <p class="adm-state__title">@Title</p>
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <p>@Text</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public AdminIconName Icon { get; set; } = AdminIconName.Inbox;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,33 @@
+@* Smartphone: wichtigste Bereiche unten, alle weiteren über "Mehr" (öffnet die Sidebar als Overlay). *@
+<nav class="adm-bottom-nav" aria-label="Admin-Schnellnavigation">
+    <ul>
+        @foreach (var item in AdminNavigation.AllItems.Where(i => i.ShowInBottomNav))
+        {
+            <li>
+                <NavLink href="@item.Href" class="adm-bottom-nav__item"
+                         Match="@(item.MatchExact ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <AdminIcon Name="item.Icon" Size="22" />
+                    <span>@ShortTitle(item.Title)</span>
+                </NavLink>
+            </li>
+        }
+        <li>
+            <button type="button" class="adm-bottom-nav__item" @onclick="OnMore">
+                <AdminIcon Name="AdminIconName.More" Size="22" />
+                <span>Mehr</span>
+            </button>
+        </li>
+    </ul>
+</nav>
+
+@code {
+    [Parameter] public EventCallback OnMore { get; set; }
+
+    private static string ShortTitle(string title) => title switch
+    {
+        "Benutzerverwaltung" => "Benutzer",
+        "DartBot-Verwaltung" => "Bots",
+        "System-Logs" => "Logs",
+        _ => title
+    };
+}
