@@ -697,3 +697,149 @@ a.pa-card:hover {
 @media (max-width: 1023px) {
     .pa-play { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ==========================================================================
+   Bot-Spiel
+   ========================================================================== */
+
+.pa-bot-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.6rem;
+}
+
+.pa-bot-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pl-wood-950);
+    color: var(--pl-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--pa-transition), background var(--pa-transition);
+}
+
+    .pa-bot-option:hover { border-color: rgba(209, 164, 95, 0.5); }
+
+    .pa-bot-option.is-selected { border-color: var(--pl-brass); background: rgba(209, 164, 95, 0.14); }
+
+    .pa-bot-option strong { display: block; }
+
+    .pa-bot-option small { color: var(--pl-ink-muted); font-size: 0.75rem; }
+
+.pa-duel {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    gap: 0.6rem;
+}
+
+.pa-duel__player {
+    padding: 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+    text-align: center;
+    transition: border-color var(--pa-transition), box-shadow var(--pa-transition);
+}
+
+.pa-duel__player.is-active {
+    border-color: var(--pl-brass);
+    box-shadow: 0 0 0 1px var(--pl-brass), 0 12px 30px -12px rgba(209, 164, 95, 0.45);
+}
+
+.pa-duel__name {
+    margin: 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pa-duel__score {
+    margin: 0.2rem 0;
+    font-family: var(--pl-font-display);
+    font-size: clamp(2.8rem, 8vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1;
+}
+
+.pa-duel__meta { margin: 0; color: var(--pl-ink-muted); font-size: 0.75rem; }
+
+.pa-duel__legs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    color: var(--pl-ink-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+    .pa-duel__legs strong {
+        color: var(--pl-brass-strong);
+        font-family: var(--pl-font-display);
+        font-size: 1.8rem;
+        letter-spacing: 0;
+    }
+
+.pa-bot-visit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pa-surface);
+    font-size: 0.85rem;
+}
+
+    .pa-bot-visit > span:first-child { color: var(--pl-ink-muted); }
+
+.pa-bot-dart {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 58px;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--pa-radius-sm);
+    background: var(--pl-wood-950);
+    animation: pa-pop 0.25s ease-out both;
+}
+
+    .pa-bot-dart strong { font-family: var(--pl-font-display); font-size: 1.2rem; line-height: 1; }
+
+    .pa-bot-dart small { color: var(--pl-ink-muted); font-size: 0.65rem; }
+
+@keyframes pa-pop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: none; }
+}
+
+.pa-visit-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+    .pa-visit-actions .pl-btn { flex: 1; }
+
+@media (max-width: 767px) {
+    .pa-duel__player { padding: 0.75rem 0.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pa-bot-dart { animation: none; }
+}

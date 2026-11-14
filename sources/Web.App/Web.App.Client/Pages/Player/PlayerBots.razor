@@ -1,8 +1,469 @@
 @page "/player/bots"
+@using global::Shared.Enums.Bot
+@using global::Shared.Enums.X01
+@using global::Shared.Models.Bot
+@inject IBotGameApi BotGameApi
 
 <PageTitle>Gegen Bot spielen – DartMetrics</PageTitle>
 
-<PlayerPageHeader Eyebrow="Spielen" Title="Gegen Bot spielen" Subtitle="Wähle einen Gegner und spiele 301 oder 501." />
+<PlayerPageHeader Eyebrow="Spielen" Title="@HeaderTitle" Subtitle="@HeaderSubtitle">
+    <Actions>
+        @if (_phase == Phase.Playing && _state is not null)
+        {
+            @if (_confirmAbort)
+            {
+                <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="AbortAsync">Wirklich abbrechen?</button>
+                <button type="button" class="pl-btn pl-btn--link" @onclick="() => _confirmAbort = false">Weiterspielen</button>
+            }
+            else
+            {
+                <button type="button" class="pl-btn pl-btn--link" @onclick="() => _confirmAbort = true">Spiel abbrechen</button>
+            }
+        }
+    </Actions>
+</PlayerPageHeader>
 
-<PlayerEmptyState Icon="PlayerIconName.Bot" Title="Kommt bald"
-                  Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+@if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" />
+}
+
+@switch (_phase)
+{
+    case Phase.Loading:
+        <PlayerLoadingState />
+        break;
+
+    case Phase.Setup:
+        <div class="pa-setup" style="max-width: 760px">
+            @if (_bots is null || _bots.Count == 0)
+            {
+                <PlayerEmptyState Icon="PlayerIconName.Bot" Title="Noch keine Gegner"
+                                  Text="Sobald ein Administrator Bots anlegt, kannst du hier gegen sie antreten." />
+            }
+            else
+            {
+                <fieldset class="pa-choice">
+                    <legend class="pa-choice__label">Gegner</legend>
+                    <div class="pa-bot-list">
+                        @foreach (var bot in _bots)
+                        {
+                            <button type="button" class="pa-bot-option @(bot.Id == _botId ? "is-selected" : "")"
+                                    aria-pressed="@(bot.Id == _botId ? "true" : "false")" @onclick="() => _botId = bot.Id">
+                                <PlayerIcon Name="PlayerIconName.Bot" Size="22" />
+                                <span><strong>@bot.Name</strong><small>Level @bot.DevelopmentLevel · Elo @bot.Rating</small></span>
+                            </button>
+                        }
+                    </div>
+                </fieldset>
+
+                <PlayerChoiceGroup Label="Startwert" Options="ScoreOptions" @bind-Value="_startingScore" />
+                <PlayerChoiceGroup Label="Best of" Options="BestOfOptions" @bind-Value="_bestOfLegs" />
+                <PlayerChoiceGroup Label="Anwurf im ersten Leg" Options="StarterOptions" @bind-Value="_userStarts" />
+                <PlayerChoiceGroup Label="Eröffnen" Options="InOptions" @bind-Value="_inMode" />
+                <PlayerChoiceGroup Label="Beenden" Options="OutOptions" @bind-Value="_outMode" />
+                <PlayerChoiceGroup Label="Art" Options="ModeOptions" @bind-Value="_gameMode" />
+
+                <div class="pa-setup__actions">
+                    <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || _botId is null)" @onclick="StartAsync">
+                        @(_busy ? "Startet …" : "Spiel starten")
+                    </button>
+                </div>
+            }
+        </div>
+        break;
+
+    case Phase.Playing when _state is not null:
+        <div class="pa-play">
+            <div class="pa-play__info">
+                <div class="pa-duel">
+                    <div class="pa-duel__player @(IsUserActive ? "is-active" : "")">
+                        <p class="pa-duel__name">Du</p>
+                        <p class="pa-duel__score">@DisplayUserRemaining</p>
+                        <p class="pa-duel__meta">@(_state.IsUserOpened ? $"Ø {UserAverage}" : "noch nicht eröffnet")</p>
+                    </div>
+                    <div class="pa-duel__legs">
+                        Legs
+                        <strong>@_state.UserLegsWon : @_state.BotLegsWon</strong>
+                        Leg @_state.CurrentLegNumber
+                    </div>
+                    <div class="pa-duel__player @(_animating ? "is-active" : "")">
+                        <p class="pa-duel__name">@_state.BotName</p>
+                        <p class="pa-duel__score">@_state.BotRemaining</p>
+                        <p class="pa-duel__meta">@(_state.IsBotOpened ? "Bot" : "noch nicht eröffnet")</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_status))
+                {
+                    <PlayerScoreboard Label="Spielstand" Value="@StatusValue" Status="@_status" Tone="@_tone" />
+                }
+
+                @if (_botDarts.Count > 0)
+                {
+                    <div class="pa-bot-visit" aria-live="polite">
+                        <span>@_state.BotName wirft:</span>
+                        @foreach (var dart in _botDarts)
+                        {
+                            <span class="pa-bot-dart" title="@($"Ziel: {TargetLabel(dart)}")">
+                                <strong>@(new DartThrowInput(dart.Segment, dart.Multiplier).Label)</strong>
+                                <small>Ziel @TargetLabel(dart)</small>
+                            </span>
+                        }
+                        @if (_botVisitResult is not null)
+                        {
+                            <span>@_botVisitResult</span>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div>
+                <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
+                              Disabled="@(!CanThrow)" />
+                @if (_darts.Count > 0 && _darts.Count < 3)
+                {
+                    <div class="pa-visit-actions">
+                        <button type="button" class="pl-btn pl-btn--ghost" disabled="@(!CanThrow)" @onclick="SubmitVisitAsync">
+                            Aufnahme abschicken (Checkout/Bust)
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+
+    case Phase.Result when _state is not null:
+        <div class="pa-result">
+            <PlayerScoreboard Label="@(_state.IsUserWinner == true ? "Gewonnen" : _state.Status == DartBotGameStatusEnum.Aborted ? "Abgebrochen" : "Verloren")"
+                              Value="@($"{_state.UserLegsWon} : {_state.BotLegsWon}")"
+                              Status="@($"gegen {_state.BotName} · Best of {_state.BestOfLegs}")"
+                              Tone="@(_state.IsUserWinner == true ? "success" : _state.IsUserWinner == false ? "danger" : null)" />
+            @if (_state.BotXpGained is not null)
+            {
+                <PlayerStatGrid Stats="BotProgressStats" />
+            }
+            <div class="pa-setup__actions">
+                <button type="button" class="pl-btn pl-btn--primary" @onclick="NewGameAsync">Neues Spiel</button>
+                <a href="player" class="pl-btn pl-btn--ghost">Zur Übersicht</a>
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    private enum Phase { Loading, Setup, Playing, Result }
+
+    private const int DartsPerVisit = 3;
+
+    /// <summary>Pause zwischen den Bot-Darts, damit man die Aufnahme verfolgen kann.</summary>
+    private const int BotDartDelayMs = 550;
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> ScoreOptions = [new(301, "301"), new(501, "501")];
+    private static readonly IReadOnlyList<PlayerChoice<int>> BestOfOptions = [new(1, "1 Leg"), new(3, "3"), new(5, "5"), new(7, "7")];
+    private static readonly IReadOnlyList<PlayerChoice<bool>> StarterOptions = [new(true, "Ich"), new(false, "Bot")];
+    private static readonly IReadOnlyList<PlayerChoice<X01InModeEnum>> InOptions =
+        [new(X01InModeEnum.Straight, "Straight-In"), new(X01InModeEnum.Double, "Double-In")];
+    private static readonly IReadOnlyList<PlayerChoice<X01OutModeEnum>> OutOptions =
+        [new(X01OutModeEnum.Double, "Double-Out"), new(X01OutModeEnum.Master, "Master-Out")];
+    private static readonly IReadOnlyList<PlayerChoice<DartBotGameModeEnum>> ModeOptions =
+    [
+        new(DartBotGameModeEnum.Training, "Training", "Locker spielen"),
+        new(DartBotGameModeEnum.Match, "Match", "Zählt als Wettkampf")
+    ];
+
+    private Phase _phase = Phase.Loading;
+    private bool _busy;
+    private string? _error;
+
+    private List<DartBotSummary>? _bots;
+    private int? _botId;
+    private int _startingScore = 501;
+    private int _bestOfLegs = 3;
+    private bool _userStarts = true;
+    private X01InModeEnum _inMode = X01InModeEnum.Straight;
+    private X01OutModeEnum _outMode = X01OutModeEnum.Double;
+    private DartBotGameModeEnum _gameMode = DartBotGameModeEnum.Training;
+
+    private DartBotGameState? _state;
+    private readonly List<DartThrowInput> _darts = [];
+    private readonly List<DartBotThrowSummary> _botDarts = [];
+    private string? _botVisitResult;
+    private bool _animating;
+    private bool _confirmAbort;
+    private string? _status;
+    private string? _tone;
+
+    private int _userDarts;
+    private int _userScored;
+
+    private string HeaderTitle => _phase is Phase.Playing or Phase.Result && _state is not null
+        ? $"Du gegen {_state.BotName}" : "Gegen Bot spielen";
+
+    private string HeaderSubtitle => _state is not null && _phase is Phase.Playing or Phase.Result
+        ? $"{_state.StartingScore} · Best of {_state.BestOfLegs} · {(_state.InMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_state.OutMode == X01OutModeEnum.Master ? "Master-Out" : "Double-Out")}"
+        : "Wähle einen Gegner. Er lernt aus jedem Spiel gegen dich.";
+
+    private bool IsUserActive => _state is { IsUserTurn: true } && !_animating;
+
+    private bool CanThrow => IsUserActive && !_busy;
+
+    /// <summary>Vorschau des Rests während der Eingabe (reine Summe; gewertet wird auf dem Server).</summary>
+    private int DisplayUserRemaining =>
+        _state is null ? 0 : _state.IsUserOpened ? _state.UserRemaining - _darts.Sum(d => d.Score) : _state.UserRemaining;
+
+    private string UserAverage => _userDarts == 0 ? "–" : $"{_userScored * 3.0 / _userDarts:0.0}";
+
+    private string StatusValue => _state is null ? "" : $"{_state.UserLegsWon} : {_state.BotLegsWon}";
+
+    private IReadOnlyList<PlayerStat> BotProgressStats => _state is null ? [] :
+    [
+        new($"{_state.BotName} – XP", $"+{_state.BotXpGained}"),
+        new("Elo vorher", _state.BotRatingBefore?.ToString() ?? "–"),
+        new("Elo nachher", _state.BotRatingAfter?.ToString() ?? "–",
+            Hint: _state.BotRatingAfter - _state.BotRatingBefore is { } diff ? (diff >= 0 ? $"+{diff}" : diff.ToString()) : null,
+            Highlight: true)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Laufendes Spiel fortsetzen, sonst Gegnerwahl.
+        var running = await BotGameApi.GetRunningGameAsync();
+
+        if (running.IsSuccess && running.Value is not null)
+        {
+            ShowGame(running.Value);
+            _status = "Laufendes Spiel fortgesetzt";
+            return;
+        }
+
+        await LoadBotsAsync();
+    }
+
+    private async Task LoadBotsAsync()
+    {
+        var result = await BotGameApi.GetAvailableBotsAsync();
+        _bots = result.Value;
+        _error = result.Error;
+        _botId ??= _bots?.FirstOrDefault()?.Id;
+        _phase = Phase.Setup;
+    }
+
+    private async Task StartAsync()
+    {
+        if (_botId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = await BotGameApi.StartGameAsync(new StartDartBotGameModel
+        {
+            DartBotId = _botId.Value,
+            StartingScore = _startingScore,
+            BestOfLegs = _bestOfLegs,
+            UserStarts = _userStarts,
+            InMode = _inMode,
+            OutMode = _outMode,
+            GameMode = _gameMode
+        });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        _userDarts = 0;
+        _userScored = 0;
+        _status = null;
+
+        var state = result.Value!;
+
+        // Hat der Bot den Anwurf, hat er bereits geworfen: Aufnahme zeigen.
+        var botVisit = state.CurrentLegVisits.LastOrDefault(v => v.IsBot);
+        _state = state;
+        _phase = Phase.Playing;
+
+        if (botVisit is not null)
+        {
+            await AnimateBotVisitAsync(botVisit);
+        }
+    }
+
+    private async Task AddDartAsync(DartThrowInput dart)
+    {
+        _darts.Add(dart);
+        _botDarts.Clear();
+        _botVisitResult = null;
+
+        // Drei Darts oder Rest ≤ 1 (dann Checkout oder Bust) -> automatisch abschicken.
+        if (_darts.Count == DartsPerVisit || (_state!.IsUserOpened && DisplayUserRemaining <= 1))
+        {
+            await SubmitVisitAsync();
+        }
+    }
+
+    private void UndoDart()
+    {
+        if (_darts.Count > 0)
+        {
+            _darts.RemoveAt(_darts.Count - 1);
+        }
+    }
+
+    private async Task SubmitVisitAsync()
+    {
+        if (_state is null || _darts.Count == 0)
+        {
+            return;
+        }
+
+        var previous = _state;
+
+        _busy = true;
+        _error = null;
+
+        var result = await BotGameApi.AddVisitAsync(new DartBotUserVisitModel
+        {
+            GameId = previous.GameId,
+            Throws = _darts.Select(d => new DartBotUserThrowModel { Segment = d.Segment, Multiplier = d.Multiplier }).ToList()
+        });
+
+        _busy = false;
+
+        if (!result.IsSuccess)
+        {
+            // Z. B. weniger als drei Darts ohne Checkout/Bust: Darts bleiben stehen und können ergänzt werden.
+            _error = result.Error;
+            return;
+        }
+
+        var state = result.Value!;
+        _darts.Clear();
+
+        // Eigene Aufnahme für den Average (gewertete Punkte laut Server).
+        var userVisit = FindNewVisits(previous, state, isBot: false).LastOrDefault();
+        if (userVisit is not null)
+        {
+            _userDarts += userVisit.DartsUsed;
+            _userScored += userVisit.ScoreBefore - userVisit.ScoreAfter;
+        }
+
+        _status = LegMessage(previous, state, userVisit);
+        _tone = state.UserLegsWon > previous.UserLegsWon ? "success" : state.BotLegsWon > previous.BotLegsWon ? "danger" : null;
+
+        var botVisits = FindNewVisits(previous, state, isBot: true);
+        _state = state;
+
+        foreach (var visit in botVisits)
+        {
+            await AnimateBotVisitAsync(visit);
+        }
+
+        if (state.Status != DartBotGameStatusEnum.Running)
+        {
+            _phase = Phase.Result;
+        }
+    }
+
+    /// <summary>Neue Aufnahmen seit dem letzten Stand (im neuen Leg: alle Aufnahmen dieses Legs).</summary>
+    private static List<DartBotVisitSummary> FindNewVisits(DartBotGameState previous, DartBotGameState current, bool isBot)
+    {
+        var lastKnownTurn = current.CurrentLegNumber == previous.CurrentLegNumber
+            ? previous.CurrentLegVisits.Select(v => v.TurnNumber).DefaultIfEmpty(0).Max()
+            : 0;
+
+        return current.CurrentLegVisits
+            .Where(v => v.IsBot == isBot && v.TurnNumber > lastKnownTurn)
+            .OrderBy(v => v.TurnNumber)
+            .ToList();
+    }
+
+    private async Task AnimateBotVisitAsync(DartBotVisitSummary visit)
+    {
+        _animating = true;
+        _botDarts.Clear();
+        _botVisitResult = null;
+
+        foreach (var dart in visit.Throws.OrderBy(t => t.ThrowNumber))
+        {
+            await Task.Delay(BotDartDelayMs);
+            _botDarts.Add(dart);
+            StateHasChanged();
+        }
+
+        _botVisitResult = visit.IsCheckout ? "Checkout!" : visit.IsBust ? "Bust" : $"= {visit.ScoreBefore - visit.ScoreAfter}";
+        _animating = false;
+        StateHasChanged();
+    }
+
+    private string? LegMessage(DartBotGameState previous, DartBotGameState current, DartBotVisitSummary? userVisit)
+    {
+        if (current.Status == DartBotGameStatusEnum.Finished)
+        {
+            return current.IsUserWinner == true ? "Spiel gewonnen!" : $"{current.BotName} gewinnt das Spiel";
+        }
+
+        if (current.UserLegsWon > previous.UserLegsWon)
+        {
+            return $"Leg {previous.CurrentLegNumber} gewonnen!";
+        }
+
+        if (current.BotLegsWon > previous.BotLegsWon)
+        {
+            return $"Leg {previous.CurrentLegNumber} an {current.BotName}";
+        }
+
+        return userVisit?.IsBust == true ? "Bust – deine Aufnahme zählt nicht" : null;
+    }
+
+    private async Task AbortAsync()
+    {
+        if (_state is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await BotGameApi.AbortGameAsync(_state.GameId);
+        _busy = false;
+        _confirmAbort = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error;
+            return;
+        }
+
+        var reloaded = await BotGameApi.GetGameAsync(_state.GameId);
+        _state = reloaded.Value ?? _state;
+        _phase = Phase.Result;
+    }
+
+    private async Task NewGameAsync()
+    {
+        _state = null;
+        _darts.Clear();
+        _botDarts.Clear();
+        _status = null;
+        _error = null;
+        _phase = Phase.Loading;
+        await LoadBotsAsync();
+    }
+
+    private void ShowGame(DartBotGameState state)
+    {
+        _state = state;
+        _phase = state.Status == DartBotGameStatusEnum.Running ? Phase.Playing : Phase.Result;
+    }
+
+    private static string TargetLabel(DartBotThrowSummary dart) =>
+        dart.TargetSegment is { } segment && dart.TargetMultiplier is { } multiplier
+            ? new DartThrowInput(segment, multiplier).Label
+            : "–";
+}

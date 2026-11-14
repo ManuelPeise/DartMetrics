@@ -57,6 +57,32 @@ namespace Web.App.Client.Services.Api
             }
         }
 
+        /// <summary>Wie ReadAsync, aber 204 (kein Inhalt) ist ein Erfolg mit Wert null.</summary>
+        public static async Task<ApiResult<T?>> ReadOptionalAsync<T>(Task<HttpResponseMessage> request, CancellationToken cancellationToken = default)
+            where T : class
+        {
+            try
+            {
+                using var response = await request;
+
+                if (response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    return ApiResult<T?>.Success(null);
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return ApiResult<T?>.Success(await response.Content.ReadFromJsonAsync<T>(cancellationToken));
+                }
+
+                return ApiResult<T?>.Failure(await ReadErrorAsync(response, cancellationToken));
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<T?>.Failure("Der Server ist nicht erreichbar. Bitte später erneut versuchen.");
+            }
+        }
+
         /// <summary>Für Aufrufe ohne Antwortinhalt (z. B. Beenden): true bei Erfolg.</summary>
         public static async Task<ApiResult<bool>> ExecuteAsync(Task<HttpResponseMessage> request, CancellationToken cancellationToken = default)
         {

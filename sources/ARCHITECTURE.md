@@ -70,7 +70,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `ITargetSelector` | `RuleBasedTargetSelector` | [Logic.Bot](Logic.Bot/README.md) | Si | `SelectTarget` |
 | `IBotVisitPlayer` | `BotVisitPlayer` | [Logic.Bot](Logic.Bot/README.md) | Si | `PlayVisit` |
 | `IDartBotAdministration` | `DartBotAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `CreateBotAsync`, `ActivateBotAsync`, `DeactivateBotAsync`, `GetBotsAsync`, `GetBotAsync` |
-| `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetAvailableBotsAsync` |
+| `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetAvailableBotsAsync` |
 | `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` |
 | `ILogService` | `LogService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetLogMessages`, `DeleteMessage`, `DeleteMessages` |
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
@@ -97,7 +97,7 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | – | `CsrfHeaderHandler` | [Web.App.Client](Web.App/Web.App.Client/README.md) | T | Setzt den CSRF-Header für BFF-Aufrufe |
 | `IProfileApi` | `ProfileApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetProfileAsync` (Profile/GetProfile) |
 | `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
-| `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetAvailableBotsAsync` (DartBotGame/GetAvailableDartBots) |
+| `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand (DartBotGameController) |
 
 ## Web-Bereiche
 

@@ -16,6 +16,9 @@ namespace Shared.Interfaces.Bot
 
         Task<DartBotGameState> GetGameAsync(int gameId);
 
+        /// <summary>Laufendes Spiel des aktuellen Benutzers (das zuletzt gestartete) oder null.</summary>
+        Task<DartBotGameState?> GetRunningGameAsync();
+
         /// <summary>Aktive Bots für die Gegnerwahl, sortiert nach Level.</summary>
         Task<List<DartBotSummary>> GetAvailableBotsAsync();
     }

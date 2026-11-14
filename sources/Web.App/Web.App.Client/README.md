@@ -13,7 +13,7 @@ Components/Player/    Bausteine des Spieler-Bereichs: PlayerCard, PlayerPageHead
                       DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel),
                       PlayerChoiceGroup, PlayerScoreboard, PlayerStatGrid, CheckoutHint
 Pages/                Home, Login, Logout, Register, VerifyEmail, AccessDenied, NotFound
-Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen, Statistiken, Profil
+Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken, Profil
   Training/           X01, Around the Clock, Checkout, Segment (Einstellung → Spiel → Ergebnis)
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
 Routing/AppAreas      Grenze zwischen WASM und Server-Bereich (/admin)
@@ -41,3 +41,11 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 - Double/Triple gilt nur für den nächsten Dart. 25 ist Single, Bull = 25 × 2, kein Triple auf 25.
 - Kennt **keine Spielregeln**: Bust, Checkout und Aufnahmeende wertet die Seite aus.
 - Parameter: `CurrentDarts` (Anzeige der laufenden Aufnahme), `OnUndo`/`CanUndo` (optionale Rückgängig-Taste), `Disabled`, `ShowVisit`.
+
+## Bot-Spiel (`/player/bots`)
+
+- Beim Öffnen wird ein laufendes Spiel fortgesetzt (`GetRunningDartBotGame`), sonst Gegnerwahl und Einstellungen.
+- Die API erwartet die **ganze Aufnahme**: Darts werden im Browser gesammelt (lokal rückgängig machbar) und nach dem 3. Dart
+  oder bei Rest ≤ 1 automatisch abgeschickt; für einen Checkout mit 1–2 Darts gibt es „Aufnahme abschicken“.
+- Der Rest während der Eingabe ist nur eine Vorschau (Summe); Bust, Checkout und Double-In wertet der Server.
+- Die Antwort enthält bereits die Bot-Aufnahme(n); sie werden Dart für Dart mit Zielfeld angezeigt.

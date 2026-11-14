@@ -40,6 +40,15 @@ namespace Service.Api.Controllers.Bot
             return Ok();
         }
 
+        /// <summary>Laufendes Spiel des Benutzers; 204 (kein Inhalt), wenn keines läuft.</summary>
+        [HttpGet(Name = "GetRunningDartBotGame")]
+        public async Task<IActionResult> GetRunningDartBotGame()
+        {
+            var state = await _dartBotGameService.GetRunningGameAsync();
+
+            return state is null ? NoContent() : Ok(state);
+        }
+
         [HttpGet(Name = "GetAvailableDartBots")]
         public async Task<IActionResult> GetAvailableDartBots()
         {

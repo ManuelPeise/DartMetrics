@@ -233,6 +233,39 @@ namespace Logic.Bot.Games
             }
         }
 
+        public async Task<DartBotGameState?> GetRunningGameAsync()
+        {
+            try
+            {
+                var currentUser = GetCurrentUser();
+
+                var players = await UnitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
+                    p => p.UserId == currentUser.UserId && p.Game.Status == DartBotGameStatusEnum.Running,
+                    asNoTracking: true,
+                    include: q => q.Include(p => p.Game));
+
+                var gameId = players
+                    .OrderByDescending(p => p.Game.StartedAt)
+                    .Select(p => (int?)p.DartBotGameId)
+                    .FirstOrDefault();
+
+                if (gameId is null)
+                {
+                    return null;
+                }
+
+                var game = await LoadGameAsync(gameId.Value, currentUser.UserId);
+
+                return BuildState(game);
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error loading running dart bot game.", nameof(DartBotGameService), exception);
+
+                throw;
+            }
+        }
+
         public async Task<List<DartBotSummary>> GetAvailableBotsAsync()
         {
             try
