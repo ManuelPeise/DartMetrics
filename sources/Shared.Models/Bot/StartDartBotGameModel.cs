@@ -11,7 +11,7 @@ namespace Shared.Models.Bot
         public int StartingScore { get; set; } = 501;
 
         /// <summary>1, 3, 5, 7, 9 oder 11.</summary>
-        public int BestOfLegs { get; set; } = 1;
+        public int BestOfLegs { get; set; } = 5;
 
         /// <summary>Training, Match oder Tournament (BotVsBot ist hier nicht erlaubt).</summary>
         public DartBotGameModeEnum GameMode { get; set; } = DartBotGameModeEnum.Training;

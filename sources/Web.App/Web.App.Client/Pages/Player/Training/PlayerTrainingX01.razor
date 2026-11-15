@@ -97,6 +97,9 @@
     private bool _opened = true;
     private int _dartsThrown;
     private int _busts;
+    private int _leg = 1;
+    private int _legsCompleted;
+    private int _numberOfLegs = X01SetRules.TrainingBestOfLegs;
     private readonly List<DartThrowInput> _darts = [];
     private bool _clearDartsOnNext;
     private List<CheckoutSuggestion>? _suggestions;
@@ -106,20 +109,24 @@
     private X01TrainingResult? _result;
 
     private string Subtitle => _phase == Phase.Setup
-        ? "Spiele ein Leg allein und verfolge deinen Average."
+        ? "Spiele einen Satz aus 5 Legs allein und verfolge deinen Average."
         : $"{_startingScore} · {(_inMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}";
 
     private IReadOnlyList<PlayerStat> LiveStats =>
     [
+        new("Leg", $"{_leg} / {_numberOfLegs}"),
         new("Aufnahme", _visitNumber.ToString()),
         new("Darts", _dartsThrown.ToString()),
-        new("Average", _dartsThrown == 0 ? "–" : $"{(_startingScore - _remaining) * 3.0 / _dartsThrown:0.0}"),
+        // Punkte = gecheckte Legs voll + laufendes Leg.
+        new("Average", _dartsThrown == 0 ? "–" : $"{(_legsCompleted * _startingScore + _startingScore - _remaining) * 3.0 / _dartsThrown:0.0}"),
         new("Busts", _busts.ToString())
     ];
 
     private IReadOnlyList<PlayerStat> ResultStats => _result is null ? [] :
     [
-        new("Darts", _result.TotalThrows.ToString(), Highlight: _result.IsCheckout),
+        new("Legs gecheckt", $"{_result.LegsCompleted} / {_result.NumberOfLegs}", Highlight: _result.LegsCompleted == _result.NumberOfLegs),
+        new("Darts pro Leg", _result.AverageDartsPerLeg is { } d ? $"{d:0.0}" : "–"),
+        new("Darts", _result.TotalThrows.ToString()),
         new("Aufnahmen", _result.TotalVisits.ToString()),
         new("Punkte", _result.TotalScore.ToString()),
         new("Ø pro Dart", $"{_result.AverageScorePerThrow:0.00}"),
@@ -152,6 +159,9 @@
         _remaining = training.RemainingScore;
         _opened = training.IsOpened;
         _busts = training.Busts;
+        _leg = training.LegNumber;
+        _legsCompleted = training.LegsCompleted;
+        _numberOfLegs = training.NumberOfLegs;
         _suggestions = training.CheckoutSuggestions.Count > 0 ? training.CheckoutSuggestions : null;
         _status = "Offenes Training fortgesetzt";
         _tone = null;
@@ -185,6 +195,9 @@
         _opened = _inMode == X01InModeEnum.Straight;
         _dartsThrown = 0;
         _busts = 0;
+        _leg = 1;
+        _legsCompleted = 0;
+        _numberOfLegs = X01SetRules.TrainingBestOfLegs;
         _darts.Clear();
         _clearDartsOnNext = false;
         _suggestions = null;
@@ -231,9 +244,25 @@
         var wasOpened = _opened;
         _opened = value.IsOpened;
 
-        if (value.IsCheckout)
+        _leg = value.LegNumber;
+        _legsCompleted = value.LegsCompleted;
+        _numberOfLegs = value.NumberOfLegs;
+
+        if (value.IsSetFinished)
         {
             await LoadResultAsync();
+            return;
+        }
+
+        if (value.IsCheckout)
+        {
+            // Nächstes Leg im Satz: wieder beim Startwert.
+            _status = $"Leg {_leg} gecheckt – weiter mit Leg {_leg + 1} von {_numberOfLegs}";
+            _tone = "success";
+            _leg++;
+            _remaining = _startingScore;
+            _opened = _inMode == X01InModeEnum.Straight;
+            NextVisit();
             return;
         }
 

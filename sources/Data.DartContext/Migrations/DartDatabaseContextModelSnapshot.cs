@@ -1250,6 +1250,11 @@ namespace Data.DartContext.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<int>("NumberOfLegs")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("OutMode")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -1275,6 +1280,8 @@ namespace Data.DartContext.Migrations
 
                     b.ToTable("TrainingGames", null, t =>
                         {
+                            t.HasCheckConstraint("CK_TrainingGame_NumberOfLegs", "`NumberOfLegs` >= 1");
+
                             t.HasCheckConstraint("CK_TrainingGame_StartingScore", "`StartingScore` IN (301, 501)");
                         });
                 });
@@ -1347,6 +1354,11 @@ namespace Data.DartContext.Migrations
                     b.Property<bool>("IsBust")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("LegNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("ScoreAfter")
                         .HasColumnType("int");
 
@@ -1373,6 +1385,8 @@ namespace Data.DartContext.Migrations
 
                     b.ToTable("TrainingGameVisits", null, t =>
                         {
+                            t.HasCheckConstraint("CK_TrainingGameVisit_LegNumber", "`LegNumber` > 0");
+
                             t.HasCheckConstraint("CK_TrainingGameVisit_ScoreAfter", "`ScoreAfter` BETWEEN 0 AND `ScoreBefore` AND `ScoreBefore` - `ScoreAfter` <= 180 AND (`IsBust` = 0 OR `ScoreAfter` = `ScoreBefore`)");
 
                             t.HasCheckConstraint("CK_TrainingGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");

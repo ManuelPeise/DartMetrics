@@ -42,7 +42,9 @@ namespace Logic.Training
                 var last = visits.LastOrDefault();
                 var lastThrows = last?.Throws.OrderBy(t => t.ThrowNumber).ToList() ?? new List<TrainingGameThrowEntity>();
                 var isVisitOpen = last is not null && !last.IsBust && last.ScoreAfter != 0 && lastThrows.Count < 3;
-                var remaining = last?.ScoreAfter ?? training.StartingScore;
+                var lastLegFinished = last is not null && IsLegCheckout(last);
+                var remaining = last is null || lastLegFinished ? training.StartingScore : last.ScoreAfter;
+                var legNumber = last is null ? 1 : lastLegFinished ? last.LegNumber + 1 : last.LegNumber;
 
                 // Gleiche Regel wie AddThrowAsync: eröffnet, sobald gepunktet wurde.
                 var isOpened = training.InMode == X01InModeEnum.Straight || remaining < training.StartingScore;
@@ -59,6 +61,9 @@ namespace Logic.Training
                     DartsThrown = visits.Sum(v => v.Throws.Count),
                     CurrentVisitDarts = ToDarts(lastThrows.Where(_ => isVisitOpen).Select(t => (t.Segment, t.Multiplier))),
                     RemainingScore = remaining,
+                    LegNumber = legNumber,
+                    LegsCompleted = visits.Count(IsLegCheckout),
+                    NumberOfLegs = training.NumberOfLegs,
                     IsOpened = isOpened,
                     Busts = visits.Count(v => v.IsBust),
                     CheckoutSuggestions = isVisitOpen && isOpened
@@ -98,7 +103,9 @@ namespace Logic.Training
                     {
                         StartingScore = model.StartingScore,
                         InMode = model.InMode,
-                        OutMode = model.OutMode
+                        OutMode = model.OutMode,
+                        // Training allein: immer ein Satz Best of 5, alle Legs werden gespielt.
+                        NumberOfLegs = X01SetRules.TrainingBestOfLegs
                     }
                 };
 
@@ -151,11 +158,15 @@ namespace Logic.Training
                         model.ThrowNumber != 1)
                         throw new Exception("Invalid visit or throw sequence.");
 
-                    var scoreBefore = lastVisit?.ScoreAfter ?? training.StartingScore;
+                    // Nach einem Checkout beginnt das nächste Leg wieder beim Startwert.
+                    var lastLegFinished = lastVisit is not null && IsLegCheckout(lastVisit);
+                    var scoreBefore = lastVisit is null || lastLegFinished ? training.StartingScore : lastVisit.ScoreAfter;
+                    var legNumber = lastVisit is null ? 1 : lastLegFinished ? lastVisit.LegNumber + 1 : lastVisit.LegNumber;
 
                     visit = new TrainingGameVisitEntity
                     {
                         VisitNumber = model.VisitNumber,
+                        LegNumber = legNumber,
                         ScoreBefore = scoreBefore,
                         ScoreAfter = scoreBefore
                     };
@@ -216,8 +227,11 @@ namespace Logic.Training
                 }
 
                 var isCheckout = visit.ScoreAfter == 0 && !visit.IsBust;
+                var legsCompleted = training.Visits.Count(IsLegCheckout);
+                var isSetFinished = isCheckout && legsCompleted >= training.NumberOfLegs;
 
-                if (isCheckout)
+                // Training endet erst mit dem letzten Leg des Satzes.
+                if (isSetFinished)
                     training.TrainingSession.FinishedAt = DateTime.UtcNow;
 
                 await UnitOfWork.SaveChangesAsync();
@@ -230,6 +244,10 @@ namespace Logic.Training
                     RemainingDarts = remainingDarts,
                     IsBust = visit.IsBust,
                     IsCheckout = isCheckout,
+                    LegNumber = visit.LegNumber,
+                    LegsCompleted = legsCompleted,
+                    NumberOfLegs = training.NumberOfLegs,
+                    IsSetFinished = isSetFinished,
                     IsOpened = isOpened,
                     CheckoutSuggestions = isOpened && !isBust && !isCheckout && remainingDarts > 0
                         ? _rules.GetCheckoutSuggestions(visit.ScoreAfter, remainingDarts, training.OutMode)
@@ -286,6 +304,12 @@ namespace Logic.Training
 
                 var totalThrows = throws.Count;
 
+                // Gecheckte Legs: alle Aufnahmen eines Legs, das mit einem Checkout endet.
+                var checkedOutLegs = visits
+                    .GroupBy(v => v.LegNumber)
+                    .Where(l => l.Any(IsLegCheckout))
+                    .ToList();
+
                 // Gewertete Punkte: Busts zählen 0, bei Double-In auch die Darts vor der Eröffnung.
                 var totalScore = visits.Sum(v => v.ScoreBefore - v.ScoreAfter);
                 var successfulVisits = visits.Count(v => !v.IsBust);
@@ -298,6 +322,11 @@ namespace Logic.Training
                     InMode = training.InMode,
                     OutMode = training.OutMode,
                     RemainingScore = visits.LastOrDefault()?.ScoreAfter ?? training.StartingScore,
+                    NumberOfLegs = training.NumberOfLegs,
+                    LegsCompleted = checkedOutLegs.Count,
+                    AverageDartsPerLeg = checkedOutLegs.Count == 0
+                        ? null
+                        : Math.Round((decimal)checkedOutLegs.Sum(l => l.Sum(v => v.Throws.Count)) / checkedOutLegs.Count, 2),
                     StartedAt = training.TrainingSession.StartedAt,
                     FinishedAt = training.TrainingSession.FinishedAt,
                     TotalVisits = totalVisits,
@@ -324,5 +353,7 @@ namespace Logic.Training
                 throw;
             }
         }
+
+        private static bool IsLegCheckout(TrainingGameVisitEntity visit) => visit.ScoreAfter == 0 && !visit.IsBust;
     }
 }

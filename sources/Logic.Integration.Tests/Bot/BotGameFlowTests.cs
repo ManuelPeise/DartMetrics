@@ -1,4 +1,4 @@
-using Data.DartContext;
+﻿using Data.DartContext;
 using Logic.Integration.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums.Bot;
@@ -10,8 +10,8 @@ using Shared.Models.Bot;
 namespace Logic.Integration.Tests.Bot
 {
     /// <summary>
-    /// Ganzes Spiel gegen einen Bot ohne Streuung: der Spieler wirft nur Misses, der Bot checkt nach 3 Aufnahmen
-    /// (180, 180, 141). Prüft Spielablauf, Lernschritt (XP, Elo Bot + Spieler) und dass nichts doppelt gewertet wird.
+    /// Ganzes Spiel (Satz Best of 5) gegen einen Bot ohne Streuung: der Spieler wirft nur Misses, der Bot checkt jedes Leg
+    /// nach 3 Aufnahmen (180, 180, 141) und gewinnt 3:0. Prüft Spielablauf, Lernschritt (XP, Elo Bot + Spieler) und dass nichts doppelt gewertet wird.
     /// </summary>
     [Collection(MySqlCollection.Name)]
     public class BotGameFlowTests : IAsyncLifetime
@@ -61,6 +61,29 @@ namespace Logic.Integration.Tests.Bot
             Assert.Equal(state.BotXpGained!.Value, botXp);
             Assert.Equal(state.BotRatingAfter!.Value, botRating);
             Assert.Equal(state.UserRatingAfter!.Value, userRating);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        [InlineData(11)]
+        public async Task Match_WithUnsupportedSetLength_IsRejected(int bestOfLegs)
+        {
+            var botId = await CreateBotAsync();
+            await _host.SignInNewPlayerAsync();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => _host.RunAsync<IDartBotGameService, DartBotGameState>(s =>
+                s.StartGameAsync(new StartDartBotGameModel { DartBotId = botId, BestOfLegs = bestOfLegs, GameMode = DartBotGameModeEnum.Match })));
+        }
+
+        [Fact]
+        public async Task Training_IsAlwaysBestOfFive()
+        {
+            var botId = await CreateBotAsync();
+            await _host.SignInNewPlayerAsync();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => _host.RunAsync<IDartBotGameService, DartBotGameState>(s =>
+                s.StartGameAsync(new StartDartBotGameModel { DartBotId = botId, BestOfLegs = 7, GameMode = DartBotGameModeEnum.Training })));
         }
 
         [Fact]
@@ -134,7 +157,7 @@ namespace Logic.Integration.Tests.Bot
             {
                 DartBotId = botId,
                 StartingScore = 501,
-                BestOfLegs = 1,
+                BestOfLegs = 5,
                 UserStarts = true,
                 GameMode = DartBotGameModeEnum.Match
             }));

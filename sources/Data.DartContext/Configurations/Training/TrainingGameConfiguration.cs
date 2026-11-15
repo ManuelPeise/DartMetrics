@@ -10,7 +10,13 @@ namespace Data.DartContext.Configurations.Training
         protected override void ConfigureEntity(EntityTypeBuilder<TrainingGameEntity> builder)
         {
             builder.ToTable("TrainingGames", table =>
-                table.HasCheckConstraint("CK_TrainingGame_StartingScore", "`StartingScore` IN (301, 501)"));
+            {
+                table.HasCheckConstraint("CK_TrainingGame_StartingScore", "`StartingScore` IN (301, 501)");
+                table.HasCheckConstraint("CK_TrainingGame_NumberOfLegs", "`NumberOfLegs` >= 1");
+            });
+
+            // Bestehende Trainings waren ein einzelnes Leg.
+            builder.Property(x => x.NumberOfLegs).HasDefaultValue(1);
 
             // Bestehende Spiele: Straight-In / Double-Out.
             builder.Property(x => x.InMode).HasDefaultValue(X01InModeEnum.Straight).HasSentinel((X01InModeEnum)0);

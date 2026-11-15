@@ -18,6 +18,7 @@ DI/BotServiceRegistration          AddBotServices()
 ## Fachliche Regeln
 
 - Spieler 1 = Mensch, Spieler 2 = Bot. Best of 1–11 Legs, Anwurf wechselt je Leg.
+- Satz je Spiel: Training immer Best of 5, Match 5/7/9/13 Legs (`X01SetRules`), Ende bei Mehrheit. Turnier wird bis zum Turnier-Feature abgelehnt.
 - X01-Varianten je Spiel: Straight-/Double-In, Double-/Straight-Out (bei Straight-Out finisht der Bot auch auf Single, höchstes Finish 180). Bei Double-In zielt der Bot bis zur Eröffnung auf D20; Checkout-Wege richten sich nach dem Out-Modus.
 - Ein Spiel speichert Profilversion und aktive Modelle vom Start.
 - Lernen nur bei `Finished` und menschlichem Gegner, genau einmal (`LearningProcessedAt`).

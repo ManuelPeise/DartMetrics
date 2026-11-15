@@ -164,7 +164,7 @@ else
     [
         new("Average", Number(x.AveragePerVisit), Hint: $"{Number(x.AveragePerDart, 2)} pro Dart", Highlight: true),
         new("Beste Aufnahme", x.BestVisit.ToString()),
-        new("Legs gecheckt", $"{x.LegsFinished} / {x.Sessions}"),
+        new("Legs gecheckt", x.LegsFinished.ToString(), Hint: $"in {x.Sessions} Trainings"),
         new("Darts pro Leg", x.AverageDartsPerLeg is { } d ? Number(d) : "–"),
         new("Busts", x.Busts.ToString(), Hint: $"bei {x.Visits} Aufnahmen")
     ];

@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Training;
+﻿using Data.DartContext.Entities.Training;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,6 +11,7 @@ namespace Data.DartContext.Configurations.Training
             builder.ToTable("TrainingGameVisits", table =>
             {
                 table.HasCheckConstraint("CK_TrainingGameVisit_VisitNumber", "`VisitNumber` > 0");
+                table.HasCheckConstraint("CK_TrainingGameVisit_LegNumber", "`LegNumber` > 0");
                 table.HasCheckConstraint("CK_TrainingGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");
 
                 // A visit never increases the rest score; max. 180 per visit; a bust keeps the score.
@@ -27,6 +28,8 @@ namespace Data.DartContext.Configurations.Training
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasIndex(x => new { x.TrainingGameId, x.VisitNumber }).IsUnique();
+
+            builder.Property(x => x.LegNumber).HasDefaultValue(1);
         }
     }
 }

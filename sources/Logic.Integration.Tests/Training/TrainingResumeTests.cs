@@ -143,6 +143,23 @@ namespace Logic.Integration.Tests.Training
                 new X01TrainingThrow { TrainingId = id, VisitNumber = 2, ThrowNumber = 3, Segment = 1, Multiplier = 1 }));
 
             Assert.True(finish.IsCheckout);
+            Assert.False(finish.IsSetFinished);
+            Assert.Equal(1, finish.LegsCompleted);
+
+            // Satz Best of 5: das nächste Leg beginnt wieder bei 301, das Training läuft weiter.
+            var running = await _host.RunAsync<IX01TrainingGame, RunningX01Training?>(s => s.GetRunningTrainingAsync());
+
+            Assert.NotNull(running);
+            Assert.Equal(2, running.LegNumber);
+            Assert.Equal(301, running.RemainingScore);
+            Assert.Equal(3, running.NextVisitNumber);
+            Assert.Equal(1, running.NextThrowNumber);
+
+            var leg2 = await _host.RunAsync<IX01TrainingGame, X01TrainingThrowResult>(s => s.AddThrowAsync(
+                new X01TrainingThrow { TrainingId = id, VisitNumber = 3, ThrowNumber = 1, Segment = 20, Multiplier = 1 }));
+
+            Assert.Equal(2, leg2.LegNumber);
+            Assert.Equal(281, leg2.RemainingScore);
         }
 
         [Fact]
