@@ -24,6 +24,9 @@ namespace Web.App.Client.Services.Api
         public Task<ApiResult<bool>> DeleteAvatarAsync(CancellationToken cancellationToken = default) =>
             ApiResponse.ExecuteAsync(_api.PostAsJsonAsync<object?>("Profile/DeleteAvatar", null, cancellationToken), cancellationToken);
 
+        public Task<ApiResult<bool>> DeleteOwnAccountAsync(DeleteOwnAccountModel model, CancellationToken cancellationToken = default) =>
+            ApiResponse.ExecuteAsync(_api.PostAsJsonAsync("Profile/DeleteOwnAccount", model, cancellationToken), cancellationToken);
+
         public Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default) =>
             ApiResponse.ExecuteAsync(_api.PostAsJsonAsync("Profile/ChangePassword", request, cancellationToken), cancellationToken);
     }

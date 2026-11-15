@@ -4,5 +4,6 @@
     {
         EmailVerification = 1,
         AccountActivation = 2,
+        PasswordReset = 3,
     }
 }

@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Web.App.Client.Authentication;
 
 namespace Web.App.Client.Services
@@ -9,6 +9,15 @@ namespace Web.App.Client.Services
         Task LogoutAsync(CancellationToken cancellationToken = default);
         Task<bool> RegisterAsync(RegisterModel model, CancellationToken cancellationToken = default);
         Task<bool> VerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+
+        /// <summary>Bestätigungsmail erneut anfordern (Antwort verrät nicht, ob es das Konto gibt).</summary>
+        Task<bool> ResendVerificationAsync(string emailAddress, CancellationToken cancellationToken = default);
+
+        /// <summary>Link zum Zurücksetzen anfordern (Antwort verrät nicht, ob es das Konto gibt).</summary>
+        Task<bool> ForgotPasswordAsync(string emailAddress, CancellationToken cancellationToken = default);
+
+        /// <summary>false = Link ungültig, abgelaufen oder schon benutzt.</summary>
+        Task<bool> ResetPasswordAsync(string token, string password, string passwordReplication, CancellationToken cancellationToken = default);
     }
 
     public sealed class AccountService : IAccountService
@@ -47,6 +56,25 @@ namespace Web.App.Client.Services
         public async Task<bool> VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PostAsJsonAsync("bff/verify-email", new VerifyEmailModel { Token = token }, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                throw new HttpRequestException("API not reachable.");
+
+            return response.IsSuccessStatusCode;
+        }
+
+        public Task<bool> ResendVerificationAsync(string emailAddress, CancellationToken cancellationToken = default) =>
+            PostAsync("bff/resend-verification", new { EmailAddress = emailAddress }, cancellationToken);
+
+        public Task<bool> ForgotPasswordAsync(string emailAddress, CancellationToken cancellationToken = default) =>
+            PostAsync("bff/forgot-password", new { EmailAddress = emailAddress }, cancellationToken);
+
+        public Task<bool> ResetPasswordAsync(string token, string password, string passwordReplication, CancellationToken cancellationToken = default) =>
+            PostAsync("bff/reset-password", new { Token = token, Password = password, PasswordReplication = passwordReplication }, cancellationToken);
+
+        private async Task<bool> PostAsync(string path, object body, CancellationToken cancellationToken)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(path, body, cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 throw new HttpRequestException("API not reachable.");

@@ -62,6 +62,13 @@ namespace Service.Api.Controllers.Account
             return File(avatar.Data, avatar.ContentType);
         }
 
+        [HttpPost(Name = "DeleteOwnAccount")]
+        public async Task<IActionResult> DeleteOwnAccount([FromBody] DeleteOwnAccountModel model)
+        {
+            await _profileService.DeleteOwnAccount(model);
+            return Ok();
+        }
+
         [HttpPost(Name = "ChangePassword")]
         public async Task ChangePassword([FromBody] ChangePasswordRequest request)
         {

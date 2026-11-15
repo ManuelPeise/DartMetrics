@@ -1,4 +1,6 @@
-﻿using Logic.Shared.Helpers;
+﻿using Logic.Shared.Users;
+using Shared.Interfaces.User;
+using Logic.Shared.Helpers;
 using Logic.Shared.Logger;
 using Logic.Shared.Mail;
 using Logic.Shared.Repositories;
@@ -20,6 +22,7 @@ namespace Logic.Shared.DI
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IMessageLog, MessageLog>();
             services.AddScoped<IClaimsHelper, ClaimsHelper>();
+            services.AddScoped<IUserAnonymizer, UserAnonymizer>();
             services.AddScoped<IEmailClient, EmailClient>();
         }
     }

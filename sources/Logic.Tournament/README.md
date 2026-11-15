@@ -61,6 +61,10 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 
 Alle Phasen des Plans „Turniere – Plan“ sind umgesetzt. Mögliche nächste Schritte: Turnier-Elo im Profil-Verlauf, eigene Caller-Aufnahmen, Turniere absagen.
 
+## Kontolöschung
+
+`TournamentWithdrawal` (`ITournamentWithdrawal`) wird von `UserAnonymizer` aufgerufen: in nicht gestarteten Turnieren abgemeldet, sonst Name „Gelöschter Spieler“; offene Matches (geplant/laufend, Gegner bekannt) gewinnt der Gegner kampflos (ohne Elo/XP), danach Liga abschließen bzw. K.o. weiterrücken. `AdvanceAsync` wertet auch spätere K.-o.-Matches gegen gelöschte Konten kampflos.
+
 ## Regeln
 
 - Ein Match = ein Satz, best of 5/7/9/13 Legs; Länge je Runde (`TournamentRounds.BestOfLegs`).

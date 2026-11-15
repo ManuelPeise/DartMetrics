@@ -1,6 +1,8 @@
 ﻿using Data.DartContext;
 using Data.DartContext.Entities.User;
 using Data.DartContext.Security;
+using Logic.Administration.DI;
+using Logic.Authentication.DI;
 using Logic.Bot.DI;
 using Logic.Profile.DI;
 using Logic.Shared.DI;
@@ -13,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Enums.User;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Bot;
+using Shared.Interfaces.Email;
 using Shared.Models.Options;
 
 namespace Logic.Integration.Tests.Infrastructure
@@ -35,6 +38,8 @@ namespace Logic.Integration.Tests.Infrastructure
 
         public TestClaimsHelper Claims => _provider.GetRequiredService<TestClaimsHelper>();
 
+        public FakeEmailClient Mails => _provider.GetRequiredService<FakeEmailClient>();
+
         public static async Task<TestHost> CreateAsync(MySqlFixture fixture, Action<IServiceCollection>? configure = null)
         {
             var connectionString = fixture.CreateConnectionString();
@@ -52,11 +57,15 @@ namespace Logic.Integration.Tests.Infrastructure
             services.AddBotServices();
             services.AddStatisticsServices();
             services.AddTournamentServices();
+            services.AddAuthenticationServices();
+            services.AddAdministrationServices();
 
             // Ein Benutzer für alle Scopes des Tests, umschaltbar per SignIn.
             services.AddSingleton<TestClaimsHelper>();
             services.Replace(ServiceDescriptor.Scoped<IClaimsHelper>(sp => sp.GetRequiredService<TestClaimsHelper>()));
             services.Replace(ServiceDescriptor.Singleton<IRandomSource, FixedRandomSource>());
+            services.AddSingleton<FakeEmailClient>();
+            services.Replace(ServiceDescriptor.Scoped<IEmailClient>(sp => sp.GetRequiredService<FakeEmailClient>()));
 
             configure?.Invoke(services);
 

@@ -12,6 +12,8 @@ namespace Logic.Shared.Mail
                     return GetEmailVerificationBody(url);
                 case EmailBodyTypeEnum.AccountActivation:
                     return GetAccountActivationBody(url);
+                case EmailBodyTypeEnum.PasswordReset:
+                    return GetPasswordResetBody(url);
                 default:
                     throw new NotImplementedException($"Email body type {emailBodyType} is not implemented.");
             }
@@ -57,6 +59,30 @@ namespace Logic.Shared.Mail
                         <br/>
                         <br/>
                         <p>If you have any questions, feel free to contact our support team.</p>
+                        <br/>
+                        <p>Best regards,</p>
+                        <p>The Team</p>
+                    </body>
+                </html>";
+        }
+    
+        private static string GetPasswordResetBody(string? resetUrl)
+        {
+            if (string.IsNullOrEmpty(resetUrl))
+            {
+                throw new ArgumentNullException(nameof(resetUrl), "Reset URL cannot be null or empty.");
+            }
+
+            return $@"
+                <html>
+                    <body>
+                        <h1>Reset your password</h1>
+                        <p>We received a request to reset the password of your DartMetrics account.</p>
+                        <p>Click the link below to choose a new password. The link is valid for 60 minutes and can be used once.</p>
+                        <a href='{resetUrl}'>Choose a new password</a>
+                        <br/>
+                        <br/>
+                        <p>If you did not request this, you can ignore this email. Your password stays unchanged.</p>
                         <br/>
                         <p>Best regards,</p>
                         <p>The Team</p>

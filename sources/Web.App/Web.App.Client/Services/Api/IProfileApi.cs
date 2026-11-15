@@ -16,5 +16,8 @@ namespace Web.App.Client.Services.Api
         Task<ApiResult<bool>> DeleteAvatarAsync(CancellationToken cancellationToken = default);
 
         Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
+
+        /// <summary>Eigenes Konto löschen (Bestätigung mit Passwort); danach abmelden.</summary>
+        Task<ApiResult<bool>> DeleteOwnAccountAsync(DeleteOwnAccountModel model, CancellationToken cancellationToken = default);
     }
 }

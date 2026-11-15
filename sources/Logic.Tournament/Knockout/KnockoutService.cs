@@ -203,13 +203,18 @@ namespace Logic.Tournament.Knockout
             {
                 var tournament = await Tournaments.TournamentRepository.GetFirstOrDefaultAsync(
                     t => t.Id == tournamentId && t.Type == TournamentTypeEnum.Knockout,
-                    include: q => q.Include(t => t.Rounds).ThenInclude(r => r.Matches))
+                    include: q => q.Include(t => t.Rounds).ThenInclude(r => r.Matches)
+                        .Include(t => t.Participants).ThenInclude(p => p.User))
                     ?? throw new ArgumentException($"Knockout tournament {tournamentId} not found.");
 
                 if (tournament.Status != TournamentStatusEnum.Running)
                 {
                     return;
                 }
+
+                // Gelöschte Konten spielen nicht mehr: ihr nächster Gegner gewinnt kampflos.
+                var deleted = tournament.Participants.Where(p => p.User?.DeletedAt != null).Select(p => p.Id).ToHashSet();
+                var now = DateTime.UtcNow;
 
                 var all = tournament.Rounds.SelectMany(r => r.Matches).ToDictionary(m => m.Id);
 
@@ -223,6 +228,12 @@ namespace Logic.Tournament.Knockout
                         {
                             match.Status = TournamentMatchStatusEnum.Bye;
                             match.WinnerParticipantId = match.HomeParticipantId ?? match.AwayParticipantId;
+                        }
+
+                        if (match.Status == TournamentMatchStatusEnum.Scheduled && match.HomeParticipantId is int home && match.AwayParticipantId is int away
+                            && (deleted.Contains(home) || deleted.Contains(away)))
+                        {
+                            TournamentWithdrawal.Forfeit(match, loserIsHome: deleted.Contains(home), now);
                         }
 
                         if (match.WinnerParticipantId is not int winner || match.NextMatchId is not int nextId)

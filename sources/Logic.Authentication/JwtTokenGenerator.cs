@@ -79,5 +79,8 @@ namespace Logic.Authentication
 
         /// <summary>Audience for e-mail verification tokens, so they can never be used as API access tokens.</summary>
         public static string GetEmailVerificationAudience(string audience) => $"{audience}.EmailVerification";
+
+        /// <summary>Audience for password reset tokens (separate from access and verification tokens).</summary>
+        public static string GetPasswordResetAudience(string audience) => $"{audience}.PasswordReset";
     }
 }

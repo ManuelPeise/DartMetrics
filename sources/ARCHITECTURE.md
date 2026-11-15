@@ -67,8 +67,10 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IClaimsHelper` | `ClaimsHelper` | [Logic.Shared](Logic.Shared/README.md) | S | `GetCurrentUserFromClaims`, `GetUserClaims`, `GetUserClaimsFromToken` |
 | `IEmailClient` | `EmailClient` | [Logic.Shared](Logic.Shared/README.md) | S | `SendMail` |
 | `IUserAuthentication` | `UserAuthentication` | [Logic.Authentication](Logic.Authentication/README.md) | S | `AuthenticateUser`, `RefreshToken`, `LogoutUser` |
-| `IUserRegistration` | `UserRegistration` | [Logic.Authentication](Logic.Authentication/README.md) | S | `RegisterUser`, `VerifyEmail` |
-| `IUserProfileService` | `UserProfileService` | [Logic.Profile](Logic.Profile/README.md) | S | `GetProfileData`, `UpdateUserProfile`, `ChangePassword`, `UploadAvatar`, `DeleteAvatar`, `GetAvatar` |
+| `IUserRegistration` | `UserRegistration` | [Logic.Authentication](Logic.Authentication/README.md) | S | `RegisterUser`, `VerifyEmail`, `ResendVerificationMail`, `RequestPasswordReset`, `ResetPassword` |
+| `IUserProfileService` | `UserProfileService` | [Logic.Profile](Logic.Profile/README.md) | S | `GetProfileData`, `UpdateUserProfile`, `ChangePassword`, `DeleteOwnAccount`, `UploadAvatar`, `DeleteAvatar`, `GetAvatar` |
+| `IUserAnonymizer` | `UserAnonymizer` | [Logic.Shared](Logic.Shared/README.md) | S | `AnonymizeAsync` (Kontolöschung durch Admin und selbst, inkl. Bot-Spiele und Turniere) |
+| `ITournamentWithdrawal` | `TournamentWithdrawal` | [Logic.Tournament](Logic.Tournament/README.md) | S | `WithdrawDeletedUserAsync` (abmelden bzw. kampflos, für `UserAnonymizer`) |
 | `ISegmentTraining` | `SegmentTraining` | [Logic.Training](Logic.Training/README.md) | S | `GetRunningTrainingAsync`, `StartTrainingAsync`, `AddThrowAsync`, `FinishTrainingAsync`, `GetResultAsync` |
 | `ICheckoutTraining` | `CheckoutTraining` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
 | `IX01TrainingGame` | `X01TrainingGame` | [Logic.Training](Logic.Training/README.md) | S | wie oben |

@@ -35,5 +35,31 @@ namespace Service.Api.Controllers.Authentication
 
             return verified ? Ok() : BadRequest();
         }
+
+        /// <summary>Antwortet immer mit 200 (verrät nicht, ob die Adresse existiert).</summary>
+        [AllowAnonymous]
+        [HttpPost(Name = "ResendVerificationMail")]
+        public async Task<IActionResult> ResendVerificationMail([FromBody] EmailAddressRequestModel model)
+        {
+            await _userRegistration.ResendVerificationMail(model.EmailAddress, _jwtOptions, _serverOptions);
+            return Ok();
+        }
+
+        /// <summary>Antwortet immer mit 200 (verrät nicht, ob die Adresse existiert).</summary>
+        [AllowAnonymous]
+        [HttpPost(Name = "RequestPasswordReset")]
+        public async Task<IActionResult> RequestPasswordReset([FromBody] EmailAddressRequestModel model)
+        {
+            await _userRegistration.RequestPasswordReset(model.EmailAddress, _jwtOptions, _serverOptions);
+            return Ok();
+        }
+
+        /// <summary>200 = gesetzt, 400 = Link ungültig/abgelaufen/benutzt oder Passwort entspricht nicht den Regeln.</summary>
+        [AllowAnonymous]
+        [HttpPost(Name = "ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestModel model)
+        {
+            return await _userRegistration.ResetPassword(model, _jwtOptions) ? Ok() : BadRequest();
+        }
     }
 }

@@ -36,6 +36,9 @@ namespace Web.App.Bundles
             bff.MapPost("/login", LoginAsync).AllowAnonymous();
             bff.MapPost("/register", RegisterAsync).AllowAnonymous();
             bff.MapPost("/verify-email", VerifyEmailAsync).AllowAnonymous();
+            bff.MapPost("/resend-verification", ResendVerificationAsync).AllowAnonymous();
+            bff.MapPost("/forgot-password", ForgotPasswordAsync).AllowAnonymous();
+            bff.MapPost("/reset-password", ResetPasswordAsync).AllowAnonymous();
             bff.MapPost("/logout", LogoutAsync).RequireAuthorization();
 
             bff.Map("/api/{**path}", ProxyAsync).RequireAuthorization();
@@ -147,6 +150,46 @@ namespace Web.App.Bundles
                     $"registration/verifyemail?token={Uri.EscapeDataString(model.Token)}",
                     cancellationToken: cancellationToken);
 
+                return response.IsSuccessStatusCode ? Results.Ok() : Results.BadRequest();
+            }
+            catch (HttpRequestException)
+            {
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+        }
+
+        private static Task<IResult> ResendVerificationAsync(EmailAddressRequestModel model, IApiHttpClientService api, CancellationToken ct) =>
+            ForwardEmailAsync("registration/resendverificationmail", model, api, ct);
+
+        private static Task<IResult> ForgotPasswordAsync(EmailAddressRequestModel model, IApiHttpClientService api, CancellationToken ct) =>
+            ForwardEmailAsync("registration/requestpasswordreset", model, api, ct);
+
+        /// <summary>Immer 200, solange die Adresse plausibel ist – die API verrät nicht, ob es das Konto gibt.</summary>
+        private static async Task<IResult> ForwardEmailAsync(string path, EmailAddressRequestModel model, IApiHttpClientService api, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(model.EmailAddress) || model.EmailAddress.Length > 254 || !new EmailAddressAttribute().IsValid(model.EmailAddress))
+                return Results.BadRequest();
+
+            try
+            {
+                using var response = await api.PostAsync(path, JsonContent.Create(new EmailAddressRequestModel { EmailAddress = model.EmailAddress.Trim() }), cancellationToken: ct);
+                return response.IsSuccessStatusCode ? Results.Ok() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+            catch (HttpRequestException)
+            {
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+        }
+
+        private static async Task<IResult> ResetPasswordAsync(ResetPasswordRequestModel model, IApiHttpClientService api, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(model.Token) || model.Token.Length > 4096 ||
+                string.IsNullOrEmpty(model.Password) || model.Password != model.PasswordReplication)
+                return Results.BadRequest();
+
+            try
+            {
+                using var response = await api.PostAsync("registration/resetpassword", JsonContent.Create(model), cancellationToken: ct);
                 return response.IsSuccessStatusCode ? Results.Ok() : Results.BadRequest();
             }
             catch (HttpRequestException)

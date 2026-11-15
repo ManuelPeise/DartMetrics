@@ -14,8 +14,11 @@ namespace Logic.Profile
     public class UserProfileService : ALogicBase, IUserProfileService
     {
         private readonly IClaimsHelper _claimsHelper;
-        public UserProfileService(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper) : base(unitOfWork, messageLog)
+        private readonly IUserAnonymizer _userAnonymizer;
+
+        public UserProfileService(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper, IUserAnonymizer userAnonymizer) : base(unitOfWork, messageLog)
         {
+            _userAnonymizer = userAnonymizer;
             _claimsHelper = claimsHelper;
         }
 
@@ -91,6 +94,47 @@ namespace Logic.Profile
             }catch(Exception exception)
             {
                 await MessageLog.LogMessage("Update user profile failed", nameof(UserProfileService), exception);
+                throw;
+            }
+        }
+
+        public async Task DeleteOwnAccount(DeleteOwnAccountModel model)
+        {
+            try
+            {
+                ArgumentException.ThrowIfNullOrEmpty(model.Password, nameof(model.Password));
+
+                var currentUser = _claimsHelper.GetCurrentUserFromClaims();
+
+                if (currentUser == null || currentUser.UserId == 0)
+                {
+                    throw new UnauthorizedAccessException("Current user is not authenticated.");
+                }
+
+                if (currentUser.Roles?.Contains(global::Shared.Enums.User.UserRoleEnum.Admin) == true)
+                {
+                    throw new UnauthorizedAccessException("Administrators cannot delete their own account.");
+                }
+
+                var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
+                    u => u.Id == currentUser.UserId && u.DeletedAt == null,
+                    include: x => x.Include(u => u.UserCredentials));
+
+                if (userEntity?.UserCredentials == null)
+                {
+                    throw new ArgumentException("User not found in database.");
+                }
+
+                if (!PasswordHasher.VerifyPassword(model.Password, userEntity.UserCredentials.PasswordHash))
+                {
+                    throw new ArgumentException("The password is incorrect.");
+                }
+
+                await _userAnonymizer.AnonymizeAsync(userEntity);
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error deleting own account.", nameof(UserProfileService), exception);
                 throw;
             }
         }

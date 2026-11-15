@@ -161,6 +161,154 @@ namespace Logic.Authentication
             }
         }
 
+        /// <summary>Höchstens eine Mail je Zweck und Adresse in diesem Abstand (Schutz vor Mail-Spam).</summary>
+        private static readonly TimeSpan MailCooldown = TimeSpan.FromMinutes(2);
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> LastMailSent = new(StringComparer.OrdinalIgnoreCase);
+
+        private const string PasswordStampClaimType = "PasswordStamp";
+
+        public const int PasswordResetMinutes = 60;
+
+        public async Task ResendVerificationMail(string emailAddress, JwtOptions jwtOptions, ServerOptions serverOptions)
+        {
+            try
+            {
+                var email = emailAddress?.Trim() ?? "";
+                var user = string.IsNullOrEmpty(email)
+                    ? null
+                    : await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.EmailAddress == email && u.DeletedAt == null, asNoTracking: true);
+
+                if (user is null || user.EmailVerifiedAt != null || !TryReserveMail("verify", email))
+                {
+                    return;
+                }
+
+                await SendVerificationMail(user, jwtOptions, serverOptions);
+            }
+            catch (Exception exception)
+            {
+                // Nach außen immer gleich antworten; Fehler nur protokollieren.
+                await MessageLog.LogMessage("Error resending the verification mail.", nameof(UserRegistration), exception);
+            }
+        }
+
+        public async Task RequestPasswordReset(string emailAddress, JwtOptions jwtOptions, ServerOptions serverOptions)
+        {
+            try
+            {
+                var email = emailAddress?.Trim() ?? "";
+                var user = string.IsNullOrEmpty(email)
+                    ? null
+                    : await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
+                        u => u.EmailAddress == email && u.DeletedAt == null,
+                        asNoTracking: true,
+                        include: q => q.Include(u => u.UserCredentials));
+
+                if (user?.UserCredentials is null || !user.IsActive || user.EmailVerifiedAt == null || !TryReserveMail("reset", email))
+                {
+                    return;
+                }
+
+                // Der Stempel bindet den Link an das aktuelle Passwort: nach dem Zurücksetzen ist er wertlos (einmal nutzbar).
+                var claims = new List<Claim>
+                {
+                    new(ClaimsHelper.UserIdClaimType, user.Id.ToString()),
+                    new(ClaimsHelper.UserEmailClaimType, user.EmailAddress),
+                    new(PasswordStampClaimType, user.UserCredentials.PasswordChangedAt.Ticks.ToString())
+                };
+
+                var token = new JwtTokenGenerator().GenerateToken(claims, jwtOptions.Key, jwtOptions.Issuer,
+                    JwtTokenGenerator.GetPasswordResetAudience(jwtOptions.Audience), PasswordResetMinutes);
+
+                var resetLink = $"{serverOptions.Host}:{serverOptions.Port}/password/reset?token={Uri.EscapeDataString(token)}";
+
+                await _emailClient.SendMail(new EmailSettings
+                {
+                    ToAddress = user.EmailAddress,
+                    Subject = "Reset your DartMetrics password",
+                    Body = EmailBodyFactory.GetEmailBody(EmailBodyTypeEnum.PasswordReset, resetLink)
+                });
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error requesting a password reset.", nameof(UserRegistration), exception);
+            }
+        }
+
+        public async Task<bool> ResetPassword(ResetPasswordRequestModel model, JwtOptions jwtOptions)
+        {
+            if (!PasswordHasher.IsMatchingPassword(model.Password, model.PasswordReplication))
+            {
+                throw new ArgumentException("Password and PasswordReplication do not match.");
+            }
+
+            PasswordPolicy.Validate(model.Password, nameof(model.Password));
+
+            try
+            {
+                ClaimsPrincipal principal;
+
+                try
+                {
+                    principal = new JwtTokenGenerator().ValidateToken(model.Token, jwtOptions.Key, jwtOptions.Issuer,
+                        JwtTokenGenerator.GetPasswordResetAudience(jwtOptions.Audience));
+                }
+                catch (Exception)
+                {
+                    // Signatur, Audience oder Ablauf falsch.
+                    return false;
+                }
+
+                if (!int.TryParse(principal.FindFirst(ClaimsHelper.UserIdClaimType)?.Value, out var userId) ||
+                    !long.TryParse(principal.FindFirst(PasswordStampClaimType)?.Value, out var stamp))
+                {
+                    return false;
+                }
+
+                var user = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
+                    u => u.Id == userId && u.DeletedAt == null,
+                    include: q => q.Include(u => u.UserCredentials));
+
+                // Schon benutzt (Passwort seitdem geändert) oder Konto inzwischen gesperrt/gelöscht.
+                if (user?.UserCredentials is null || !user.IsActive || user.UserCredentials.PasswordChangedAt.Ticks != stamp)
+                {
+                    return false;
+                }
+
+                var now = DateTime.UtcNow;
+                user.UserCredentials.PasswordHash = PasswordHasher.HashPassword(model.Password);
+                user.UserCredentials.PasswordChangedAt = now;
+
+                // Überall abmelden: vorhandenes Refresh-Token ungültig machen.
+                user.UserCredentials.RefreshTokenHash = null;
+                user.UserCredentials.RefreshTokenExpiresAt = null;
+                user.UserCredentials.RefreshTokenRevokedAt = now;
+
+                await UnitOfWork.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage("Error resetting a password.", nameof(UserRegistration), exception);
+                throw;
+            }
+        }
+
+        private static bool TryReserveMail(string purpose, string email)
+        {
+            var key = $"{purpose}:{email}";
+            var now = DateTime.UtcNow;
+
+            if (LastMailSent.TryGetValue(key, out var last) && now - last < MailCooldown)
+            {
+                return false;
+            }
+
+            LastMailSent[key] = now;
+            return true;
+        }
+
         private async Task UpdateUnverifiedUser(UserEntity userEntity, UserRegistrationRequestModel registrationRequestModel, string hashedPassword)
         {
             userEntity.FirstName = registrationRequestModel.FirstName;

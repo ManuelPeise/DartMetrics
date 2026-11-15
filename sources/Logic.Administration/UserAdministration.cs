@@ -8,6 +8,7 @@ using Shared.Interfaces.Administration;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.UnitsOfWork;
+using Shared.Interfaces.User;
 using Shared.Models.Administration.User;
 using Shared.Models.Authentication;
 
@@ -15,19 +16,17 @@ namespace Logic.Administration
 {
     public class UserAdministration : ALogicBase, IUserAdministration
     {
-        private const string DeletedFirstName = "Gelöschter";
-        private const string DeletedLastName = "Benutzer";
-        private const string DeletedDisplayName = "Gelöschter Spieler";
-
         /// <summary>Rollen, die ein Admin vergeben darf. Admin ist bewusst nicht enthalten.</summary>
         private static readonly UserRoleEnum[] AssignableRoles = [UserRoleEnum.Player, UserRoleEnum.GameMaster];
 
         private readonly IClaimsHelper _claimsHelper;
+        private readonly IUserAnonymizer _userAnonymizer;
 
-        public UserAdministration(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper)
+        public UserAdministration(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper, IUserAnonymizer userAnonymizer)
             : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
+            _userAnonymizer = userAnonymizer;
         }
 
         public async Task<List<AdminUserListItem>> GetUsersAsync()
@@ -137,55 +136,9 @@ namespace Logic.Administration
             {
                 var admin = GetCurrentAdmin();
                 var user = await LoadManageableUserAsync(userId, admin, includeCredentials: true);
-                var now = DateTime.UtcNow;
 
-                // Persönliche Daten ersetzen; die E-Mail muss eindeutig bleiben (Unique Index).
-                user.FirstName = DeletedFirstName;
-                user.LastName = DeletedLastName;
-                user.DisplayName = null;
-                user.EmailAddress = $"deleted-{user.Id}@deleted.invalid";
-                user.IsActive = false;
-                user.EmailVerifiedAt = null;
-                user.DeletedAt = now;
-
-                // Login-Daten und Refresh-Token entfernen -> keine Anmeldung und keine Token-Erneuerung mehr.
-                if (user.UserCredentials is not null)
-                {
-                    UnitOfWork.UserUnitOfWork.UserCredentialsRepository.Delete(user.UserCredentials);
-                }
-
-                // Profilbild ist personenbezogen -> löschen.
-                var avatar = await UnitOfWork.UserUnitOfWork.UserAvatarRepository.GetFirstOrDefaultAsync(a => a.UserId == user.Id);
-
-                if (avatar is not null)
-                {
-                    UnitOfWork.UserUnitOfWork.UserAvatarRepository.Delete(avatar);
-                }
-
-                user.AvatarVersion = null;
-
-                // Bot-Spiele bleiben erhalten (Statistik, ML), nur der Name wird anonymisiert; laufende Spiele enden.
-                var botPlayers = await UnitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
-                    p => p.UserId == user.Id,
-                    include: q => q.Include(p => p.Game).ThenInclude(g => g.Legs));
-
-                foreach (var player in botPlayers)
-                {
-                    player.DisplayName = DeletedDisplayName;
-
-                    if (player.Game.Status == DartBotGameStatusEnum.Running)
-                    {
-                        player.Game.Status = DartBotGameStatusEnum.Aborted;
-                        player.Game.FinishedAt = now;
-
-                        foreach (var leg in player.Game.Legs.Where(l => l.FinishedAt == null))
-                        {
-                            leg.FinishedAt = now;
-                        }
-                    }
-                }
-
-                await UnitOfWork.SaveChangesAsync();
+                // Gemeinsame Anonymisierung (auch für das Löschen durch den Benutzer selbst), inkl. Turniere.
+                await _userAnonymizer.AnonymizeAsync(user);
 
                 await MessageLog.LogMessage($"User {user.Id} deleted (anonymized) by user {admin.UserId}.", nameof(UserAdministration), null!, LogMessageTypeEnum.Information);
             }

@@ -6,6 +6,8 @@
 @inject IBotGameApi BotGameApi
 @inject PlayerProfileState ProfileState
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAccountService AccountService
+@inject NavigationManager Navigation
 
 <PageTitle>Profil – DartMetrics</PageTitle>
 
@@ -143,10 +145,73 @@ else
             </button>
         </form>
     </section>
+
+    <section class="pa-section" aria-labelledby="delete-title">
+        <h2 class="pa-section__title" id="delete-title">Konto löschen</h2>
+        <p class="pa-section__hint">
+            Dein Name, deine E-Mail-Adresse, dein Profilbild und deine Anmeldedaten werden gelöscht. Gespielte Matches bleiben anonym
+            („Gelöschter Spieler“) in Statistiken und Turnieren erhalten; offene Turnier-Matches gewinnt dein Gegner kampflos.
+            Das lässt sich nicht rückgängig machen.
+        </p>
+
+        @if (!_confirmDelete)
+        {
+            <div class="pl-actions">
+                <button type="button" class="pl-btn pl-btn--ghost" @onclick="() => _confirmDelete = true">Konto löschen …</button>
+            </div>
+        }
+        else
+        {
+            <form class="pl-form" @onsubmit="DeleteAccountAsync" @onsubmit:preventDefault>
+                @if (_deleteError is not null)
+                {
+                    <p class="pl-alert" role="alert">@_deleteError</p>
+                }
+                <div class="pl-field">
+                    <label for="deletePassword">Zur Bestätigung dein Passwort</label>
+                    <input id="deletePassword" type="password" class="pl-input" autocomplete="current-password" @bind="_deletePassword" />
+                </div>
+                <div class="pl-actions">
+                    <button type="submit" class="pl-btn pl-btn--primary" disabled="@_deleting">@(_deleting ? "Löscht …" : "Endgültig löschen")</button>
+                    <button type="button" class="pl-btn pl-btn--link" disabled="@_deleting" @onclick="() => _confirmDelete = false">Abbrechen</button>
+                </div>
+            </form>
+        }
+    </section>
 }
 
 @code {
     private const int HistoryCount = 20;
+
+    private bool _confirmDelete;
+    private bool _deleting;
+    private string? _deletePassword;
+    private string? _deleteError;
+
+    private async Task DeleteAccountAsync()
+    {
+        if (string.IsNullOrEmpty(_deletePassword))
+        {
+            _deleteError = "Bitte dein Passwort eingeben.";
+            return;
+        }
+
+        _deleting = true;
+        _deleteError = null;
+
+        var result = await ProfileApi.DeleteOwnAccountAsync(new DeleteOwnAccountModel { Password = _deletePassword });
+
+        if (result.IsSuccess)
+        {
+            // Sitzung beenden und zur Startseite.
+            await AccountService.LogoutAsync();
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        _deleteError = result.Error;
+        _deleting = false;
+    }
 
     private bool _loading = true;
     private string? _loadError;
