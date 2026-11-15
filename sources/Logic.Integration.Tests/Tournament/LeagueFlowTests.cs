@@ -50,7 +50,7 @@ namespace Logic.Integration.Tests.Tournament
 
             await Run(s => s.StartLeagueAsync(leagueId, new StartLeagueModel { BestOfLegs = 7 }));
 
-            var league = await _host.RunAsync<ILeagueService, LeagueOverview>(s => s.GetLeagueAsync(leagueId));
+            var league = await _host.RunAsync<ILeagueService, TournamentOverview>(s => s.GetLeagueAsync(leagueId));
 
             // 9 Teilnehmer: 10 Plätze → 2 × 9 Spieltage mit je 4 Matches, einer spielfrei.
             Assert.Equal(TournamentStatusEnum.Running, league.Status);
@@ -66,7 +66,7 @@ namespace Logic.Integration.Tests.Tournament
 
             var when = new DateTime(2026, 12, 1, 19, 0, 0, DateTimeKind.Utc);
             await Run(s => s.ScheduleRoundAsync(leagueId, league.Rounds[0].Id, when));
-            league = await _host.RunAsync<ILeagueService, LeagueOverview>(s => s.GetLeagueAsync(leagueId));
+            league = await _host.RunAsync<ILeagueService, TournamentOverview>(s => s.GetLeagueAsync(leagueId));
             Assert.Equal(when, league.Rounds[0].ScheduledAt);
 
             Assert.False(await _host.RunAsync<ILeagueService, bool>(s => s.FinishLeagueIfCompleteAsync(leagueId)));
@@ -122,7 +122,7 @@ namespace Logic.Integration.Tests.Tournament
                 Run(s => s.StartLeagueAsync(leagueId, new StartLeagueModel())));
 
             // Ansehen darf jeder angemeldete Benutzer.
-            var league = await _host.RunAsync<ILeagueService, LeagueOverview>(s => s.GetLeagueAsync(leagueId));
+            var league = await _host.RunAsync<ILeagueService, TournamentOverview>(s => s.GetLeagueAsync(leagueId));
             Assert.Equal(leagueId, league.Id);
         }
 
@@ -144,7 +144,7 @@ namespace Logic.Integration.Tests.Tournament
 
             await _host.SignInNewPlayerAsync();
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                _host.RunAsync<ILeagueService, LeagueOverview>(s => s.GetLeagueAsync(leagueId)));
+                _host.RunAsync<ILeagueService, TournamentOverview>(s => s.GetLeagueAsync(leagueId)));
         }
 
         [Fact]

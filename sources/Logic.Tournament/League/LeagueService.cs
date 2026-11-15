@@ -13,52 +13,17 @@ using Shared.Models.Tournament;
 
 namespace Logic.Tournament.League
 {
-    public class LeagueService : ALogicBase, ILeagueService
+    public class LeagueService : TournamentServiceBase, ILeagueService
     {
-        private readonly IClaimsHelper _claimsHelper;
-
-        public LeagueService(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper) : base(unitOfWork, messageLog)
+        public LeagueService(IUnitOfWork unitOfWork, IMessageLog messageLog, IClaimsHelper claimsHelper) : base(unitOfWork, messageLog, claimsHelper)
         {
-            _claimsHelper = claimsHelper;
         }
-
-        private ITournamentUnitOfWork Tournaments => UnitOfWork.TournamentUnitOfWork;
 
         public async Task<int> CreateLeagueAsync(CreateLeagueModel model)
         {
             try
             {
-                var currentUser = _claimsHelper.GetCurrentUserFromClaims();
-                TournamentAccess.EnsureCanCreate(currentUser, model.Kind);
-
-                var name = model.Name?.Trim();
-
-                if (string.IsNullOrWhiteSpace(name) || name.Length > TournamentConfiguration.NameMaxLength)
-                {
-                    throw new ArgumentException($"Name is required and may have at most {TournamentConfiguration.NameMaxLength} characters.");
-                }
-
-                if (model.StartingScore is not (301 or 501))
-                {
-                    throw new ArgumentException("Starting score must be 301 or 501.");
-                }
-
-                var tournament = new TournamentEntity
-                {
-                    Name = name,
-                    Type = TournamentTypeEnum.League,
-                    Kind = model.Kind,
-                    Status = TournamentStatusEnum.Draft,
-                    OwnerUserId = currentUser.UserId,
-                    StartingScore = model.StartingScore,
-                    InMode = model.InMode,
-                    OutMode = model.OutMode
-                };
-
-                await Tournaments.TournamentRepository.AddAsync(tournament);
-                await UnitOfWork.SaveChangesAsync();
-
-                return tournament.Id;
+                return await CreateTournamentAsync(TournamentTypeEnum.League, model.Kind, model.Name, model.StartingScore, model.InMode, model.OutMode);
             }
             catch (Exception exception)
             {
@@ -71,50 +36,8 @@ namespace Logic.Tournament.League
         {
             try
             {
-                var tournament = await LoadManagedLeagueAsync(tournamentId, tracking: true);
-                EnsureNotStarted(tournament);
-
-                if ((model.UserId is null) == (model.DartBotId is null))
-                {
-                    throw new ArgumentException("Exactly one of UserId and DartBotId is required.");
-                }
-
-                var active = tournament.Participants.Count(p => p.Status != TournamentParticipantStatusEnum.Withdrawn);
-
-                if (active >= LeagueScheduler.MaxParticipants)
-                {
-                    throw new ArgumentException($"A league has at most {LeagueScheduler.MaxParticipants} participants.");
-                }
-
-                var participant = model.UserId is int userId
-                    ? await NewUserParticipantAsync(tournament, userId)
-                    : await NewBotParticipantAsync(tournament, model.DartBotId!.Value);
-
-                // Zurückgezogen und erneut hinzugefügt: Eintrag wiederverwenden (Unique Index je Turnier).
-                var existing = tournament.Participants.FirstOrDefault(p =>
-                    (participant.UserId is not null && p.UserId == participant.UserId) ||
-                    (participant.DartBotId is not null && p.DartBotId == participant.DartBotId));
-
-                if (existing is not null)
-                {
-                    if (existing.Status != TournamentParticipantStatusEnum.Withdrawn)
-                    {
-                        throw new ArgumentException("This participant is already registered.");
-                    }
-
-                    existing.Status = TournamentParticipantStatusEnum.Confirmed;
-                    existing.DisplayName = participant.DisplayName;
-                    tournament.ConcurrencyStamp = Guid.NewGuid();
-                    await UnitOfWork.SaveChangesAsync();
-                    return existing.Id;
-                }
-
-                tournament.Participants.Add(participant);
-                // Teilnehmerliste gehört zum Turnier: Stempel ändern, damit gleichzeitige Änderungen auffallen.
-                tournament.ConcurrencyStamp = Guid.NewGuid();
-                await UnitOfWork.SaveChangesAsync();
-
-                return participant.Id;
+                var tournament = await LoadManagedAsync(tournamentId, TournamentTypeEnum.League, tracking: true);
+                return await AddParticipantCoreAsync(tournament, model, LeagueScheduler.MaxParticipants);
             }
             catch (Exception exception)
             {
@@ -127,15 +50,8 @@ namespace Logic.Tournament.League
         {
             try
             {
-                var tournament = await LoadManagedLeagueAsync(tournamentId, tracking: true);
-                EnsureNotStarted(tournament);
-
-                var participant = tournament.Participants.FirstOrDefault(p => p.Id == participantId)
-                    ?? throw new ArgumentException($"Participant {participantId} not found.");
-
-                participant.Status = TournamentParticipantStatusEnum.Withdrawn;
-                tournament.ConcurrencyStamp = Guid.NewGuid();
-                await UnitOfWork.SaveChangesAsync();
+                var tournament = await LoadManagedAsync(tournamentId, TournamentTypeEnum.League, tracking: true);
+                await RemoveParticipantCoreAsync(tournament, participantId);
             }
             catch (Exception exception)
             {
@@ -148,7 +64,7 @@ namespace Logic.Tournament.League
         {
             try
             {
-                var tournament = await LoadManagedLeagueAsync(tournamentId, tracking: true);
+                var tournament = await LoadManagedAsync(tournamentId, TournamentTypeEnum.League, tracking: true);
                 EnsureNotStarted(tournament);
 
                 if (!X01SetRules.AllowedBestOfLegs.Contains(model.BestOfLegs))
@@ -213,25 +129,8 @@ namespace Logic.Tournament.League
         {
             try
             {
-                var tournament = await LoadManagedLeagueAsync(tournamentId, tracking: false);
-
-                if (tournament.Status != TournamentStatusEnum.Running)
-                {
-                    throw new InvalidOperationException("Only running leagues can be scheduled.");
-                }
-
-                var round = await Tournaments.TournamentRoundRepository.GetFirstOrDefaultAsync(
-                    r => r.Id == roundId && r.TournamentId == tournamentId,
-                    include: q => q.Include(r => r.Matches))
-                    ?? throw new ArgumentException($"Round {roundId} not found in league {tournamentId}.");
-
-                if (round.Matches.Any(m => m.Status != TournamentMatchStatusEnum.Scheduled))
-                {
-                    throw new InvalidOperationException("A round with started matches cannot be rescheduled.");
-                }
-
-                round.ScheduledAt = DateTime.SpecifyKind(scheduledAtUtc, DateTimeKind.Utc);
-                await UnitOfWork.SaveChangesAsync();
+                var tournament = await LoadManagedAsync(tournamentId, TournamentTypeEnum.League, tracking: false);
+                await ScheduleRoundCoreAsync(tournament, roundId, scheduledAtUtc);
             }
             catch (Exception exception)
             {
@@ -240,42 +139,11 @@ namespace Logic.Tournament.League
             }
         }
 
-        public async Task<LeagueOverview> GetLeagueAsync(int tournamentId)
+        public async Task<TournamentOverview> GetLeagueAsync(int tournamentId)
         {
             try
             {
-                var tournament = await LoadVisibleLeagueAsync(tournamentId);
-
-                return new LeagueOverview
-                {
-                    Id = tournament.Id,
-                    Name = tournament.Name,
-                    Kind = tournament.Kind,
-                    Status = tournament.Status,
-                    StartingScore = tournament.StartingScore,
-                    InMode = tournament.InMode,
-                    OutMode = tournament.OutMode,
-                    StartedAt = tournament.StartedAt,
-                    FinishedAt = tournament.FinishedAt,
-                    WinnerParticipantId = tournament.WinnerParticipantId,
-                    Participants = tournament.Participants
-                        .Where(p => p.Status != TournamentParticipantStatusEnum.Withdrawn)
-                        .OrderBy(p => p.DisplayName)
-                        .Select(ToItem)
-                        .ToList(),
-                    Rounds = tournament.Rounds
-                        .OrderBy(r => r.RoundNumber)
-                        .Select(r => new TournamentRoundItem
-                        {
-                            Id = r.Id,
-                            RoundNumber = r.RoundNumber,
-                            Name = r.Name,
-                            BestOfLegs = r.BestOfLegs,
-                            ScheduledAt = r.ScheduledAt,
-                            Matches = r.Matches.OrderBy(m => m.MatchNumber).Select(ToItem).ToList()
-                        })
-                        .ToList()
-                };
+                return ToOverview(await LoadVisibleAsync(tournamentId, TournamentTypeEnum.League));
             }
             catch (Exception exception)
             {
@@ -288,8 +156,7 @@ namespace Logic.Tournament.League
         {
             try
             {
-                var tournament = await LoadVisibleLeagueAsync(tournamentId);
-                return await CalculateTableAsync(tournament);
+                return await CalculateTableAsync(await LoadVisibleAsync(tournamentId, TournamentTypeEnum.League));
             }
             catch (Exception exception)
             {
@@ -333,7 +200,8 @@ namespace Logic.Tournament.League
             }
         }
 
-        private async Task<List<LeagueTableRow>> CalculateTableAsync(TournamentEntity tournament)
+        /// <summary>Tabelle aus den beendeten Matches; auch für die Setzliste des K.-o.-Systems.</summary>
+        internal async Task<List<LeagueTableRow>> CalculateTableAsync(TournamentEntity tournament)
         {
             var participants = tournament.Participants
                 .Where(p => p.Status == TournamentParticipantStatusEnum.Confirmed)
@@ -387,109 +255,5 @@ namespace Logic.Tournament.League
                 })
                 .ToList();
         }
-
-        private async Task<TournamentParticipantEntity> NewUserParticipantAsync(TournamentEntity tournament, int userId)
-        {
-            var user = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
-                u => u.Id == userId,
-                asNoTracking: true,
-                include: q => q.Include(u => u.UserRoles).ThenInclude(r => r.Role))
-                ?? throw new ArgumentException($"User {userId} not found.");
-
-            if (!user.IsActive || user.DeletedAt is not null || !user.UserRoles.Any(r => r.Role.UserRole == UserRoleEnum.Player))
-            {
-                throw new ArgumentException($"User {userId} is not an active player.");
-            }
-
-            // Privat: nur der Besitzer selbst als Mensch, sonst Bots.
-            if (tournament.Kind == TournamentKindEnum.Private && userId != tournament.OwnerUserId)
-            {
-                throw new UnauthorizedAccessException("Private tournaments may only contain their owner and bots.");
-            }
-
-            return new TournamentParticipantEntity
-            {
-                ParticipantType = TournamentParticipantTypeEnum.User,
-                UserId = user.Id,
-                DisplayName = Truncate(user.Alias),
-                Status = TournamentParticipantStatusEnum.Confirmed
-            };
-        }
-
-        private async Task<TournamentParticipantEntity> NewBotParticipantAsync(TournamentEntity tournament, int botId)
-        {
-            var bot = await UnitOfWork.DartBotUnitOfWork.DartBotRepository.GetFirstOrDefaultAsync(b => b.Id == botId, asNoTracking: true)
-                ?? throw new ArgumentException($"Dart bot {botId} not found.");
-
-            if (!bot.IsActive)
-            {
-                throw new ArgumentException($"Dart bot {botId} is not active.");
-            }
-
-            return new TournamentParticipantEntity
-            {
-                ParticipantType = TournamentParticipantTypeEnum.Bot,
-                DartBotId = bot.Id,
-                DisplayName = Truncate(bot.Name),
-                Status = TournamentParticipantStatusEnum.Confirmed
-            };
-        }
-
-        private async Task<TournamentEntity> LoadManagedLeagueAsync(int tournamentId, bool tracking)
-        {
-            var tournament = await Tournaments.TournamentRepository.GetFirstOrDefaultAsync(
-                t => t.Id == tournamentId && t.Type == TournamentTypeEnum.League,
-                asNoTracking: !tracking,
-                include: q => q.Include(t => t.Participants))
-                ?? throw new ArgumentException($"League {tournamentId} not found.");
-
-            TournamentAccess.EnsureCanManage(_claimsHelper.GetCurrentUserFromClaims(), tournament);
-            return tournament;
-        }
-
-        private async Task<TournamentEntity> LoadVisibleLeagueAsync(int tournamentId)
-        {
-            var tournament = await Tournaments.TournamentRepository.GetFirstOrDefaultAsync(
-                t => t.Id == tournamentId && t.Type == TournamentTypeEnum.League,
-                asNoTracking: true,
-                include: q => q.Include(t => t.Participants).Include(t => t.Rounds).ThenInclude(r => r.Matches))
-                ?? throw new ArgumentException($"League {tournamentId} not found.");
-
-            TournamentAccess.EnsureCanView(_claimsHelper.GetCurrentUserFromClaims(), tournament);
-            return tournament;
-        }
-
-        private static void EnsureNotStarted(TournamentEntity tournament)
-        {
-            if (tournament.Status is not (TournamentStatusEnum.Draft or TournamentStatusEnum.Registration))
-            {
-                throw new InvalidOperationException("The league has already started.");
-            }
-        }
-
-        private static string Truncate(string value) => value.Length <= 100 ? value : value[..100];
-
-        private static TournamentParticipantItem ToItem(TournamentParticipantEntity p) => new()
-        {
-            Id = p.Id,
-            ParticipantType = p.ParticipantType,
-            UserId = p.UserId,
-            DartBotId = p.DartBotId,
-            DisplayName = p.DisplayName,
-            Status = p.Status,
-            Seed = p.Seed
-        };
-
-        private static TournamentMatchItem ToItem(TournamentMatchEntity m) => new()
-        {
-            Id = m.Id,
-            MatchNumber = m.MatchNumber,
-            Status = m.Status,
-            HomeParticipantId = m.HomeParticipantId,
-            AwayParticipantId = m.AwayParticipantId,
-            HomeLegs = m.HomeLegs,
-            AwayLegs = m.AwayLegs,
-            WinnerParticipantId = m.WinnerParticipantId
-        };
     }
 }

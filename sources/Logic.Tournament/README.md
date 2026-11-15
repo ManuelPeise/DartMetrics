@@ -19,6 +19,14 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 | `League/LeagueService` (`ILeagueService`) | Liga anlegen, Teilnehmer hinzufügen/zurückziehen (nur vor dem Start), starten (Spielplan mit zufälliger Reihenfolge, eine Satzlänge für alle Matches), Spieltag terminieren (solange kein Match begonnen hat), Übersicht, Tabelle, Abschluss wenn alle Matches beendet (Sieger = Platz 1). |
 | `TournamentAccess` | Rechte im Server: offizielle Turniere verwaltet die Rolle GameMaster, private nur ihr Besitzer (Player); offizielle sieht jeder angemeldete Benutzer, private nur der Besitzer. Teilnehmer: Benutzer mit Rolle Player oder aktive Bots; in privaten Turnieren nur der Besitzer und Bots. |
 
+## Stand (Phase 3: K.-o./WM)
+
+| Teil | Inhalt |
+|---|---|
+| `Knockout/KnockoutBracketBuilder` | Baum auf die nächste Zweierpotenz (4–64 Teilnehmer), Standard-Setzung (1 und 2 erst im Finale, 1–4 erst im Halbfinale), Freilose gegen die Besten, Rundennamen vom Finale rückwärts. |
+| `Knockout/KnockoutService` (`IKnockoutService`) | Anlegen (optional Setzliste aus einer Liga gleicher Art, 2/4/8 Gesetzte, Standard 4), Teilnehmer, Start: Top N der abgeschlossenen Liga werden gesetzt (fehlende ergänzt), Rest ausgelost, eine Satzlänge je Runde (leer = überall 5), Freilose sofort gewertet. `AdvanceAsync` trägt Sieger in die nächste Runde ein und schließt nach dem Finale ab (idempotent, ohne Rechteprüfung – nur für Server-Abläufe, nicht als API). |
+| `TournamentServiceBase` | Gemeinsam für Liga und K.o.: Anlegen, Teilnehmer, Laden mit Rechteprüfung, Termin, Übersicht (`TournamentOverview`). |
+
 API-Endpunkte folgen mit dem GameMaster-Bereich (Phase 4).
 
 ## Regeln
@@ -30,4 +38,4 @@ API-Endpunkte folgen mit dem GameMaster-Bereich (Phase 4).
 
 ## DI
 
-`AddTournamentServices()` in `Web.Core/Bundles/Services.cs` (`ILeagueService`); im Dockerfile per `COPY Logic.Tournament/…` eingetragen. Tests: `Logic.Tournament.Tests`.
+`AddTournamentServices()` in `Web.Core/Bundles/Services.cs` (`ILeagueService`, `IKnockoutService`); im Dockerfile per `COPY Logic.Tournament/…` eingetragen. Tests: `Logic.Tournament.Tests`.

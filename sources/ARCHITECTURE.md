@@ -20,7 +20,7 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell, Modellverwaltung für Admins) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
-| `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart; Spielplan, Tabelle, Baum folgen | [README](Logic.Tournament/README.md) |
+| `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart, Liga (Spielplan, Tabelle), K.-o. (Baum, Setzliste, Weiterrücken) | [README](Logic.Tournament/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
 | `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren | [README](Tools.BotTrainer/README.md) |
@@ -81,6 +81,8 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetRatingHistoryAsync`, `GetAvailableBotsAsync` |
 | `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` (XP, Elo Bot + Spieler, Level), `MergeConcurrentBotUpdatesAsync` |
 | `IPlayerStatisticsService` | `PlayerStatisticsService` | [Logic.Statistics](Logic.Statistics/README.md) | S | `GetStatisticsAsync(period)` |
+| `ILeagueService` | `LeagueService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateLeagueAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartLeagueAsync`, `ScheduleRoundAsync`, `GetLeagueAsync`, `GetTableAsync`, `FinishLeagueIfCompleteAsync` |
+| `IKnockoutService` | `KnockoutService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateKnockoutAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartKnockoutAsync`, `ScheduleRoundAsync`, `GetKnockoutAsync`, `AdvanceAsync` |
 | `ILogService` | `LogService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetLogMessages`, `DeleteMessage`, `DeleteMessages` |
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
 | `IDashboardStatisticsService` | `DashboardStatisticsService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetStatisticsAsync` (Zählwerte fürs Admin-Dashboard) |

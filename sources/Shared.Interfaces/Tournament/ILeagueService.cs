@@ -22,7 +22,7 @@ namespace Shared.Interfaces.Tournament
         /// <summary>Termin eines Spieltags setzen oder ändern, solange keines seiner Matches begonnen hat.</summary>
         Task ScheduleRoundAsync(int tournamentId, int roundId, DateTime scheduledAtUtc);
 
-        Task<LeagueOverview> GetLeagueAsync(int tournamentId);
+        Task<TournamentOverview> GetLeagueAsync(int tournamentId);
 
         Task<List<LeagueTableRow>> GetTableAsync(int tournamentId);
 
