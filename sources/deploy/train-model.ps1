@@ -24,7 +24,7 @@
 #>
 [CmdletBinding()]
 param(
-    [int]    $Situations = 1000,
+    [int]    $Situations = 20000,
     [int]    $Rollouts = 50,
     [int]    $Legs = 2000,
     [int]    $Seed = 1,
@@ -37,13 +37,17 @@ Set-Location (Split-Path -Parent $PSScriptRoot)
 
 function Invoke-Trainer([string[]] $arguments) {
     Write-Host "`n==> bottrainer $($arguments -join ' ')" -ForegroundColor Cyan
+    # Docker schreibt Fortschritt nach stderr; mit 2>&1 würde Windows PowerShell 5.1 das bei 'Stop' als Fehler werten.
+    $ErrorActionPreference = 'Continue'
     # Ausgabe live anzeigen und gleichzeitig auswerten (Ids der neuen Datensätze/Modelle).
     docker compose --profile tools run --rm bottrainer @arguments 2>&1 | Tee-Object -Variable lines | Out-Host
     return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Text = ($lines | Out-String) }
 }
 
 function Get-ActiveModelCount {
-    $count = docker exec mysql sh -c 'mysql -N -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb -e "SELECT COUNT(*) FROM DartBotActiveModels" 2>/dev/null'
+    # SQL über stdin und Passwort über MYSQL_PWD: Windows PowerShell 5.1 entfernt innere Anführungszeichen
+    # in Argumenten für externe Programme, dadurch kam vorher nur "SELECT" bei MySQL an.
+    $count = 'SELECT COUNT(*) FROM DartBotActiveModels;' | docker exec -i mysql sh -c 'MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -N -uroot DartContextDb 2>/dev/null'
     if ($LASTEXITCODE -ne 0) { throw 'Datenbank nicht erreichbar oder Tabellen fehlen. Läuft "docker compose up -d" (API wendet die Migrationen an)?' }
     return [int]($count | Select-Object -Last 1)
 }

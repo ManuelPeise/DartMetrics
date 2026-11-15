@@ -40,7 +40,7 @@ trainer() {
 
 docker info >/dev/null 2>&1 || { echo "Docker läuft nicht." >&2; exit 1; }
 
-active=$(docker exec mysql sh -c 'mysql -N -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb -e "SELECT COUNT(*) FROM DartBotActiveModels" 2>/dev/null') \
+active=$(echo 'SELECT COUNT(*) FROM DartBotActiveModels;' | docker exec -i mysql sh -c 'MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -N -uroot DartContextDb 2>/dev/null') \
   || { echo "Datenbank nicht erreichbar oder Tabellen fehlen. Läuft 'docker compose up -d'?" >&2; exit 1; }
 
 if [ "$FORCE" -eq 0 ] && [ "${active:-0}" -gt 0 ]; then

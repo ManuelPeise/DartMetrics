@@ -23,7 +23,10 @@ services:
       - mysql_data:/var/lib/mysql
 
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      # Über TCP (127.0.0.1) und mit dem App-Benutzer prüfen: Beim allerersten Start läuft MySQL erst als
+      # temporärer Server ohne Netzwerk (Initialisierung). "localhost" ginge über den Socket und meldete zu früh
+      # "healthy" -> die API startete vor der fertigen Datenbank und brach ab.
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u dartforge -p\"$${MYSQL_PASSWORD}\" -e 'SELECT 1' DartContextDb >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 10
