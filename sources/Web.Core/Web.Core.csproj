@@ -31,6 +31,7 @@
     <ProjectReference Include="..\Logic.Profile\Logic.Profile.csproj" />
     <ProjectReference Include="..\Logic.Shared\Logic.Shared.csproj" />
     <ProjectReference Include="..\Logic.Statistics\Logic.Statistics.csproj" />
+    <ProjectReference Include="..\Logic.Tournament\Logic.Tournament.csproj" />
     <ProjectReference Include="..\Logic.Training\Logic.Training.csproj" />
     <ProjectReference Include="..\Service.Api\Service.Api.csproj" />
     <ProjectReference Include="..\Shared.Models\Shared.Models.csproj" />

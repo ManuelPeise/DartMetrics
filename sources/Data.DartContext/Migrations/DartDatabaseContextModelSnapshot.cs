@@ -893,6 +893,519 @@ namespace Data.DartContext.Migrations
                     b.ToTable("LogMessages", (string)null);
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("InMode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("OutMode")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OwnerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RegistrationDeadline")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("SeedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SeedSourceTournamentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("StartingScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("WinnerParticipantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("SeedSourceTournamentId");
+
+                    b.HasIndex("WinnerParticipantId");
+
+                    b.HasIndex("Kind", "Status");
+
+                    b.ToTable("Tournaments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Tournament_FinishedAt", "(`Status` IN (4, 5) AND `FinishedAt` IS NOT NULL) OR (`Status` NOT IN (4, 5) AND `FinishedAt` IS NULL)");
+
+                            t.HasCheckConstraint("CK_Tournament_Seeding", "(`SeedSourceTournamentId` IS NULL AND `SeedCount` IS NULL) OR (`Type` = 2 AND `SeedCount` IN (2, 4, 8))");
+
+                            t.HasCheckConstraint("CK_Tournament_StartedAt", "`Status` NOT IN (3, 4) OR `StartedAt` IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_Tournament_StartingScore", "`StartingScore` IN (301, 501)");
+
+                            t.HasCheckConstraint("CK_Tournament_Winner", "`WinnerParticipantId` IS NULL OR `Status` = 4");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AwayLegs")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AwayParticipantId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AwayProfileVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AwayTargetModelId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("ConductedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("HomeLegs")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HomeParticipantId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HomeProfileVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HomeTargetModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MatchNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NextMatchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NextMatchSlot")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentRoundId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("WinnerParticipantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AwayParticipantId");
+
+                    b.HasIndex("AwayProfileVersionId");
+
+                    b.HasIndex("AwayTargetModelId");
+
+                    b.HasIndex("ConductedByUserId");
+
+                    b.HasIndex("HomeParticipantId");
+
+                    b.HasIndex("HomeProfileVersionId");
+
+                    b.HasIndex("HomeTargetModelId");
+
+                    b.HasIndex("WinnerParticipantId");
+
+                    b.HasIndex("NextMatchId", "NextMatchSlot")
+                        .IsUnique();
+
+                    b.HasIndex("TournamentRoundId", "MatchNumber")
+                        .IsUnique();
+
+                    b.ToTable("TournamentMatches", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentMatch_FinishedAt", "(`Status` = 3 AND `FinishedAt` IS NOT NULL) OR (`Status` <> 3 AND `FinishedAt` IS NULL)");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_Legs", "`HomeLegs` >= 0 AND `AwayLegs` >= 0");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_NextMatch", "(`NextMatchId` IS NULL AND `NextMatchSlot` IS NULL) OR (`NextMatchId` IS NOT NULL AND `NextMatchSlot` IN (1, 2))");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_Sides", "`HomeParticipantId` IS NULL OR `AwayParticipantId` IS NULL OR `HomeParticipantId` <> `AwayParticipantId`");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_Status", "(`Status` = 1) OR (`Status` IN (2, 3) AND `HomeParticipantId` IS NOT NULL AND `AwayParticipantId` IS NOT NULL AND `StartedAt` IS NOT NULL) OR (`Status` = 4 AND (`HomeParticipantId` IS NULL) <> (`AwayParticipantId` IS NULL))");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_Winner", "(`Status` IN (3, 4) AND `WinnerParticipantId` IS NOT NULL) OR (`Status` IN (1, 2) AND `WinnerParticipantId` IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchLegEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("LegNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("StartingPlayerNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentMatchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("WinnerPlayerNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentMatchId", "LegNumber")
+                        .IsUnique();
+
+                    b.ToTable("TournamentMatchLegs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentMatchLeg_LegNumber", "`LegNumber` >= 1");
+
+                            t.HasCheckConstraint("CK_TournamentMatchLeg_StartingPlayer", "`StartingPlayerNumber` IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_TournamentMatchLeg_Winner", "(`WinnerPlayerNumber` IS NULL AND `FinishedAt` IS NULL) OR (`WinnerPlayerNumber` IN (1, 2) AND `FinishedAt` IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchThrowEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Multiplier")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreBeforeThrow")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Segment")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetMultiplier")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetSegment")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ThrowNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentMatchVisitId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentMatchVisitId", "ThrowNumber")
+                        .IsUnique();
+
+                    b.ToTable("TournamentMatchThrows", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentMatchThrow_Score", "`Score` = `Segment` * `Multiplier`");
+
+                            t.HasCheckConstraint("CK_TournamentMatchThrow_SegmentMultiplier", "((`Segment` BETWEEN 1 AND 20 AND `Multiplier` BETWEEN 1 AND 3) OR (`Segment` = 25 AND `Multiplier` BETWEEN 1 AND 2) OR (`Segment` = 0 AND `Multiplier` = 0))");
+
+                            t.HasCheckConstraint("CK_TournamentMatchThrow_Target", "(`TargetSegment` IS NULL AND `TargetMultiplier` IS NULL) OR ((`TargetSegment` BETWEEN 1 AND 20 AND `TargetMultiplier` BETWEEN 1 AND 3) OR (`TargetSegment` = 25 AND `TargetMultiplier` BETWEEN 1 AND 2))");
+
+                            t.HasCheckConstraint("CK_TournamentMatchThrow_ThrowNumber", "`ThrowNumber` BETWEEN 1 AND 3");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchVisitEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("DartsUsed")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsBust")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsCheckout")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("PlayerNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreBefore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentMatchLegId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("VisitNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentMatchLegId", "VisitNumber")
+                        .IsUnique();
+
+                    b.ToTable("TournamentMatchVisits", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_BustCheckout", "NOT (`IsBust` = 1 AND `IsCheckout` = 1)");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_Checkout", "(`IsCheckout` = 1 AND `ScoreAfter` = 0 AND `DartsUsed` >= 1) OR (`IsCheckout` = 0 AND `ScoreAfter` > 0)");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_DartsUsed", "`DartsUsed` BETWEEN 0 AND 3");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_PlayerNumber", "`PlayerNumber` IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_ScoreAfter", "`ScoreAfter` BETWEEN 0 AND `ScoreBefore` AND `ScoreBefore` - `ScoreAfter` <= 180 AND (`IsBust` = 0 OR `ScoreAfter` = `ScoreBefore`)");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");
+
+                            t.HasCheckConstraint("CK_TournamentMatchVisit_VisitNumber", "`VisitNumber` >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("DartBotId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("ParticipantType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Seed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DartBotId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TournamentId", "DartBotId")
+                        .IsUnique();
+
+                    b.HasIndex("TournamentId", "Seed")
+                        .IsUnique();
+
+                    b.HasIndex("TournamentId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("TournamentParticipants", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentParticipant_Seed", "`Seed` IS NULL OR `Seed` >= 1");
+
+                            t.HasCheckConstraint("CK_TournamentParticipant_Type", "(`ParticipantType` = 1 AND `DartBotId` IS NULL) OR (`ParticipantType` = 2 AND `DartBotId` IS NOT NULL AND `UserId` IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentRoundEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("BestOfLegs")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("RoundNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("TournamentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduledAt");
+
+                    b.HasIndex("TournamentId", "RoundNumber")
+                        .IsUnique();
+
+                    b.ToTable("TournamentRounds", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TournamentRound_BestOfLegs", "`BestOfLegs` IN (5, 7, 9, 13)");
+
+                            t.HasCheckConstraint("CK_TournamentRound_RoundNumber", "`RoundNumber` >= 1");
+                        });
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1900,6 +2413,173 @@ namespace Data.DartContext.Migrations
                     b.Navigation("GeneratorThrowModel");
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.User.UserEntity", "OwnerUser")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentEntity", "SeedSourceTournament")
+                        .WithMany()
+                        .HasForeignKey("SeedSourceTournamentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", "WinnerParticipant")
+                        .WithMany()
+                        .HasForeignKey("WinnerParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OwnerUser");
+
+                    b.Navigation("SeedSourceTournament");
+
+                    b.Navigation("WinnerParticipant");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", "AwayParticipant")
+                        .WithMany()
+                        .HasForeignKey("AwayParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "AwayProfileVersion")
+                        .WithMany()
+                        .HasForeignKey("AwayProfileVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "AwayTargetModel")
+                        .WithMany()
+                        .HasForeignKey("AwayTargetModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.User.UserEntity", "ConductedByUser")
+                        .WithMany()
+                        .HasForeignKey("ConductedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", "HomeParticipant")
+                        .WithMany()
+                        .HasForeignKey("HomeParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "HomeProfileVersion")
+                        .WithMany()
+                        .HasForeignKey("HomeProfileVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "HomeTargetModel")
+                        .WithMany()
+                        .HasForeignKey("HomeTargetModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentMatchEntity", "NextMatch")
+                        .WithMany()
+                        .HasForeignKey("NextMatchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentRoundEntity", "Round")
+                        .WithMany("Matches")
+                        .HasForeignKey("TournamentRoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", "WinnerParticipant")
+                        .WithMany()
+                        .HasForeignKey("WinnerParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AwayParticipant");
+
+                    b.Navigation("AwayProfileVersion");
+
+                    b.Navigation("AwayTargetModel");
+
+                    b.Navigation("ConductedByUser");
+
+                    b.Navigation("HomeParticipant");
+
+                    b.Navigation("HomeProfileVersion");
+
+                    b.Navigation("HomeTargetModel");
+
+                    b.Navigation("NextMatch");
+
+                    b.Navigation("Round");
+
+                    b.Navigation("WinnerParticipant");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchLegEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentMatchEntity", "Match")
+                        .WithMany("Legs")
+                        .HasForeignKey("TournamentMatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchThrowEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentMatchVisitEntity", "Visit")
+                        .WithMany("Throws")
+                        .HasForeignKey("TournamentMatchVisitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Visit");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchVisitEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentMatchLegEntity", "Leg")
+                        .WithMany("Visits")
+                        .HasForeignKey("TournamentMatchLegId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Leg");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentParticipantEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotEntity", "DartBot")
+                        .WithMany()
+                        .HasForeignKey("DartBotId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentEntity", "Tournament")
+                        .WithMany("Participants")
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Data.DartContext.Entities.User.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DartBot");
+
+                    b.Navigation("Tournament");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentRoundEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Tournament.TournamentEntity", "Tournament")
+                        .WithMany("Rounds")
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tournament");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Training.TrainingSessionEntity", "TrainingSession")
@@ -2115,6 +2795,33 @@ namespace Data.DartContext.Migrations
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
                 {
                     b.Navigation("Trainings");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>
+                {
+                    b.Navigation("Participants");
+
+                    b.Navigation("Rounds");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchEntity", b =>
+                {
+                    b.Navigation("Legs");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchLegEntity", b =>
+                {
+                    b.Navigation("Visits");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentMatchVisitEntity", b =>
+                {
+                    b.Navigation("Throws");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentRoundEntity", b =>
+                {
+                    b.Navigation("Matches");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingEntity", b =>

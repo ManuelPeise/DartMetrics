@@ -15,6 +15,7 @@ namespace Logic.Shared.UnitsOfWork
         public IUserUnitOfWork UserUnitOfWork { get; }
         public IDartTrainingUnitOfWork DartTrainingUnitOfWork { get; }
         public IDartBotUnitOfWork DartBotUnitOfWork { get; }
+        public ITournamentUnitOfWork TournamentUnitOfWork { get; }
 
 
         public UnitOfWork(DartDatabaseContext dartDatabaseContext, IHttpContextAccessor httpContextAccessor)
@@ -25,6 +26,7 @@ namespace Logic.Shared.UnitsOfWork
             UserUnitOfWork = new UserUnitOfWork(_dartDatabaseContext);
             DartTrainingUnitOfWork = new DartTrainingUnitOfWork(_dartDatabaseContext);
             DartBotUnitOfWork = new DartBotUnitOfWork(_dartDatabaseContext);
+            TournamentUnitOfWork = new TournamentUnitOfWork(_dartDatabaseContext);
         }
 
         public async Task<bool> SaveChangesAsync(CancellationToken cancellationToken = default)

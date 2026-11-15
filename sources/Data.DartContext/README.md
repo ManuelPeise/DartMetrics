@@ -6,10 +6,10 @@ EF-Core-Datenzugriff (Provider `MySql.EntityFrameworkCore`, MySQL 8.4).
 
 ```
 DartDatabaseContext            DbSets, ApplyConfigurationsFromAssembly
-Entities/<Bereich>/            User, Training, Bot, Log – alle erben von AEntityBase
+Entities/<Bereich>/            User, Training, Bot, Tournament, Log – alle erben von AEntityBase
 Configurations/<Bereich>/      Fluent-Konfiguration je Entity (AEntityBaseConfiguration<T>)
   Training/DartThrowConstraints  Gemeinsame CHECK-Regeln für Würfe
-  Bot/BotUtcDateTimeExtensions   UTC-Converter für Bot-Entities
+  Bot/BotUtcDateTimeExtensions   UTC-Converter für Bot- und Turnier-Entities
 Migrations/                    EF-Migrationen (beim API-Start angewendet)
 Seeds/                         Rollen (HasData), Standard-Admin
 ```

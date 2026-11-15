@@ -1,4 +1,5 @@
 ﻿using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Tournament;
 using Data.DartContext.Entities.Log;
 using Data.DartContext.Entities.Training;
 using Data.DartContext.Entities.User;
@@ -49,6 +50,15 @@ namespace Data.DartContext
         public DbSet<DartBotModelTrainingEntity> DartBotModelTrainings => Set<DartBotModelTrainingEntity>();
         public DbSet<DartBotModelEntity> DartBotModels => Set<DartBotModelEntity>();
         public DbSet<DartBotActiveModelEntity> DartBotActiveModels => Set<DartBotActiveModelEntity>();
+
+        // Turniere
+        public DbSet<TournamentEntity> Tournaments => Set<TournamentEntity>();
+        public DbSet<TournamentParticipantEntity> TournamentParticipants => Set<TournamentParticipantEntity>();
+        public DbSet<TournamentRoundEntity> TournamentRounds => Set<TournamentRoundEntity>();
+        public DbSet<TournamentMatchEntity> TournamentMatches => Set<TournamentMatchEntity>();
+        public DbSet<TournamentMatchLegEntity> TournamentMatchLegs => Set<TournamentMatchLegEntity>();
+        public DbSet<TournamentMatchVisitEntity> TournamentMatchVisits => Set<TournamentMatchVisitEntity>();
+        public DbSet<TournamentMatchThrowEntity> TournamentMatchThrows => Set<TournamentMatchThrowEntity>();
         
 
         public DartDatabaseContext(DbContextOptions options): base(options)

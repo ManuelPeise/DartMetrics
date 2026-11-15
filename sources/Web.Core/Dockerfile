@@ -14,6 +14,7 @@ COPY Logic.Bot/Logic.Bot.csproj                       Logic.Bot/
 COPY Logic.Profile/Logic.Profile.csproj               Logic.Profile/
 COPY Logic.Shared/Logic.Shared.csproj                 Logic.Shared/
 COPY Logic.Statistics/Logic.Statistics.csproj         Logic.Statistics/
+COPY Logic.Tournament/Logic.Tournament.csproj         Logic.Tournament/
 COPY Logic.Training/Logic.Training.csproj             Logic.Training/
 COPY Shared.Enums/Shared.Enums.csproj                 Shared.Enums/
 COPY Shared.Interfaces/Shared.Interfaces.csproj       Shared.Interfaces/

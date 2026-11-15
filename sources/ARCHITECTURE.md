@@ -20,11 +20,13 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell, Modellverwaltung für Admins) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
+| `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart; Spielplan, Tabelle, Baum folgen | [README](Logic.Tournament/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
 | `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren | [README](Tools.BotTrainer/README.md) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
+| `Logic.Tournament.Tests` | Unit-Tests der Turnier-Logik (ohne Datenbank) | [README](Logic.Tournament.Tests/README.md) |
 | `Logic.Integration.Tests` | Integrationstests gegen MySQL 8.4 (Testcontainers) | [README](Logic.Integration.Tests/README.md) |
 | **Daten** | | |
 | `Data.DartContext` | EF Core (MySQL): Entities, Konfigurationen, Migrationen, Seeds | [README](Data.DartContext/README.md) |
@@ -39,7 +41,7 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 Web.App.Client (WASM)            Web.App (Blazor Server, BFF, /admin)
                                    └─ Web.Shared ─ Shared.Interfaces
 Web.Core (API-Host) ─ Service.Api ─ Shared.Interfaces
-   └─ Logic.Administration │ Logic.Authentication │ Logic.Bot │ Logic.Profile │ Logic.Statistics │ Logic.Training
+   └─ Logic.Administration │ Logic.Authentication │ Logic.Bot │ Logic.Profile │ Logic.Statistics │ Logic.Tournament │ Logic.Training
         └─ Logic.Shared ─ Data.DartContext ─ Shared.Models ─ Shared.Enums
 ```
 
@@ -60,7 +62,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 
 | Interface | Implementierung | Projekt | DI | Aufgabe / Methoden |
 |---|---|---|---|---|
-| `IUnitOfWork` | `UnitOfWork` | [Logic.Shared](Logic.Shared/README.md) | S | Zugriff auf `UserUnitOfWork`, `DartTrainingUnitOfWork`, `DartBotUnitOfWork`; `SaveChangesAsync` (Audit-Felder, Schutz unveränderlicher Entities) |
+| `IUnitOfWork` | `UnitOfWork` | [Logic.Shared](Logic.Shared/README.md) | S | Zugriff auf `UserUnitOfWork`, `DartTrainingUnitOfWork`, `DartBotUnitOfWork`, `TournamentUnitOfWork`; `SaveChangesAsync` (Audit-Felder, Schutz unveränderlicher Entities) |
 | `IMessageLog` | `MessageLog` | [Logic.Shared](Logic.Shared/README.md) | S | `LogMessage`, `GetLogMessages`, `DeleteMessages` |
 | `IClaimsHelper` | `ClaimsHelper` | [Logic.Shared](Logic.Shared/README.md) | S | `GetCurrentUserFromClaims`, `GetUserClaims`, `GetUserClaimsFromToken` |
 | `IEmailClient` | `EmailClient` | [Logic.Shared](Logic.Shared/README.md) | S | `SendMail` |
