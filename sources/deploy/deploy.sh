@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Komplettes Deployment von DartMetrics in Docker (z. B. Raspberry Pi): Prüfungen, Build, Start, Health-Check, ML-Modell.
-# Für reine Code-Updates reicht scripts/update-containers.sh (mit Datenbank-Backup).
+# Für reine Code-Updates reicht deploy/update-containers.sh (mit Datenbank-Backup).
 #
-#   ./scripts/deploy.sh                 Entwicklung (lädt docker-compose.override.yml)
-#   ./scripts/deploy.sh --production    nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
-#   ./scripts/deploy.sh --skip-model    ohne ML-Training (Bots spielen regelbasiert)
-#   ./scripts/deploy.sh --no-cache      Images ohne Build-Cache
+#   ./deploy/deploy.sh                 Entwicklung (lädt docker-compose.override.yml)
+#   ./deploy/deploy.sh --production    nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
+#   ./deploy/deploy.sh --skip-model    ohne ML-Training (Bots spielen regelbasiert)
+#   ./deploy/deploy.sh --no-cache      Images ohne Build-Cache
 set -euo pipefail
 
 PRODUCTION=0; SKIP_MODEL=0; NO_CACHE=""; TIMEOUT=180
@@ -62,7 +62,7 @@ echo "    Zertifikat ok"
 
 if ! ls Web.App/Web.App/wwwroot/fonts/*.woff2 >/dev/null 2>&1; then
   step "Schriften laden"
-  ./scripts/download-fonts.sh
+  ./deploy/download-fonts.sh
 fi
 echo "    Schriften ok"
 
@@ -92,7 +92,7 @@ done
 if [ "$SKIP_MODEL" -eq 0 ]; then
   step "ML-Zielwahl-Modell"
   set +e
-  ./scripts/train-model.sh
+  ./deploy/train-model.sh
   code=$?
   set -e
   [ "$code" -eq 4 ] && echo "    Kein Modell aktiviert - die Bots spielen regelbasiert."

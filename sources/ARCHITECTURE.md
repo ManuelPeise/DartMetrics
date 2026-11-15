@@ -147,7 +147,7 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 ## Weitere Dokumente
 
 - DartBot-Architektur und Datenmodell: Claude-Doc „DartBot – Finaler Architektur- und Datenmodellplan“.
-- Deployment: `docker-compose.yml`, `Web.Core/Dockerfile`, `scripts/update-containers.ps1` / `.sh`.
+- Deployment: `docker-compose.yml`, `Web.Core/Dockerfile`, `deploy/update-containers.ps1` / `.sh`.
 
 ## Optimistische Nebenläufigkeit
 

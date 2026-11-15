@@ -2,7 +2,7 @@
   Schriften lokal ausgeliefert (DSGVO): kein Aufruf von fonts.googleapis.com / fonts.gstatic.com,
   die IP-Adresse der Besucher geht nicht an Dritte. Dateien: wwwroot/fonts, Herkunft Fontsource,
   Lizenz SIL Open Font License 1.1 (siehe wwwroot/fonts/LICENSE.md).
-  Neu laden: scripts/download-fonts.ps1 bzw. scripts/download-fonts.sh
+  Neu laden: deploy/download-fonts.ps1 bzw. deploy/download-fonts.sh
   Fehlen die Dateien, greifen die Ersatzschriften aus --pl-font-* (Arial Narrow, system-ui, Segoe Print).
 */
 

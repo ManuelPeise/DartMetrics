@@ -23,8 +23,8 @@ Sicherheitsupdates gibt es nur für den aktuellen Stand des Branches `master`.
 DartMetrics ist Open Source (MIT-Lizenz) und wird ohne Gewähr bereitgestellt. Wer eine eigene Instanz betreibt,
 ist für deren sicheren Betrieb selbst verantwortlich, unter anderem für:
 
-- sichere Werte in der `.env` (Passwörter, `JWT_KEY`) und regelmäßige Updates (`scripts/update-containers.ps1` / `.sh`),
+- sichere Werte in der `.env` (Passwörter, `JWT_KEY`) und regelmäßige Updates (`deploy/update-containers.ps1` / `.sh`),
 - die Produktions-Konfiguration (`COMPOSE_FILE=docker-compose.yml`: keine offenen Datenbank- und API-Ports),
 - HTTPS mit einem gültigen Zertifikat, wenn die Instanz außerhalb des Heimnetzes erreichbar ist,
-- Backups (`scripts/backup-db.sh`),
+- Backups (`deploy/backup-db.sh`),
 - Impressum und Datenschutzerklärung (Vorlagen unter `/impressum` und `/datenschutz`, Angaben über `LEGAL_*` in der `.env`).

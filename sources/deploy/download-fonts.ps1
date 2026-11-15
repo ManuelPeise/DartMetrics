@@ -2,7 +2,7 @@
 .SYNOPSIS
     Lädt die Schriften der Web-App einmalig nach Web.App/Web.App/wwwroot/fonts (lokal ausgeliefert, DSGVO).
 .EXAMPLE
-    .\scripts\download-fonts.ps1
+    .\deploy\download-fonts.ps1
 #>
 $ErrorActionPreference = 'Stop'
 $target = Join-Path (Split-Path -Parent $PSScriptRoot) 'Web.App\Web.App\wwwroot\fonts'

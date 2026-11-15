@@ -4,17 +4,17 @@
 
 .DESCRIPTION
     Für die Erstinstallation und für einen vollständigen Neuaufbau. Für reine Code-Updates reicht
-    scripts/update-containers.ps1 (mit Datenbank-Backup).
+    deploy/update-containers.ps1 (mit Datenbank-Backup).
       1. Voraussetzungen: Docker, .env (ohne Platzhalter), HTTPS-Zertifikat, lokale Schriften
       2. Images bauen: api, web, bottrainer
       3. Container starten und warten, bis API und Web-App laufen
-      4. Falls noch kein ML-Zielwahl-Modell aktiv ist: scripts/train-model.ps1 (abschaltbar mit -SkipModel)
+      4. Falls noch kein ML-Zielwahl-Modell aktiv ist: deploy/train-model.ps1 (abschaltbar mit -SkipModel)
 
 .EXAMPLE
-    .\scripts\deploy.ps1                   # Entwicklung (lädt docker-compose.override.yml)
-    .\scripts\deploy.ps1 -Production       # nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
-    .\scripts\deploy.ps1 -SkipModel        # ohne ML-Training (Bots spielen regelbasiert)
-    .\scripts\deploy.ps1 -NoCache          # Images ohne Build-Cache
+    .\deploy\deploy.ps1                   # Entwicklung (lädt docker-compose.override.yml)
+    .\deploy\deploy.ps1 -Production       # nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
+    .\deploy\deploy.ps1 -SkipModel        # ohne ML-Training (Bots spielen regelbasiert)
+    .\deploy\deploy.ps1 -NoCache          # Images ohne Build-Cache
 #>
 [CmdletBinding()]
 param(

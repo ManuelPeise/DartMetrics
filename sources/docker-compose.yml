@@ -142,7 +142,7 @@ services:
   # Werkzeug: DartBot-Zielwahl-Modell erzeugen, trainieren, vergleichen, aktivieren (Tools.BotTrainer).
   # Startet NICHT mit "docker compose up" (Profil "tools"), sondern nur gezielt:
   #   docker compose --profile tools run --rm bottrainer generate --situations 1000
-  # Komplett automatisch: scripts/train-model.ps1 / .sh
+  # Komplett automatisch: deploy/train-model.ps1 / .sh
   bottrainer:
     build:
       context: .

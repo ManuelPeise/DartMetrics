@@ -9,13 +9,13 @@
       2. train     Modell trainieren                            -> ml_data/models
       3. compare   gegen das Regelwerk in simulierten Legs prüfen
       4. activate  nur, wenn das Modell auf keiner Stufe signifikant schlechter ist
-    Voraussetzung: MySQL und API laufen und die Migrationen sind angewendet (scripts/deploy.ps1 bzw. docker compose up -d).
+    Voraussetzung: MySQL und API laufen und die Migrationen sind angewendet (deploy/deploy.ps1 bzw. docker compose up -d).
 
 .EXAMPLE
-    .\scripts\train-model.ps1                         # nur, wenn noch kein Modell aktiv ist
-    .\scripts\train-model.ps1 -Force                  # neues Modell trainieren, auch wenn schon eins aktiv ist
-    .\scripts\train-model.ps1 -Situations 300 -Rollouts 30 -Legs 500    # schneller Probelauf (schwächeres Modell)
-    .\scripts\train-model.ps1 -ActivateAnyway         # auch aktivieren, wenn der Vergleich schlechter ausfällt
+    .\deploy\train-model.ps1                         # nur, wenn noch kein Modell aktiv ist
+    .\deploy\train-model.ps1 -Force                  # neues Modell trainieren, auch wenn schon eins aktiv ist
+    .\deploy\train-model.ps1 -Situations 300 -Rollouts 30 -Legs 500    # schneller Probelauf (schwächeres Modell)
+    .\deploy\train-model.ps1 -ActivateAnyway         # auch aktivieren, wenn der Vergleich schlechter ausfällt
 
 .NOTES
     Dauer mit Standardwerten: grob 10-30 Minuten auf einem PC, auf einem Raspberry Pi deutlich länger.

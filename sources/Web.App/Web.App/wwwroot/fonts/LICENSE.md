@@ -10,4 +10,4 @@ weitergegeben werden.
 | Caveat | Impallari Type | https://github.com/googlefonts/caveat |
 | Inter | Rasmus Andersson | https://github.com/rsms/inter |
 
-Neu laden: `scripts/download-fonts.ps1` (Windows) bzw. `scripts/download-fonts.sh` (Linux/macOS).
+Neu laden: `deploy/download-fonts.ps1` (Windows) bzw. `deploy/download-fonts.sh` (Linux/macOS).

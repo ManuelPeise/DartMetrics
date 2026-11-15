@@ -2,12 +2,12 @@
 # Baut die DartMetrics-Container neu und startet sie aktualisiert.
 # Die Daten (Volume mysql_data) bleiben erhalten.
 #
-#   ./scripts/update-containers.sh             nur die API neu bauen + neu starten
-#   ./scripts/update-containers.sh --all       alle Dienste aktualisieren
-#   ./scripts/update-containers.sh --all --pull  zusätzlich neue MySQL/Mailpit-Images holen
-#   ./scripts/update-containers.sh --no-cache  API ohne Build-Cache bauen
-#   ./scripts/update-containers.sh --test      vorher dotnet test ausführen (Abbruch bei Fehlern)
-#   ./scripts/update-containers.sh --skip-backup  ohne Datenbank-Backup
+#   ./deploy/update-containers.sh             nur die API neu bauen + neu starten
+#   ./deploy/update-containers.sh --all       alle Dienste aktualisieren
+#   ./deploy/update-containers.sh --all --pull  zusätzlich neue MySQL/Mailpit-Images holen
+#   ./deploy/update-containers.sh --no-cache  API ohne Build-Cache bauen
+#   ./deploy/update-containers.sh --test      vorher dotnet test ausführen (Abbruch bei Fehlern)
+#   ./deploy/update-containers.sh --skip-backup  ohne Datenbank-Backup
 #
 # Vor dem Ersetzen wird die Datenbank nach backups/ gesichert (die API wendet Migrationen beim Start an).
 # Es bleiben die letzten $KEEP_BACKUPS Sicherungen. Wiederherstellen:

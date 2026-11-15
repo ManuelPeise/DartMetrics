@@ -9,12 +9,12 @@
     - wartet, bis die API "healthy" ist, und zeigt Status + letzte Log-Zeilen
 
 .EXAMPLE
-    .\scripts\update-containers.ps1                 # nur die API neu bauen + neu starten
-    .\scripts\update-containers.ps1 -All            # alle Dienste aktualisieren
-    .\scripts\update-containers.ps1 -All -Pull      # zusätzlich neue MySQL/Mailpit-Images holen
-    .\scripts\update-containers.ps1 -NoCache        # API ohne Build-Cache bauen
-    .\scripts\update-containers.ps1 -Test           # vorher dotnet test (Abbruch bei Fehlern)
-    .\scripts\update-containers.ps1 -SkipBackup     # ohne Datenbank-Backup
+    .\deploy\update-containers.ps1                 # nur die API neu bauen + neu starten
+    .\deploy\update-containers.ps1 -All            # alle Dienste aktualisieren
+    .\deploy\update-containers.ps1 -All -Pull      # zusätzlich neue MySQL/Mailpit-Images holen
+    .\deploy\update-containers.ps1 -NoCache        # API ohne Build-Cache bauen
+    .\deploy\update-containers.ps1 -Test           # vorher dotnet test (Abbruch bei Fehlern)
+    .\deploy\update-containers.ps1 -SkipBackup     # ohne Datenbank-Backup
 
 .NOTES
     Vor dem Ersetzen wird die Datenbank nach backups\ gesichert (die API wendet Migrationen beim Start an).

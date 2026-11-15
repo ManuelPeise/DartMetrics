@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Tägliches Datenbank-Backup für den Dauerbetrieb (z. B. Raspberry Pi), mit Rotation.
 #
-#   ./scripts/backup-db.sh              Backup nach backups/, die letzten 14 bleiben
-#   KEEP_BACKUPS=30 ./scripts/backup-db.sh
+#   ./deploy/backup-db.sh              Backup nach backups/, die letzten 14 bleiben
+#   KEEP_BACKUPS=30 ./deploy/backup-db.sh
 #
 # Per Cron jeden Tag um 03:15 (crontab -e):
-#   15 3 * * * /pfad/zu/sources/scripts/backup-db.sh >> /pfad/zu/sources/backups/backup.log 2>&1
+#   15 3 * * * /pfad/zu/sources/deploy/backup-db.sh >> /pfad/zu/sources/backups/backup.log 2>&1
 #
 # Wiederherstellen:
 #   gunzip -c backups/<datei>.sql.gz | docker exec -i mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb'

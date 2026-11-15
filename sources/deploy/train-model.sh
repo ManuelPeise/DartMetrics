@@ -2,12 +2,12 @@
 # Erzeugt, trainiert, prüft und aktiviert das ML-Zielwahl-Modell der DartBots - komplett in Docker.
 # Schritte (Tools.BotTrainer im Container "bottrainer"): generate -> train -> compare -> activate.
 # Aktiviert wird nur, wenn das Modell auf keiner Stufe signifikant schlechter ist als das Regelwerk.
-# Voraussetzung: MySQL und API laufen (Migrationen angewendet), z. B. nach scripts/deploy.sh.
+# Voraussetzung: MySQL und API laufen (Migrationen angewendet), z. B. nach deploy/deploy.sh.
 #
-#   ./scripts/train-model.sh                       nur, wenn noch kein Modell aktiv ist
-#   ./scripts/train-model.sh --force               neues Modell, auch wenn schon eins aktiv ist
-#   ./scripts/train-model.sh --situations 300 --rollouts 30 --legs 500   schneller Probelauf
-#   ./scripts/train-model.sh --activate-anyway     auch bei schlechterem Vergleich aktivieren
+#   ./deploy/train-model.sh                       nur, wenn noch kein Modell aktiv ist
+#   ./deploy/train-model.sh --force               neues Modell, auch wenn schon eins aktiv ist
+#   ./deploy/train-model.sh --situations 300 --rollouts 30 --legs 500   schneller Probelauf
+#   ./deploy/train-model.sh --activate-anyway     auch bei schlechterem Vergleich aktivieren
 #
 # Dauer mit Standardwerten: grob 10-30 Minuten auf einem PC, auf einem Raspberry Pi deutlich länger.
 set -euo pipefail

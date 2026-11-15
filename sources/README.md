@@ -49,7 +49,7 @@ Architektur, Projekte und Service-Verzeichnis: **[ARCHITECTURE.md](ARCHITECTURE.
 
 ```
 cp .env.example .env                  # Platzhalter ersetzen (Passwörter, JWT_KEY, CERT_PASSWORD, LEGAL_*)
-./scripts/download-fonts.ps1          # Schriften einmalig lokal ablegen (kein Google Fonts, DSGVO)
+./deploy/download-fonts.ps1          # Schriften einmalig lokal ablegen (kein Google Fonts, DSGVO)
 dotnet dev-certs https -ep certs/dartmetrics.pfx -p <CERT_PASSWORD>
 dotnet dev-certs https --trust
 docker compose up -d                  # MySQL, Mailpit, API, Web-App
@@ -57,21 +57,21 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 
 - Web-App: https://localhost:7254 · Swagger (nur Entwicklung): http://localhost:8080/swagger · Mails: http://localhost:8025
 - `docker compose` lädt in der Entwicklung automatisch `docker-compose.override.yml` (offene Ports nur auf `127.0.0.1`, Mailpit, Swagger).
-- Produktion (z. B. Raspberry Pi): in der `.env` `COMPOSE_FILE=docker-compose.yml` setzen. Dann ist nur die Web-App erreichbar; MySQL und API laufen nur im Docker-Netz. Backups: `scripts/backup-db.sh` per Cron.
+- Produktion (z. B. Raspberry Pi): in der `.env` `COMPOSE_FILE=docker-compose.yml` setzen. Dann ist nur die Web-App erreichbar; MySQL und API laufen nur im Docker-Netz. Backups: `deploy/backup-db.sh` per Cron.
 - Impressum und Datenschutzerklärung: `/impressum`, `/datenschutz`. Die Angaben zum Betreiber kommen aus `LEGAL_*` in der `.env`, nicht aus dem Repository.
 - Geheimnisse stehen nur in `.env` (nicht im Repository); alle Variablen mit Erklärung: `.env.example`.
 - Web-App ohne Docker (Debugging): `dotnet run --project Web.App/Web.App`
-- API aktualisieren: `scripts/update-containers.ps1` (Windows) bzw. `scripts/update-containers.sh`.
+- API aktualisieren: `deploy/update-containers.ps1` (Windows) bzw. `deploy/update-containers.sh`.
 
 ## Deployment und Skripte
 
 | Skript (`.ps1` Windows / `.sh` Linux, Pi) | Zweck |
 | --- | --- |
-| `scripts/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App und trainiert ein ML-Modell, falls keins aktiv ist. `-Production` / `--production` ohne offene DB/API-Ports und ohne Mailpit. |
-| `scripts/update-containers` | Code-Update: Datenbank-Backup, API/Web-App neu bauen und ersetzen. |
-| `scripts/train-model` | DartBot-Zielwahl-Modell in Docker erzeugen → trainieren → mit dem Regelwerk vergleichen → aktivieren (nur wenn nicht schlechter). Ohne `-Force` / `--force` nur, wenn noch keins aktiv ist. |
-| `scripts/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
-| `scripts/download-fonts` | Schriften einmalig lokal ablegen. |
+| `deploy/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App und trainiert ein ML-Modell, falls keins aktiv ist. `-Production` / `--production` ohne offene DB/API-Ports und ohne Mailpit. |
+| `deploy/update-containers` | Code-Update: Datenbank-Backup, API/Web-App neu bauen und ersetzen. |
+| `deploy/train-model` | DartBot-Zielwahl-Modell in Docker erzeugen → trainieren → mit dem Regelwerk vergleichen → aktivieren (nur wenn nicht schlechter). Ohne `-Force` / `--force` nur, wenn noch keins aktiv ist. |
+| `deploy/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
+| `deploy/download-fonts` | Schriften einmalig lokal ablegen. |
 
 Ohne aktives Modell spielen die Bots regelbasiert; das funktioniert, ist aber schwächer. Das Training dauert mit Standardwerten grob 10–30 Minuten auf einem PC, auf einem Raspberry Pi deutlich länger (kleinere Werte: `-Situations 300 -Rollouts 30 -Legs 500`).
 
