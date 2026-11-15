@@ -181,7 +181,10 @@ namespace Logic.Profile
 
                 userEntity.UserCredentials.PasswordHash = PasswordHasher.HashPassword(request.Password);
                 userEntity.UserCredentials.PasswordChangedAt = DateTime.UtcNow;
-                
+
+                // Einmal-Passwort erledigt; das aktuelle Token trägt den Hinweis noch, daher meldet sich der Client danach neu an.
+                userEntity.UserCredentials.MustChangePassword = false;
+
                 await UnitOfWork.SaveChangesAsync();
 
             }

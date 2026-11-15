@@ -108,6 +108,12 @@ namespace Web.Shared.Services
                 userRoles.Select(role =>
                     new Claim(ClaimTypes.Role, role.ToString())));
 
+            // Einmal-Passwort: die Oberfläche leitet auf "Passwort ändern" um (die API sperrt ohnehin alles andere).
+            if (tokenClaims.Any(c => c.Type == BlazorClaimTypes.MustChangePassword && c.Value == "true"))
+            {
+                claims.Add(new Claim(BlazorClaimTypes.MustChangePassword, "true"));
+            }
+
             var identity = new ClaimsIdentity(
                 claims,
                 WebServiceRegistration.Scheme,

@@ -1,4 +1,4 @@
-@page "/admin/users"
+﻿@page "/admin/users"
 @using global::Shared.Enums.User
 @using global::Shared.Interfaces.Blazor.Api
 @using global::Shared.Models.Administration.User
@@ -18,6 +18,30 @@
 @if (_message is not null)
 {
     <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
+}
+
+@if (_pendingRole is { } pending)
+{
+    <div class="adm-alert" role="alertdialog" aria-live="assertive" style="margin-bottom: var(--adm-space-4)">
+        @if (pending.Role == UserRoleEnum.GameMaster)
+        {
+            <p><strong>@pending.User.FirstName @pending.User.LastName zum GameMaster machen?</strong></p>
+            <p>
+                Ein Benutzer hat genau eine Rolle. Als GameMaster verliert er die Rolle Player: Er kann nicht mehr gegen Bots spielen,
+                nicht mehr an Turnieren teilnehmen und hat keine eigene Elo mehr im Spiel. Bisherige Spiele und Statistiken bleiben erhalten.
+                Dafür kann er offizielle Turniere anlegen und leiten.
+            </p>
+        }
+        else
+        {
+            <p><strong>@pending.User.FirstName @pending.User.LastName wieder zum Player machen?</strong></p>
+            <p>Er kann dann keine offiziellen Turniere mehr anlegen oder leiten, spielt aber wieder selbst.</p>
+        }
+        <div class="adm-form-actions">
+            <AdminButton IsLoading="@(_busyUserId == pending.User.Id)" OnClick="ConfirmRoleAsync">Rolle ändern</AdminButton>
+            <AdminButton Variant="AdminButtonVariant.Ghost" OnClick="() => _pendingRole = null">Abbrechen</AdminButton>
+        </div>
+    </div>
 }
 
 @if (_users is not null)
@@ -217,12 +241,29 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ChangeRoleAsync(AdminUserListItem user, string? value)
+    /// <summary>Rollenwechsel erst nach Bestätigung: der Wechsel Player ↔ GameMaster hat Folgen (eine Rolle pro Benutzer).</summary>
+    private (AdminUserListItem User, UserRoleEnum Role)? _pendingRole;
+
+    private void ChangeRoleAsync(AdminUserListItem user, string? value)
     {
         if (!Enum.TryParse<UserRoleEnum>(value, out var role) || role == user.Role)
         {
             return;
         }
+
+        _message = null;
+        _pendingRole = (user, role);
+    }
+
+    private async Task ConfirmRoleAsync()
+    {
+        if (_pendingRole is not { } pending)
+        {
+            return;
+        }
+
+        var (user, role) = pending;
+        _pendingRole = null;
 
         await RunAsync(user,
             () => Api.PostAsync("UserAdministration/ChangeUserRole", new ChangeUserRoleModel { UserId = user.Id, Role = role }),

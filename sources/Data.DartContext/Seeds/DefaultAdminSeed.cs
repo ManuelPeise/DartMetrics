@@ -42,6 +42,8 @@ namespace Data.DartContext.Seeds
                 {
                     PasswordHash = PasswordHasher.HashPassword(_adminUserOptions.Password),
                     PasswordChangedAt = utcNow,
+                    // Das Passwort steht in der Konfiguration: beim ersten Login muss es geändert werden.
+                    MustChangePassword = true,
                     CreatedAt = utcNow,
                     CreatedBy = "System",
                 },

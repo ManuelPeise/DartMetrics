@@ -22,6 +22,7 @@ namespace Web.Core.Bundles
             app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
             app.UseAuthentication();
+            app.UseMiddleware<MustChangePasswordMiddleware>();
             app.UseAuthorization();
 
             app.MapControllers();

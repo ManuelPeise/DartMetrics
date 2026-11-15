@@ -1,4 +1,4 @@
-using Web.Shared.Components.Admin;
+﻿using Web.Shared.Components.Admin;
 
 namespace Web.App.Components.Layout.Admin
 {
@@ -27,7 +27,8 @@ namespace Web.App.Components.Layout.Admin
             new("System",
             [
                 new("System-Logs", Root + "/logs", AdminIconName.Logs, ShowInBottomNav: true),
-                new("Systemeinstellungen", Root + "/settings", AdminIconName.Settings)
+                new("Systemeinstellungen", Root + "/settings", AdminIconName.Settings),
+                new("Passwort ändern", Root + "/password", AdminIconName.Lock)
             ])
         ];
 

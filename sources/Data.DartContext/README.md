@@ -11,7 +11,7 @@ Configurations/<Bereich>/      Fluent-Konfiguration je Entity (AEntityBaseConfig
   Training/DartThrowConstraints  Gemeinsame CHECK-Regeln für Würfe
   Bot/BotUtcDateTimeExtensions   UTC-Converter für Bot- und Turnier-Entities
 Migrations/                    EF-Migrationen (beim API-Start angewendet)
-Seeds/                         Rollen (HasData), Standard-Admin
+Seeds/                         Rollen (HasData), Standard-Admin aus AdminUser-Konfiguration (Einmal-Passwort: MustChangePassword)
 ```
 
 ## Regeln

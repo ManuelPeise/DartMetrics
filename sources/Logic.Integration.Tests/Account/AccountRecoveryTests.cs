@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Data.DartContext.Entities.Tournament;
 using Data.DartContext.Security;
 using Logic.Integration.Tests.Infrastructure;
@@ -147,6 +147,29 @@ namespace Logic.Integration.Tests.Account
 
             var status = await _host.DbAsync(db => db.Set<TournamentParticipantEntity>().Where(p => p.UserId == playerId).Select(p => p.Status).SingleAsync());
             Assert.Equal(TournamentParticipantStatusEnum.Withdrawn, status);
+        }
+
+        [Fact]
+        public async Task ChangePassword_ClearsOneTimePasswordFlag()
+        {
+            var (userId, _) = await CreateUserAsync();
+            await _host.DbAsync(async db =>
+            {
+                var credentials = await db.UserCredentials.SingleAsync(c => c.UserId == userId);
+                credentials.MustChangePassword = true;
+                return await db.SaveChangesAsync();
+            });
+
+            _host.Claims.SignIn(userId, UserRoleEnum.Player);
+            await _host.RunAsync<IUserProfileService>(s => s.ChangePassword(new ChangePasswordRequest
+            {
+                CurrentPassword = TestHost.TestPassword,
+                Password = "Eigenes-Passwort-1",
+                PasswordReplication = "Eigenes-Passwort-1"
+            }));
+
+            var after = await _host.DbAsync(db => db.UserCredentials.SingleAsync(c => c.UserId == userId));
+            Assert.False(after.MustChangePassword);
         }
 
         // ---------- Hilfen ----------

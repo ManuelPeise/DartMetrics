@@ -2095,6 +2095,9 @@ namespace Data.DartContext.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime>("PasswordChangedAt")
                         .HasColumnType("datetime(6)");
 

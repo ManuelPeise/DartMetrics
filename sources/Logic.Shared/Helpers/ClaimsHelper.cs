@@ -13,6 +13,7 @@ namespace Logic.Shared.Helpers
         public const string UserIdClaimType = "UserId";
         public const string UserEmailClaimType = "UserEmail";
         public const string UserRolesClaimType = "UserRoles";
+        public const string MustChangePasswordClaimType = "MustChangePassword";
 
 
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -71,6 +72,12 @@ namespace Logic.Shared.Helpers
 
             // One claim per role, so [Authorize(Roles = "Admin")] works.
             claims.AddRange(roles.Select(role => new Claim(UserRolesClaimType, role.ToString())));
+
+            // Einmal-Passwort: die API lässt bis zur Änderung nur "Passwort ändern" zu (MustChangePasswordMiddleware).
+            if (userEntity.UserCredentials?.MustChangePassword == true)
+            {
+                claims.Add(new Claim(MustChangePasswordClaimType, "true"));
+            }
 
             return claims;
         }

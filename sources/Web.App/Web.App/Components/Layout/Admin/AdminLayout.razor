@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @implements IDisposable
 @inject NavigationManager Navigation
 
@@ -21,7 +21,15 @@
                 <AdminHeader OnOpenMenu="OpenDrawer" UserEmail="@GetEmail(context.User)" />
 
                 <main class="adm-content" id="admin-content">
-                    @Body
+                    @if (MustChangePassword(context.User))
+                    {
+                        @* Einmal-Passwort: nur die Passwort-Änderung, keine anderen Seiten. *@
+                        <Web.App.Components.Pages.Admin.AdminPassword Forced="true" />
+                    }
+                    else
+                    {
+                        @Body
+                    }
                 </main>
             </div>
 
@@ -47,6 +55,9 @@
 </div>
 
 @code {
+    private static bool MustChangePassword(System.Security.Claims.ClaimsPrincipal user) =>
+        user.HasClaim(Web.Shared.Constants.BlazorClaimTypes.MustChangePassword, "true");
+
     private bool _collapsed;
     private bool _drawerOpen;
 
