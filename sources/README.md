@@ -63,6 +63,20 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 - Web-App ohne Docker (Debugging): `dotnet run --project Web.App/Web.App`
 - API aktualisieren: `scripts/update-containers.ps1` (Windows) bzw. `scripts/update-containers.sh`.
 
+## Deployment und Skripte
+
+| Skript (`.ps1` Windows / `.sh` Linux, Pi) | Zweck |
+| --- | --- |
+| `scripts/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App und trainiert ein ML-Modell, falls keins aktiv ist. `-Production` / `--production` ohne offene DB/API-Ports und ohne Mailpit. |
+| `scripts/update-containers` | Code-Update: Datenbank-Backup, API/Web-App neu bauen und ersetzen. |
+| `scripts/train-model` | DartBot-Zielwahl-Modell in Docker erzeugen → trainieren → mit dem Regelwerk vergleichen → aktivieren (nur wenn nicht schlechter). Ohne `-Force` / `--force` nur, wenn noch keins aktiv ist. |
+| `scripts/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
+| `scripts/download-fonts` | Schriften einmalig lokal ablegen. |
+
+Ohne aktives Modell spielen die Bots regelbasiert; das funktioniert, ist aber schwächer. Das Training dauert mit Standardwerten grob 10–30 Minuten auf einem PC, auf einem Raspberry Pi deutlich länger (kleinere Werte: `-Situations 300 -Rollouts 30 -Legs 500`).
+
+Einzelne Trainer-Befehle: `docker compose --profile tools run --rm bottrainer <generate|train|compare|activate|deactivate> …` (siehe `Tools.BotTrainer/README.md`).
+
 ## Eigene Instanz betreiben
 
 DartMetrics ist Open Source (MIT-Lizenz) und wird ohne Gewähr bereitgestellt. **Wer eine Instanz betreibt, ist dafür selbst verantwortlich**, rechtlich (Impressum, Datenschutz, DSGVO) und technisch (Updates, Backups, HTTPS).

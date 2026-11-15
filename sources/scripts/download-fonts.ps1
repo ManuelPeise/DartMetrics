@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Lädt die Schriften der Web-App einmalig nach Web.App/Web.App/wwwroot/fonts (lokal ausgeliefert, DSGVO).
 .EXAMPLE

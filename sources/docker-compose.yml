@@ -139,6 +139,30 @@ services:
       Legal__UnverifiedAccountDays: ${RETENTION_UNVERIFIED_DAYS:-7}
       Legal__LogMessageDays: ${RETENTION_LOG_DAYS:-90}
 
+  # Werkzeug: DartBot-Zielwahl-Modell erzeugen, trainieren, vergleichen, aktivieren (Tools.BotTrainer).
+  # Startet NICHT mit "docker compose up" (Profil "tools"), sondern nur gezielt:
+  #   docker compose --profile tools run --rm bottrainer generate --situations 1000
+  # Komplett automatisch: scripts/train-model.ps1 / .sh
+  bottrainer:
+    build:
+      context: .
+      dockerfile: Tools.BotTrainer/Dockerfile
+    image: dartmetrics-bottrainer:dev
+    profiles: ["tools"]
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    # Gleicher Ordner wie bei der API (dort schreibgeschützt): Datensätze und Modelle bleiben auf dem Host.
+    volumes:
+      - ./ml_data:/data/ml
+
+    environment:
+      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
+      MlData__Path: /data/ml
+      BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
+
 volumes:
   mysql_data:
   web_dataprotection:
