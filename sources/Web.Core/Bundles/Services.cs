@@ -126,6 +126,12 @@ namespace Web.Core.Bundles
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+            // Ohne Abschnitt "DataRetention" gelten die Standardwerte (7 Tage unbestätigte Konten, 90 Tage Logs).
+            services.AddOptions<DataRetentionOptions>()
+                .Bind(configuration.GetSection("DataRetention"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
             // Ohne Abschnitt "Tournament" gelten die Standardwerte (Bot-Aufnahme alle 5 Sekunden).
             services.AddOptions<TournamentOptions>()
                 .Bind(configuration.GetSection("Tournament"))

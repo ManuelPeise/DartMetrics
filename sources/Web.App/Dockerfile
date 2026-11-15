@@ -4,6 +4,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+# Zentrale Paketversionen und Build-Einstellungen (vor dem Restore nötig)
+COPY Directory.Build.props Directory.Packages.props ./
+
 # Restore first (layer cache): only the project files the web app depends on
 COPY Web.App/Web.App/Web.App.csproj                 Web.App/Web.App/
 COPY Web.App/Web.App.Client/Web.App.Client.csproj   Web.App/Web.App.Client/

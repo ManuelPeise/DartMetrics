@@ -23,6 +23,9 @@ namespace Web.App.Bundles
     {
         public const string ProxyClientName = "BffApiProxy";
 
+        // Rate-limit policy for the anonymous auth endpoints (login, register, reset ...), see ServiceRegistration.
+        public const string AuthRateLimitPolicy = "bff-auth";
+
         // API areas that must not be reachable through the generic proxy.
         private static readonly string[] BlockedProxyPrefixes = ["userauthentication"];
 
@@ -33,12 +36,12 @@ namespace Web.App.Bundles
                 .DisableAntiforgery();
 
             bff.MapGet("/user", GetUser).AllowAnonymous();
-            bff.MapPost("/login", LoginAsync).AllowAnonymous();
-            bff.MapPost("/register", RegisterAsync).AllowAnonymous();
-            bff.MapPost("/verify-email", VerifyEmailAsync).AllowAnonymous();
-            bff.MapPost("/resend-verification", ResendVerificationAsync).AllowAnonymous();
-            bff.MapPost("/forgot-password", ForgotPasswordAsync).AllowAnonymous();
-            bff.MapPost("/reset-password", ResetPasswordAsync).AllowAnonymous();
+            bff.MapPost("/login", LoginAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
+            bff.MapPost("/register", RegisterAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
+            bff.MapPost("/verify-email", VerifyEmailAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
+            bff.MapPost("/resend-verification", ResendVerificationAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
+            bff.MapPost("/forgot-password", ForgotPasswordAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
+            bff.MapPost("/reset-password", ResetPasswordAsync).AllowAnonymous().RequireRateLimiting(AuthRateLimitPolicy);
             bff.MapPost("/logout", LogoutAsync).RequireAuthorization();
 
             bff.Map("/api/{**path}", ProxyAsync).RequireAuthorization();

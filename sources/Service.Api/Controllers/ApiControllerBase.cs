@@ -13,28 +13,8 @@ namespace Service.Api.Controllers
             
         }
 
-        protected void AddTokensAsReadOnlyHeader(string token, string refreshToken)
-        {
-            if (!string.IsNullOrEmpty(token))
-            {
-                Response.Cookies.Append("jwt", token, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(30) // Set the expiration time for the cookie
-                });
-
-                Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(30)
-                });
-            }
-        }
-
+        // The API no longer sets JWT cookies itself (the BFF keeps the tokens server-side).
+        // Clearing them stays, so old cookies from earlier versions are removed on login/logout.
         protected void ClearTokensFromHeader()
         {
             Response.Cookies.Delete("jwt");

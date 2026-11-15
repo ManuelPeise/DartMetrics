@@ -1,4 +1,6 @@
 using Data.DartContext.Entities.User;
+using Logic.Shared.Helpers;
+using Microsoft.AspNetCore.Http;
 using Shared.Enums.User;
 using Shared.Interfaces.Authentication;
 using Shared.Models.Authentication;
@@ -16,7 +18,8 @@ namespace Logic.Integration.Tests.Infrastructure
 
         public CurrentUser GetCurrentUserFromClaims() => CurrentUser;
 
-        public List<Claim> GetUserClaims(UserEntity userEntity) => throw new NotSupportedException();
+        // Claims for a login token: same logic as in the API (needed for the login/refresh tests).
+        public List<Claim> GetUserClaims(UserEntity userEntity) => new ClaimsHelper(new HttpContextAccessor()).GetUserClaims(userEntity);
 
         public List<Claim> GetUserClaimsFromToken(string token) => throw new NotSupportedException();
     }

@@ -8,8 +8,8 @@
 
   <ItemGroup>
     <!-- ML.NET für die Zielwahl mit Modell (Laden und Vorhersage); FastTree wird zum Laden des Modells gebraucht. -->
-    <PackageReference Include="Microsoft.ML" Version="4.0.2" />
-    <PackageReference Include="Microsoft.ML.FastTree" Version="4.0.2" />
+    <PackageReference Include="Microsoft.ML" />
+    <PackageReference Include="Microsoft.ML.FastTree" />
   </ItemGroup>
 
   <ItemGroup>

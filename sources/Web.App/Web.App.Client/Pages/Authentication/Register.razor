@@ -100,6 +100,10 @@
             // The API does not tell why (e.g. e-mail already in use) - deliberately, to avoid account enumeration.
             _error = "Die Registrierung ist fehlgeschlagen. Falls du mit dieser E-Mail-Adresse bereits ein bestätigtes Konto hast, melde dich einfach an.";
         }
+        catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            _error = "Zu viele Versuche. Bitte warte eine Minute und versuche es dann erneut.";
+        }
         catch (HttpRequestException)
         {
             _error = "Der Server ist nicht erreichbar. Bitte später erneut versuchen.";

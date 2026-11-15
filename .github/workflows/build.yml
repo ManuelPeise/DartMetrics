@@ -1,0 +1,52 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sources
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore DartMetrics.slnx
+
+      - name: Build
+        run: dotnet build DartMetrics.slnx --configuration Release --no-restore
+
+      # Logic.Integration.Tests startet MySQL per Testcontainers - Docker ist auf ubuntu-latest vorhanden.
+      - name: Test
+        run: dotnet test DartMetrics.slnx --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: sources/**/TestResults/*.trx
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f sources/Web.Core/Dockerfile -t dartmetrics-api:ci sources
+
+      - name: Build Web image
+        run: docker build -f sources/Web.App/Dockerfile -t dartmetrics-web:ci sources

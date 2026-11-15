@@ -36,6 +36,8 @@ namespace Web.App.Client.Services
             // The server calls UserAuthenticationController/UserLogin and sets the HttpOnly auth cookie.
             using var response = await _httpClient.PostAsJsonAsync("bff/login", model, cancellationToken);
 
+            ThrowIfRateLimited(response);
+
             if (!response.IsSuccessStatusCode)
                 return false;
 
@@ -47,6 +49,8 @@ namespace Web.App.Client.Services
         {
             using var response = await _httpClient.PostAsJsonAsync("bff/register", model, cancellationToken);
 
+            ThrowIfRateLimited(response);
+
             if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 throw new HttpRequestException("API not reachable.");
 
@@ -56,6 +60,8 @@ namespace Web.App.Client.Services
         public async Task<bool> VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PostAsJsonAsync("bff/verify-email", new VerifyEmailModel { Token = token }, cancellationToken);
+
+            ThrowIfRateLimited(response);
 
             if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 throw new HttpRequestException("API not reachable.");
@@ -76,10 +82,19 @@ namespace Web.App.Client.Services
         {
             using var response = await _httpClient.PostAsJsonAsync(path, body, cancellationToken);
 
+            ThrowIfRateLimited(response);
+
             if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 throw new HttpRequestException("API not reachable.");
 
             return response.IsSuccessStatusCode;
+        }
+
+        // 429 from the BFF rate limiter: the pages show "too many attempts" instead of "wrong password".
+        private static void ThrowIfRateLimited(HttpResponseMessage response)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                throw new HttpRequestException("Too many requests.", null, System.Net.HttpStatusCode.TooManyRequests);
         }
 
         public async Task LogoutAsync(CancellationToken cancellationToken = default)

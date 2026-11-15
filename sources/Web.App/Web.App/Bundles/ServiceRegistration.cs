@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
+using System.Threading.RateLimiting;
 using Shared.Interfaces.Blazor.Authentication;
 using Shared.Models.Options.Blazor;
 using Web.Shared.Constants;
@@ -26,6 +27,8 @@ namespace Web.App.Bundles
 
             AddCookieAuthentication(services);
 
+            AddRateLimiting(services, configuration);
+
             // Session store, token refresh, API clients (Web.Shared)
             services.RegisterWebServices();
 
@@ -41,6 +44,32 @@ namespace Web.App.Bundles
             services.AddRazorComponents()
                 .AddInteractiveServerComponents()
                 .AddInteractiveWebAssemblyComponents();
+        }
+
+        /// <summary>
+        /// Brute-force protection for the anonymous BFF auth endpoints: a fixed window per client IP.
+        /// Defaults (10 requests / minute) can be changed via "RateLimiting:Auth:PermitLimit" / "WindowSeconds".
+        /// Behind a reverse proxy the client IP only arrives with forwarded headers (see Program.cs).
+        /// </summary>
+        private static void AddRateLimiting(IServiceCollection services, IConfiguration configuration)
+        {
+            var permitLimit = configuration.GetValue("RateLimiting:Auth:PermitLimit", 10);
+            var windowSeconds = configuration.GetValue("RateLimiting:Auth:WindowSeconds", 60);
+
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy(BffEndpoints.AuthRateLimitPolicy, httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = permitLimit,
+                            Window = TimeSpan.FromSeconds(windowSeconds),
+                            QueueLimit = 0
+                        }));
+            });
         }
 
         private static void AddCookieAuthentication(IServiceCollection services)

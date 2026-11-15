@@ -41,17 +41,22 @@ Jeder Benutzer hat genau eine Rolle.
 - **.NET 10**, ASP.NET Core Web API, **Blazor** (WebAssembly für Spieler, Interactive Server für die Administration), Backend-for-Frontend mit Cookie-Anmeldung und JWT zur API.
 - **MySQL 8.4** mit Entity Framework Core (Oracle-Provider), Migrationen beim Start.
 - **ML.NET** für die Bot-Zielwahl (in Vorbereitung).
-- **Docker Compose** für API, Datenbank und Mailpit.
+- **Docker Compose** für Web-App, API, Datenbank und Mailpit.
 
 Architektur, Projekte und Service-Verzeichnis: **[ARCHITECTURE.md](ARCHITECTURE.md)** · Entwicklungsregeln: **[CLAUDE.md](CLAUDE.md)**
 
 ## Schnellstart
 
 ```
-docker compose up -d                  # MySQL, Mailpit, API  → http://localhost:8080/swagger
-dotnet run --project Web.App/Web.App  # Web-App
+cp .env.example .env                  # Platzhalter ersetzen (Passwörter, JWT_KEY, CERT_PASSWORD)
+dotnet dev-certs https -ep certs/dartmetrics.pfx -p <CERT_PASSWORD>
+dotnet dev-certs https --trust
+docker compose up -d                  # MySQL, Mailpit, API, Web-App
 ```
 
-- Geheimnisse (Datenbank, JWT, Admin) in `.env` im Ordner `sources` (nicht im Repository).
-- Mails der Entwicklungsumgebung: http://localhost:8025
+- Web-App: https://localhost:7254 · Swagger (nur Entwicklung): http://localhost:8080/swagger · Mails: http://localhost:8025
+- `docker compose` lädt in der Entwicklung automatisch `docker-compose.override.yml` (offene Ports nur auf `127.0.0.1`, Mailpit, Swagger).
+- Produktion (z. B. Raspberry Pi): in der `.env` `COMPOSE_FILE=docker-compose.yml` setzen. Dann ist nur die Web-App erreichbar; MySQL und API laufen nur im Docker-Netz. Backups: `scripts/backup-db.sh` per Cron.
+- Geheimnisse stehen nur in `.env` (nicht im Repository); alle Variablen mit Erklärung: `.env.example`.
+- Web-App ohne Docker (Debugging): `dotnet run --project Web.App/Web.App`
 - API aktualisieren: `scripts/update-containers.ps1` (Windows) bzw. `scripts/update-containers.sh`.

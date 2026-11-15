@@ -15,11 +15,13 @@ namespace Logic.Shared.Logger
         private const int MaxModuleLength = 200;
 
         private readonly DartDatabaseContext _dartDatabaseContext;
+        private readonly DbContextOptions<DartDatabaseContext> _dbContextOptions;
         private readonly ILogger<MessageLog> _logger;
 
-        public MessageLog(DartDatabaseContext dartDatabaseContext, ILogger<MessageLog> logger)
+        public MessageLog(DartDatabaseContext dartDatabaseContext, DbContextOptions<DartDatabaseContext> dbContextOptions, ILogger<MessageLog> logger)
         {
             _dartDatabaseContext = dartDatabaseContext;
+            _dbContextOptions = dbContextOptions;
             _logger = logger;
         }
 
@@ -34,9 +36,9 @@ namespace Logic.Shared.Logger
 
             try
             {
-                // The DbContext is shared with the business logic. If its SaveChanges just failed, the faulty
-                // entities are still tracked and would be saved again together with the log entry -> clear first.
-                _dartDatabaseContext.ChangeTracker.Clear();
+                // Own short-lived DbContext: the request's DbContext (business logic) stays untouched.
+                // Before, the shared context was cleared here, which silently dropped pending changes of the caller.
+                await using var logContext = new DartDatabaseContext(_dbContextOptions);
 
                 var logMessageEntity = new LogMessageEntity
                 {
@@ -49,13 +51,12 @@ namespace Logic.Shared.Logger
                     CreatedBy = "System"
                 };
 
-                _dartDatabaseContext.LogMessages.Add(logMessageEntity);
+                logContext.LogMessages.Add(logMessageEntity);
 
-                await _dartDatabaseContext.SaveChangesAsync();
+                await logContext.SaveChangesAsync();
             }
             catch (Exception loggingException)
             {
-                _dartDatabaseContext.ChangeTracker.Clear();
                 _logger.LogError(loggingException, "Could not write log message to the database.");
             }
         }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Logic.Administration.DataRetention;
 using Shared.Interfaces.Administration;
 
 namespace Logic.Administration.DI
@@ -10,6 +11,9 @@ namespace Logic.Administration.DI
             services.AddScoped<ILogService, LogService>();
             services.AddScoped<IUserAdministration, UserAdministration>();
             services.AddScoped<IDashboardStatisticsService, DashboardStatisticsService>();
+
+            // Löschfristen (unbestätigte Konten, Log-Einträge), siehe DataRetentionOptions.
+            services.AddHostedService<DataRetentionWorker>();
         }
     }
 }

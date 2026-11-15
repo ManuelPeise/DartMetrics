@@ -21,13 +21,13 @@ namespace Web.App.Components.Layout.Admin
             [
                 new("Benutzerverwaltung", Root + "/users", AdminIconName.Users, ShowInBottomNav: true),
                 new("DartBot-Verwaltung", Root + "/bots", AdminIconName.Bot, ShowInBottomNav: true),
-                new("ML-Modellverwaltung", Root + "/models", AdminIconName.Model),
-                new("Statistiken", Root + "/statistics", AdminIconName.Chart)
+                new("ML-Modellverwaltung", Root + "/models", AdminIconName.Model)
+                // V1: "Statistiken" (/admin/statistics) ist noch ein Platzhalter und deshalb ausgeblendet.
             ]),
             new("System",
             [
                 new("System-Logs", Root + "/logs", AdminIconName.Logs, ShowInBottomNav: true),
-                new("Systemeinstellungen", Root + "/settings", AdminIconName.Settings),
+                // V1: "Systemeinstellungen" (/admin/settings) ist noch ein Platzhalter und deshalb ausgeblendet.
                 new("Passwort ändern", Root + "/password", AdminIconName.Lock)
             ])
         ];

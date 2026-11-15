@@ -4,6 +4,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+# Zentrale Paketversionen und Build-Einstellungen (vor dem Restore nötig)
+COPY Directory.Build.props Directory.Packages.props ./
+
 # Restore first (layer cache): only the project files the API depends on
 COPY Web.Core/Web.Core.csproj                         Web.Core/
 COPY Service.Api/Service.Api.csproj                   Service.Api/

@@ -1,3 +1,12 @@
+# DartMetrics - Basis für alle Umgebungen (Produktion, z. B. Raspberry Pi).
+#
+#   Entwicklung (PC):  docker compose up -d
+#                      -> lädt automatisch docker-compose.override.yml (Ports, Mailpit, Swagger)
+#   Produktion (Pi):   COMPOSE_FILE=docker-compose.yml in der .env setzen, dann docker compose up -d
+#                      -> nur die Web-App ist von außen erreichbar; MySQL und API nur im Docker-Netz
+#
+# Alle Variablen: siehe .env.example
+
 services:
   mysql:
     image: mysql:8.4
@@ -5,13 +14,10 @@ services:
     restart: unless-stopped
 
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD fehlt in .env}
       MYSQL_DATABASE: DartContextDb
       MYSQL_USER: dartforge
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-
-    ports:
-      - "3306:3306"
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD fehlt in .env}
 
     volumes:
       - mysql_data:/var/lib/mysql
@@ -23,22 +29,7 @@ services:
       retries: 10
       start_period: 30s
 
-  # SMTP catcher for development: every mail sent by the API ends up here.
-  # Web UI: http://localhost:8025
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: mailpit
-    restart: unless-stopped
-
-    ports:
-      - "8025:8025"   # Web UI
-      - "1025:1025"   # SMTP
-
-    # No SMTP authentication: Mailpit accepts every mail without login (development only).
-    environment:
-      MP_MAX_MESSAGES: "500"
-
-  # DartMetrics API (Web.Core) - http://localhost:8080
+  # DartMetrics API (Web.Core) - nur intern erreichbar (http://api:8080), die Web-App ist der einzige Zugang (BFF)
   api:
     build:
       context: .
@@ -50,25 +41,20 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      mailpit:
-        condition: service_started
-
-    ports:
-      - "8080:8080"
 
     # ML-Daten (Datensätze, Modelle) vom Host: Tools.BotTrainer schreibt nach ./ml_data, die API liest nur.
     volumes:
       - ./ml_data:/data/ml:ro
 
     environment:
-      ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
+      ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
       DartBot__Ml__Path: /data/ml
 
       # Container network: host "mysql", not localhost
       ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
 
-      Jwt__Key: ${JWT_KEY}
+      Jwt__Key: ${JWT_KEY:?JWT_KEY fehlt in .env}
       Jwt__Issuer: DartMetrics
       Jwt__Audience: DartMetrics
       Jwt__ExpireMinutes: "30"
@@ -77,18 +63,23 @@ services:
       AdminUser__FirstName: Admin
       AdminUser__LastName: User
       AdminUser__EmailAddress: ${ADMIN_EMAIL:-admin@dart.local}
-      AdminUser__Password: ${ADMIN_PASSWORD}
+      AdminUser__Password: ${ADMIN_PASSWORD:?ADMIN_PASSWORD fehlt in .env}
 
-      Email__SmtpServer: mailpit
-      Email__Port: "1025"
-      Email__Username: ""
-      Email__Password: ""
-      Email__FromAddress: no-reply@dart.local
-      Email__EnableSsl: "false"
+      # Echter SMTP-Server (in der Entwicklung überschreibt docker-compose.override.yml das mit Mailpit)
+      Email__SmtpServer: ${SMTP_SERVER:-}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__Username: ${SMTP_USERNAME:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__FromAddress: ${SMTP_FROM_ADDRESS:-no-reply@dart.local}
+      Email__EnableSsl: ${SMTP_ENABLE_SSL:-true}
 
       # Base URL of the Blazor web app - used for the links in e-mails (verify, login)
       Server__Host: ${WEB_APP_HOST:-https://localhost}
       Server__Port: ${WEB_APP_PORT:-7254}
+
+      # Löschfristen (Datenschutz): unbestätigte Registrierungen / Log-Einträge
+      DataRetention__UnverifiedAccountDays: ${RETENTION_UNVERIFIED_DAYS:-7}
+      DataRetention__LogMessageDays: ${RETENTION_LOG_DAYS:-90}
 
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' || exit 1"]
@@ -98,7 +89,7 @@ services:
       start_period: 20s
 
   # DartMetrics Web-App (Blazor, Web.App) - https://localhost:7254
-  # Benoetigt ein HTTPS-Zertifikat unter ./certs/dartmetrics.pfx (Cookie "__Host-" verlangt HTTPS).
+  # Benötigt ein HTTPS-Zertifikat unter ./certs/dartmetrics.pfx (Cookie "__Host-" verlangt HTTPS).
   web:
     build:
       context: .
@@ -124,11 +115,18 @@ services:
       ASPNETCORE_HTTP_PORTS: "5123"
       ASPNETCORE_HTTPS_PORTS: "7254"
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/dartmetrics.pfx
-      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERT_PASSWORD}
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERT_PASSWORD:?CERT_PASSWORD fehlt in .env}
 
       # Container network: API via service name, not localhost
       ApiHttpClientOptions__ApiBaseUrl: http://api
       ApiHttpClientOptions__Port: "8080"
+
+      # Hinter einem Reverse Proxy / Tunnel (Caddy, Cloudflare Tunnel) auf true setzen
+      ForwardedHeaders__Enabled: ${FORWARDED_HEADERS_ENABLED:-false}
+
+      # Brute-Force-Schutz für Login, Registrierung, Passwort-Reset (Anfragen je IP und Zeitfenster)
+      RateLimiting__Auth__PermitLimit: ${RATE_LIMIT_AUTH_PERMITS:-10}
+      RateLimiting__Auth__WindowSeconds: ${RATE_LIMIT_AUTH_WINDOW_SECONDS:-60}
 
 volumes:
   mysql_data:

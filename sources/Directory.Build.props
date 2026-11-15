@@ -1,0 +1,9 @@
+<Project>
+  <!-- Gemeinsame Einstellungen für alle Projekte der Solution. -->
+  <PropertyGroup>
+    <!-- NuGet-Sicherheitsprüfung auch für transitive Pakete; bekannte Lücken als Warnung im Build. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+</Project>

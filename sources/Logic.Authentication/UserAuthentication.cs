@@ -74,6 +74,12 @@ namespace Logic.Authentication
                 };
 
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Wrong password / unknown or unverified account: an expected outcome, not an error.
+                // Not written to MessageLog, otherwise a brute-force attempt would flood the log table.
+                return null;
+            }
             catch (Exception exception)
             {
                 await MessageLog.LogMessage("An error occurred while authenticating the user.", "UserAuthentication", exception, LogMessageTypeEnum.Error);
