@@ -6,6 +6,9 @@ namespace Data.DartContext.Entities.Training
     {
         public int VisitNumber { get; set; }
 
+        /// <summary>Leg im Satz, ab 1. VisitNumber läuft über alle Legs weiter.</summary>
+        public int LegNumber { get; set; } = 1;
+
         public int ScoreBefore { get; set; }
 
         public int ScoreAfter { get; set; }

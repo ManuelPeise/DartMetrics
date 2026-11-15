@@ -90,6 +90,7 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 - Dart-Regeln aus `Logic.Shared/Rules` (`X01Rules`, `DartRulesBase`) verwenden, nicht neu implementieren.
 - **X01-Varianten:** In-Modus `Straight`/`Double` (`X01InModeEnum`), Out-Modus `Double`/`Straight` (`X01OutModeEnum`), Standard Straight-In/Double-Out. Gilt für X01-Training und Bot-Spiel; Checkout-Training bleibt Double-Out.
   - Double-In: vor dem ersten Double zählen Darts 0 (`Score` speichert trotzdem den Trefferwert); „eröffnet“ wird abgeleitet (Rest < Startwert), keine eigene Spalte.
+  - **Satz:** X01 wird immer in genau einem Satz gespielt (`X01SetRules`). Best of 5/7/9/13 Legs, Ende bei Mehrheit (First to 3/4/5/7). Bot-Spiel: Training immer Best of 5, Match wählbar; Turnier (Runden mit eigener Satzlänge) ist ein eigenes, noch offenes Feature. X01-Training allein: Satz aus 5 Legs, alle werden gespielt (`TrainingGame.NumberOfLegs`, `TrainingGameVisit.LegNumber`).
   - Straight-Out: jeder Dart zählt, jedes Feld beendet das Leg, Rest 1 ist erlaubt (`X01Rules.MinRemaining`). CHECK Constraints für Reststände daher ab 1. Master-Out gibt es nicht mehr (Bestandsdaten → Double-Out).
   - Immer die Überladungen mit Modus verwenden (`IsBust(…, outMode)`, `IsCheckout(…, outMode)`, `GetCheckoutSuggestions(…, outMode)`, `CountedScore`).
 

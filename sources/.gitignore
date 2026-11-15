@@ -1,0 +1,5 @@
+# ML-Daten (Datensätze, Modelle) von Tools.BotTrainer – groß, lokal erzeugt
+ml_data/
+
+# Datenbank-Sicherungen von update-containers (enthalten personenbezogene Daten)
+backups/

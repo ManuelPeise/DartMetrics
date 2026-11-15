@@ -11,6 +11,9 @@ namespace Data.DartContext.Entities.Training
 
         public X01OutModeEnum OutMode { get; set; } = X01OutModeEnum.Double;
 
+        /// <summary>Legs im Satz (Training allein: alle werden gespielt). Bestandsdaten: 1.</summary>
+        public int NumberOfLegs { get; set; } = 1;
+
         public int TrainingSessionId { get; set; }
 
         [ForeignKey(nameof(TrainingSessionId))]

@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Data.DartContext.Entities.Training;
 using Logic.Shared;
 using Logic.Shared.Rules;
@@ -184,7 +184,11 @@ namespace Logic.Statistics
             var visits = trainings.SelectMany(t => t.Visits).Where(v => v.Throws.Count > 0).ToList();
             var darts = visits.Sum(v => v.Throws.Count);
             var points = visits.Sum(VisitPoints);
-            var finishedLegs = trainings.Where(t => t.Visits.Any(v => v.ScoreAfter == 0 && !v.IsBust)).ToList();
+            // Ein Training ist ein Satz aus mehreren Legs: gezählt wird jedes gecheckte Leg einzeln.
+            var finishedLegs = trainings
+                .SelectMany(t => t.Visits.GroupBy(v => v.LegNumber))
+                .Where(leg => leg.Any(v => v.ScoreAfter == 0 && !v.IsBust))
+                .ToList();
 
             return new X01Statistics
             {
@@ -198,7 +202,7 @@ namespace Logic.Statistics
                 Busts = visits.Count(v => v.IsBust),
                 AverageDartsPerLeg = finishedLegs.Count == 0
                     ? null
-                    : Round((decimal)finishedLegs.Sum(t => t.Visits.Sum(v => v.Throws.Count)) / finishedLegs.Count)
+                    : Round((decimal)finishedLegs.Sum(leg => leg.Sum(v => v.Throws.Count)) / finishedLegs.Count)
             };
         }
 

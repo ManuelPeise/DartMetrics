@@ -11,6 +11,11 @@ namespace Shared.Models.Training
 
         public X01OutModeEnum OutMode { get; set; }
         public int RemainingScore { get; set; }
+        public int NumberOfLegs { get; set; } = 1;
+        public int LegsCompleted { get; set; }
+
+        /// <summary>Darts je gechecktem Leg; null ohne Checkout.</summary>
+        public decimal? AverageDartsPerLeg { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? FinishedAt { get; set; }
         public bool IsFinished => FinishedAt.HasValue;

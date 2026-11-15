@@ -2,6 +2,7 @@
 @using global::Shared.Enums.Bot
 @using global::Shared.Enums.X01
 @using global::Shared.Models.Bot
+@using global::Shared.Models.Shared
 @inject IBotGameApi BotGameApi
 @inject IProfileApi ProfileApi
 
@@ -65,12 +66,19 @@
                     </div>
                 </fieldset>
 
+                <PlayerChoiceGroup Label="Art" Options="ModeOptions" @bind-Value="_gameMode" />
+                @if (_gameMode == DartBotGameModeEnum.Match)
+                {
+                    <PlayerChoiceGroup Label="Satz (Best of Legs)" Options="BestOfOptions" @bind-Value="_bestOfLegs" />
+                }
+                else
+                {
+                    <p class="pa-section__hint">Training: ein Satz Best of @X01SetRules.TrainingBestOfLegs (First to @X01SetRules.LegsToWin(X01SetRules.TrainingBestOfLegs)).</p>
+                }
                 <PlayerChoiceGroup Label="Startwert" Options="ScoreOptions" @bind-Value="_startingScore" />
-                <PlayerChoiceGroup Label="Best of" Options="BestOfOptions" @bind-Value="_bestOfLegs" />
                 <PlayerChoiceGroup Label="Anwurf im ersten Leg" Options="StarterOptions" @bind-Value="_userStarts" />
                 <PlayerChoiceGroup Label="Eröffnen" Options="InOptions" @bind-Value="_inMode" />
                 <PlayerChoiceGroup Label="Beenden" Options="OutOptions" @bind-Value="_outMode" />
-                <PlayerChoiceGroup Label="Art" Options="ModeOptions" @bind-Value="_gameMode" />
 
                 <div class="pa-setup__actions">
                     <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || _botId is null)" @onclick="StartAsync">
@@ -145,7 +153,7 @@
         <div class="pa-result">
             <PlayerScoreboard Label="@(_state.IsUserWinner == true ? "Gewonnen" : _state.Status == DartBotGameStatusEnum.Aborted ? "Abgebrochen" : "Verloren")"
                               Value="@($"{_state.UserLegsWon} : {_state.BotLegsWon}")"
-                              Status="@($"gegen {_state.BotName} · Best of {_state.BestOfLegs}")"
+                              Status="@($"gegen {_state.BotName} · Best of {_state.BestOfLegs} · First to {X01SetRules.LegsToWin(_state.BestOfLegs)}")"
                               Tone="@(_state.IsUserWinner == true ? "success" : _state.IsUserWinner == false ? "danger" : null)" />
             @if (_state.BotXpGained is not null)
             {
@@ -168,7 +176,8 @@
     private const int BotDartDelayMs = 550;
 
     private static readonly IReadOnlyList<PlayerChoice<int>> ScoreOptions = [new(301, "301"), new(501, "501")];
-    private static readonly IReadOnlyList<PlayerChoice<int>> BestOfOptions = [new(1, "1 Leg"), new(3, "3"), new(5, "5"), new(7, "7")];
+    private static readonly IReadOnlyList<PlayerChoice<int>> BestOfOptions =
+        X01SetRules.AllowedBestOfLegs.Select(n => new PlayerChoice<int>(n, n.ToString(), $"First to {X01SetRules.LegsToWin(n)}")).ToList();
     private static readonly IReadOnlyList<PlayerChoice<bool>> StarterOptions = [new(true, "Ich"), new(false, "Bot")];
     private static readonly IReadOnlyList<PlayerChoice<X01InModeEnum>> InOptions =
         [new(X01InModeEnum.Straight, "Straight-In"), new(X01InModeEnum.Double, "Double-In")];
@@ -187,7 +196,7 @@
     private List<DartBotSummary>? _bots;
     private int? _botId;
     private int _startingScore = 501;
-    private int _bestOfLegs = 3;
+    private int _bestOfLegs = X01SetRules.TrainingBestOfLegs;
     private bool _userStarts = true;
     private X01InModeEnum _inMode = X01InModeEnum.Straight;
     private X01OutModeEnum _outMode = X01OutModeEnum.Double;
@@ -280,7 +289,7 @@
         {
             DartBotId = _botId.Value,
             StartingScore = _startingScore,
-            BestOfLegs = _bestOfLegs,
+            BestOfLegs = _gameMode == DartBotGameModeEnum.Training ? X01SetRules.TrainingBestOfLegs : _bestOfLegs,
             UserStarts = _userStarts,
             InMode = _inMode,
             OutMode = _outMode,

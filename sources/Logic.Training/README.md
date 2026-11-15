@@ -6,7 +6,7 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 |---|---|
 | `SegmentTraining` | Ein Zielfeld über mehrere Aufnahmen treffen |
 | `CheckoutTraining` | Checkouts von einem Startwert |
-| `X01TrainingGame` | 301/501 allein spielen (Straight-/Double-In, Double-/Straight-Out) |
+| `X01TrainingGame` | 301/501 allein spielen, ein Satz aus 5 Legs (Straight-/Double-In, Double-/Straight-Out); nach jedem Checkout startet das nächste Leg beim Startwert |
 | `AroundTheClockTraining` | Segmente der Reihe nach |
 
 - `TrainingBase`: aktueller Benutzer, Laden eigener Trainings (`LoadSegmentTraining`, `LoadCheckoutTraining`, `LoadX01Training`, `LoadAroundTheClockTraining`), Wurfprüfung.

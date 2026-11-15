@@ -1,6 +1,7 @@
 ﻿using Logic.Bot.Administration;
 using Logic.Bot.Games;
 using Logic.Bot.Learning;
+using Logic.Bot.Ml;
 using Logic.Bot.Models;
 using Logic.Bot.Play;
 using Logic.Bot.Simulation;
@@ -19,9 +20,11 @@ namespace Logic.Bot.DI
             services.AddSingleton<IThrowSimulator, ThrowSimulator>();
             services.AddSingleton<ITargetSelector, RuleBasedTargetSelector>();
             services.AddSingleton<IBotVisitPlayer, BotVisitPlayer>();
+            services.AddSingleton<ITargetSelectorFactory, TargetSelectorFactory>();
 
             // Services mit Datenbank.
             services.AddScoped<IDartBotAdministration, DartBotAdministration>();
+            services.AddScoped<IDartBotModelAdministration, DartBotModelAdministration>();
             services.AddScoped<IDartBotGameService, DartBotGameService>();
             services.AddScoped<IDartBotLearningService, DartBotLearningService>();
         }

@@ -13,3 +13,5 @@ docker-compose*.yml
 **/Dockerfile*
 *.Tests/
 backups/
+Tools.*/
+ml_data/

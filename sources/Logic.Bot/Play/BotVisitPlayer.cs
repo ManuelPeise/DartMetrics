@@ -29,8 +29,12 @@ namespace Logic.Bot.Play
             _throwSimulator = throwSimulator;
         }
 
-        public BotVisitResult PlayVisit(BotVisitContext context)
+        public BotVisitResult PlayVisit(BotVisitContext context) => PlayVisit(context, _targetSelector);
+
+        public BotVisitResult PlayVisit(BotVisitContext context, ITargetSelector targetSelector)
         {
+            ArgumentNullException.ThrowIfNull(targetSelector);
+
             if (context.ScoreBefore < X01Rules.MinRemaining(context.OutMode))
             {
                 throw new ArgumentException("Der Reststand ist zu klein für eine Aufnahme.", nameof(context));
@@ -46,7 +50,7 @@ namespace Logic.Bot.Play
             {
                 var dartsAvailable = DartsPerVisit - throwNumber + 1;
 
-                var target = _targetSelector.SelectTarget(new BotThrowDecisionContext(
+                var target = targetSelector.SelectTarget(new BotThrowDecisionContext(
                     remaining,
                     dartsAvailable,
                     context.OpponentScoreBefore,

@@ -1,10 +1,269 @@
 @page "/admin/models"
+@using global::Shared.Enums.Bot
+@using global::Shared.Interfaces.Blazor.Api
+@using global::Shared.Models.Bot
+@inject IAuthorizedApiClient Api
 
 <PageTitle>ML-Modellverwaltung – DartMetrics Admin</PageTitle>
 
-<AdminPageHeader Eyebrow="Administration" Title="ML-Modellverwaltung" />
+<AdminPageHeader Eyebrow="Administration" Title="ML-Modellverwaltung"
+                 Subtitle="Zielwahl-Modelle der DartBots prüfen und aktivieren. Training und Vergleich laufen in Tools.BotTrainer." />
 
-<AdminCard>
-    <AdminEmptyState Icon="AdminIconName.Model" Title="In Vorbereitung"
-                     Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+@if (_message is not null)
+{
+    <div class="adm-alert @(_messageIsError ? "" : "adm-alert--success")" role="status" style="margin-bottom: var(--adm-space-4)">@_message</div>
+}
+
+<div class="adm-stat-grid">
+    <AdminStatCard Label="Aktives Modell" Icon="AdminIconName.Model" IsLoading="@(_overview is null && _loading)"
+                   Value="@(ActiveModel is null ? null : $"Version {ActiveModel.VersionNumber}")"
+                   Description="@(ActiveModel is null ? "Bots spielen regelbasiert" : $"seit {ActiveModel.ActivatedAt?.ToLocalTime().ToString("g", German)}")"
+                   BadgeText="@(ActiveModel is null ? "Regelwerk" : "Hybrid")"
+                   Status="@(ActiveModel is null ? AdminStatus.Neutral : AdminStatus.Success)" />
+    <AdminStatCard Label="Schwelle" Icon="AdminIconName.Model" IsLoading="@(_overview is null && _loading)"
+                   Value="@(_overview?.Margin.ToString("0.0#", German))"
+                   Description="So viele Darts muss das Modell besser sein, um das Regel-Ziel zu ersetzen (DartBot:Ml:Margin)." />
+    <AdminStatCard Label="ML in der API" Icon="AdminIconName.Bot" IsLoading="@(_overview is null && _loading)"
+                   Value="@(_overview is null ? null : _overview.MlEnabled ? "Eingeschaltet" : "Ausgeschaltet")"
+                   Description="@(_overview is null ? null : $"Erwartetes Schema: {_overview.ExpectedFeatureSchemaVersion}")"
+                   Status="@(_overview?.MlEnabled == false ? AdminStatus.Warning : AdminStatus.Neutral)" />
+</div>
+
+<AdminCard Title="Zielwahl-Modelle" Subtitle="Neue Bot-Spiele nutzen das aktive Modell; laufende Spiele behalten ihres." Flush="true">
+    <div class="adm-toolbar">
+        @if (ActiveModel is not null)
+        {
+            <AdminButton Variant="AdminButtonVariant.Ghost" IsLoading="_deactivating" Disabled="@(_busy)" OnClick="DeactivateAsync">
+                Modell deaktivieren (regelbasiert)
+            </AdminButton>
+        }
+        @if (_overview is not null)
+        {
+            <span class="adm-toolbar__meta">@_overview.Models.Count @(_overview.Models.Count == 1 ? "Modell" : "Modelle")</span>
+        }
+    </div>
+
+    <AdminTable Items="_overview?.Models" IsLoading="@(_loading && _overview is null)" ErrorText="@_loadError" OnRetry="LoadAsync">
+        <HeaderTemplate>
+            <th>Modell</th>
+            <th>Training</th>
+            <th>Vergleich gegen Regelwerk</th>
+            <th>Datei</th>
+            <th>Status</th>
+            <th><span class="adm-sr-only">Aktionen</span></th>
+        </HeaderTemplate>
+        <RowTemplate Context="model">
+            <td data-label="Modell" class="adm-cell-title">
+                <strong>Version @model.VersionNumber</strong>
+                <small>Id @model.Id · @model.CreatedAt.ToLocalTime().ToString("g", German) · @FormatSize(model.SizeBytes)</small>
+            </td>
+            <td data-label="Training" class="adm-cell-title">
+                <span>Datensatz @model.DatasetId · @model.DatasetRowCount.ToString("N0", German) Zeilen</span>
+                <small>
+                    Schema @model.FeatureSchemaVersion · ML.NET @model.MlNetVersion
+                    @if (model.TopChoiceHitRate is not null)
+                    {
+                        <text> · Treffer @model.TopChoiceHitRate.Value.ToString("P1", German)</text>
+                    }
+                    @if (model.TopChoiceMeanRegret is not null)
+                    {
+                        <text> · Regret @model.TopChoiceMeanRegret.Value.ToString("0.00", German)</text>
+                    }
+                </small>
+            </td>
+            <td data-label="Vergleich">
+                @{ var levels = LevelsFor(model); }
+                @if (levels.Count == 0)
+                {
+                    <small>Noch nicht verglichen</small>
+                }
+                else
+                {
+                    <ul class="adm-status-list">
+                        @foreach (var level in levels)
+                        {
+                            <li>
+                                <span>Skill @level.Skill.ToString("0.00", German)</span>
+                                <span class="adm-num" title="95-%-Intervall @level.Ci95Low.ToString("0.00", German) bis @level.Ci95High.ToString("0.00", German) · abgewichen @level.OverrideShare.ToString("P1", German)">
+                                    @level.MeanDifference.ToString("+0.00;−0.00;0.00", German) Darts
+                                </span>
+                                <AdminStatusBadge Text="@VerdictText(level)" Status="@VerdictStatus(level)" />
+                            </li>
+                        }
+                    </ul>
+                    <small>Schwelle @levels[0].Margin.ToString("0.0#", German) · @model.ComparedLegsPerLevel Legs je Stufe · @model.ComparedAt?.ToLocalTime().ToString("d", German)</small>
+                }
+            </td>
+            <td data-label="Datei">
+                <AdminStatusBadge Text="@FileText(model.FileStatus)" Status="@(model.FileStatus == DartBotModelFileStatusEnum.Ok ? AdminStatus.Success : AdminStatus.Danger)" />
+            </td>
+            <td data-label="Status">
+                <AdminStatusBadge Text="@(model.IsActive ? "Aktiv" : "Inaktiv")"
+                                  Status="@(model.IsActive ? AdminStatus.Success : AdminStatus.Neutral)" />
+            </td>
+            <td data-label="">
+                @if (!model.IsActive)
+                {
+                    <AdminButton Variant="AdminButtonVariant.Ghost" IsLoading="@(_busyModelId == model.Id)"
+                                 Disabled="@(_busy || model.FileStatus != DartBotModelFileStatusEnum.Ok)"
+                                 OnClick="() => ActivateAsync(model)">
+                        Aktivieren
+                    </AdminButton>
+                }
+            </td>
+        </RowTemplate>
+        <EmptyContent>
+            <AdminEmptyState Icon="AdminIconName.Model" Title="Noch keine Modelle"
+                             Text="Modelle entstehen mit Tools.BotTrainer (generate, train, compare)." />
+        </EmptyContent>
+    </AdminTable>
 </AdminCard>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = new("de-DE");
+
+    private DartBotModelOverview? _overview;
+    private bool _loading = true;
+    private string? _loadError;
+    private int? _busyModelId;
+    private bool _deactivating;
+
+    private string? _message;
+    private bool _messageIsError;
+
+    private bool _busy => _busyModelId is not null || _deactivating;
+
+    private DartBotModelListItem? ActiveModel => _overview?.Models.FirstOrDefault(m => m.IsActive);
+
+    // Erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _loadError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Api.GetAsync("DartBotModelAdministration/GetDartBotModels");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _overview = await response.Content.ReadFromJsonAsync<DartBotModelOverview>();
+            }
+            else
+            {
+                _loadError = await ApiProblem.ReadMessageAsync(response);
+            }
+        }
+        catch
+        {
+            _loadError = "Die Modelle konnten nicht geladen werden.";
+        }
+
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ActivateAsync(DartBotModelListItem model)
+    {
+        _busyModelId = model.Id;
+        _message = null;
+
+        try
+        {
+            using var response = await Api.PostAsync($"DartBotModelAdministration/ActivateDartBotModel?modelId={model.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage($"Version {model.VersionNumber} ist aktiv. Gilt für neu gestartete Bot-Spiele.", isError: false);
+            }
+            else
+            {
+                ShowMessage(await ApiProblem.ReadMessageAsync(response), isError: true);
+            }
+        }
+        catch
+        {
+            ShowMessage("Das Modell konnte nicht aktiviert werden.", isError: true);
+        }
+
+        _busyModelId = null;
+        await LoadAsync();
+    }
+
+    private async Task DeactivateAsync()
+    {
+        _deactivating = true;
+        _message = null;
+
+        try
+        {
+            using var response = await Api.PostAsync("DartBotModelAdministration/DeactivateDartBotModel");
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage("Kein Modell aktiv: neue Bot-Spiele sind regelbasiert.", isError: false);
+            }
+            else
+            {
+                ShowMessage(await ApiProblem.ReadMessageAsync(response), isError: true);
+            }
+        }
+        catch
+        {
+            ShowMessage("Das Modell konnte nicht deaktiviert werden.", isError: true);
+        }
+
+        _deactivating = false;
+        await LoadAsync();
+    }
+
+    /// <summary>Vergleichszeilen zur Schwelle der API; ohne passende Schwelle die nächstgelegene.</summary>
+    private List<DartBotModelComparisonLevel> LevelsFor(DartBotModelListItem model)
+    {
+        if (model.Comparison.Count == 0 || _overview is null)
+        {
+            return [];
+        }
+
+        var margin = model.Comparison
+            .Select(l => l.Margin)
+            .Distinct()
+            .OrderBy(m => Math.Abs(m - _overview.Margin))
+            .First();
+
+        return model.Comparison.Where(l => l.Margin == margin).OrderBy(l => l.Skill).ToList();
+    }
+
+    // Intervall ganz unter 0 = signifikant besser, ganz über 0 = signifikant schlechter.
+    private static string VerdictText(DartBotModelComparisonLevel level) =>
+        level.Ci95High < 0 ? "besser" : level.Ci95Low > 0 ? "schlechter" : "gleich";
+
+    private static AdminStatus VerdictStatus(DartBotModelComparisonLevel level) =>
+        level.Ci95High < 0 ? AdminStatus.Success : level.Ci95Low > 0 ? AdminStatus.Danger : AdminStatus.Neutral;
+
+    private static string FileText(DartBotModelFileStatusEnum status) => status switch
+    {
+        DartBotModelFileStatusEnum.Ok => "Geprüft",
+        DartBotModelFileStatusEnum.ShaMismatch => "Verändert",
+        DartBotModelFileStatusEnum.SchemaMismatch => "Altes Schema",
+        _ => "Fehlt"
+    };
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1024 * 1024 ? $"{bytes / 1024d / 1024d:0.0} MB" : $"{bytes / 1024d:0} KB";
+
+    private void ShowMessage(string text, bool isError)
+    {
+        _message = text;
+        _messageIsError = isError;
+    }
+}

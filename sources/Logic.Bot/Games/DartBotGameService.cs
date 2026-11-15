@@ -10,6 +10,7 @@ using Shared.Interfaces.Logger;
 using Shared.Interfaces.UnitsOfWork;
 using Shared.Models.Authentication;
 using Shared.Models.Bot;
+using Shared.Models.Shared;
 
 namespace Logic.Bot.Games
 {
@@ -25,11 +26,11 @@ namespace Logic.Bot.Games
         private const int DartsPerVisit = 3;
 
         private static readonly int[] AllowedStartingScores = [301, 501];
-        private static readonly int[] AllowedBestOfLegs = [1, 3, 5, 7, 9, 11];
 
         private readonly IClaimsHelper _claimsHelper;
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly IDartBotLearningService _learningService;
+        private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
@@ -37,11 +38,13 @@ namespace Logic.Bot.Games
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
-            IDartBotLearningService learningService) : base(unitOfWork, messageLog)
+            IDartBotLearningService learningService,
+            ITargetSelectorFactory targetSelectorFactory) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
             _learningService = learningService;
+            _targetSelectorFactory = targetSelectorFactory;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -392,7 +395,8 @@ namespace Logic.Bot.Games
                     profile.RiskTaking),
                 game.InMode,
                 game.OutMode,
-                IsOpened(game, leg, botPlayer)));
+                IsOpened(game, leg, botPlayer)),
+                _targetSelectorFactory.For(botPlayer.TargetModel));
 
             var visit = NewVisit(game, leg, botPlayer, scoreBefore, opponentScoreBefore);
             visit.ScoreAfter = result.ScoreAfter;
@@ -536,7 +540,7 @@ namespace Logic.Bot.Games
             leg.WinnerPlayer = winner;
             leg.FinishedAt = now;
 
-            var legsToWin = game.BestOfLegs / 2 + 1;
+            var legsToWin = X01SetRules.LegsToWin(game.BestOfLegs);
             var legsWon = game.Legs.Count(l => l.WinnerPlayer == winner);
 
             if (legsWon >= legsToWin)
@@ -588,9 +592,14 @@ namespace Logic.Bot.Games
                 throw new ArgumentException("Starting score must be 301 or 501.");
             }
 
-            if (!AllowedBestOfLegs.Contains(model.BestOfLegs))
+            // Training: immer Best of 5. Match: 5, 7, 9 oder 13 (X01SetRules).
+            if (model.GameMode == DartBotGameModeEnum.Training
+                    ? model.BestOfLegs != X01SetRules.TrainingBestOfLegs
+                    : !X01SetRules.AllowedBestOfLegs.Contains(model.BestOfLegs))
             {
-                throw new ArgumentException($"Best of legs must be one of: {string.Join(", ", AllowedBestOfLegs)}.");
+                throw new ArgumentException(model.GameMode == DartBotGameModeEnum.Training
+                    ? $"Training games are always best of {X01SetRules.TrainingBestOfLegs}."
+                    : $"Best of legs must be one of: {string.Join(", ", X01SetRules.AllowedBestOfLegs)}.");
             }
 
             if (!Enum.IsDefined(model.InMode) || !Enum.IsDefined(model.OutMode))
@@ -598,9 +607,10 @@ namespace Logic.Bot.Games
                 throw new ArgumentException("Invalid in or out mode.");
             }
 
-            if (model.GameMode is not (DartBotGameModeEnum.Training or DartBotGameModeEnum.Match or DartBotGameModeEnum.Tournament))
+            // Turniere kommen als eigenes Feature (Runden mit eigener Satzlänge); bis dahin nur Training und Match.
+            if (model.GameMode is not (DartBotGameModeEnum.Training or DartBotGameModeEnum.Match))
             {
-                throw new ArgumentException("Only Training, Match or Tournament games can be started against a bot.");
+                throw new ArgumentException("Only Training or Match games can be started against a bot.");
             }
         }
 
@@ -611,6 +621,7 @@ namespace Logic.Bot.Games
                 asNoTracking: false,
                 include: q => q
                     .Include(g => g.Players).ThenInclude(p => p.ProfileVersion)
+                    .Include(g => g.Players).ThenInclude(p => p.TargetModel)
                     .Include(g => g.Legs).ThenInclude(l => l.Visits).ThenInclude(v => v.Throws)
                     .AsSplitQuery());
 
