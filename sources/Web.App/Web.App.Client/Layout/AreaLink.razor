@@ -1,7 +1,7 @@
 @using Web.App.Client.Routing
 @inject NavigationManager Navigation
 
-@* Link that does a full page load when it crosses the border between the WebAssembly and the Server (admin) area. *@
+@* Link that does a full page load when it crosses the border between the WebAssembly and the Server area (admin, static pages). *@
 <a href="@Href" class="@Class" data-enhance-nav="false" @onclick="NavigateAsync" @onclick:preventDefault="@RendererInfo.IsInteractive">@ChildContent</a>
 
 @code {
@@ -12,7 +12,7 @@
     private void NavigateAsync()
     {
         var currentlyOnServer = RendererInfo.Name == "Server";
-        var forceLoad = currentlyOnServer || AppAreas.IsServerArea(Href);
+        var forceLoad = currentlyOnServer || AppAreas.RequiresFullPageLoad(Href);
 
         Navigation.NavigateTo(Href, forceLoad);
     }

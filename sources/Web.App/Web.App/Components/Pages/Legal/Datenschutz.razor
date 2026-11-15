@@ -1,0 +1,134 @@
+@page "/datenschutz"
+@layout Web.App.Client.Layout.PublicLayout
+@using Microsoft.Extensions.Options
+@using Web.App.Bundles
+@attribute [AllowAnonymous]
+@inject IOptions<LegalOptions> LegalOptions
+
+@*
+    Statisch gerendert (static SSR, siehe App.razor). Der Text beschreibt, was DartMetrics tatsächlich speichert;
+    bei Änderungen an Datenmodell, Cookies, Löschfristen oder Mail-Versand hier mitpflegen.
+    Vorlage, keine Rechtsberatung.
+*@
+
+<PageTitle>Datenschutz – DartMetrics</PageTitle>
+
+<section class="pl-legal">
+    <h1 class="pl-legal__title">Datenschutzerklärung</h1>
+    <p class="pl-legal__meta">Stand: @Legal.PrivacyVersion</p>
+
+    @if (!Legal.IsComplete)
+    {
+        <p class="pl-alert" role="alert">
+            Die Angaben zum Verantwortlichen fehlen noch. Betreiber: in der <code>.env</code> die Variablen <code>LEGAL_*</code> setzen.
+        </p>
+    }
+
+    <h2>Kurz gesagt</h2>
+    <ul>
+        <li>Gespeichert wird nur, was für dein Konto und deine Spiele nötig ist.</li>
+        <li>Keine Werbung, kein Tracking, keine Analyse-Tools, keine Weitergabe an Dritte.</li>
+        <li>Nur ein technisch notwendiges Anmelde-Cookie, deshalb gibt es kein Cookie-Banner.</li>
+        <li>Schriften und alle anderen Inhalte kommen vom eigenen Server, nicht von Google oder anderen Anbietern.</li>
+        <li>Du kannst dein Konto jederzeit selbst löschen.</li>
+    </ul>
+
+    <h2>1. Verantwortlicher</h2>
+    <p>
+        @Legal.Name<br />
+        @Legal.Street, @Legal.City, @Legal.Country<br />
+        E-Mail: <a href="mailto:@Legal.Email">@Legal.Email</a>
+    </p>
+    <p>Ein Datenschutzbeauftragter ist für dieses private Projekt nicht vorgeschrieben.</p>
+
+    <h2>2. Welche Daten verarbeitet werden</h2>
+
+    <h3>Konto</h3>
+    <p>
+        Vorname, Nachname, optionaler Anzeigename, E-Mail-Adresse, Passwort (nur als BCrypt-Hash, nie im Klartext),
+        Rolle (Spieler, GameMaster, Admin), Zeitpunkt der E-Mail-Bestätigung und deine Spielstärke (Elo-Wertung).
+        Optional ein Profilbild, das du selbst hochlädst (höchstens 512 KB).
+    </p>
+    <p>
+        <strong>Zweck und Rechtsgrundlage:</strong> Bereitstellung deines Kontos und der App (Art. 6 Abs. 1 lit. b DSGVO).
+    </p>
+
+    <h3>Spiel- und Trainingsdaten</h3>
+    <p>
+        Deine Würfe in Trainings, Spielen gegen Bots und Turnieren (Feld, Multiplikator, Punkte, Zeitpunkt) und die daraus
+        berechneten Statistiken. In Turnieren sehen andere Teilnehmer deinen Anzeigenamen, deine Ergebnisse und deine Würfe
+        im jeweiligen Match.
+    </p>
+    <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+    <h3>E-Mails</h3>
+    <p>
+        Die App verschickt nur E-Mails, die du auslöst: Bestätigung der Registrierung und Link zum Zurücksetzen des
+        Passworts. Kein Newsletter. Der Versand läuft über den SMTP-Server des Betreibers.
+    </p>
+
+    <h3>Sicherheit und Fehlerprotokoll</h3>
+    <p>
+        Zum Schutz vor Angriffen wird die Zahl der Anmelde- und Registrierungsversuche je IP-Adresse kurz gezählt. Die
+        IP-Adresse liegt dabei nur im Arbeitsspeicher (etwa eine Minute) und wird nicht gespeichert. Technische Fehler
+        werden in einem Fehlerprotokoll festgehalten; es kann im Einzelfall Kontodaten wie deine E-Mail-Adresse enthalten.
+    </p>
+    <p>
+        <strong>Rechtsgrundlage:</strong> berechtigtes Interesse an einem sicheren und funktionierenden Betrieb
+        (Art. 6 Abs. 1 lit. f DSGVO).
+    </p>
+
+    <h2>3. Cookies</h2>
+    <p>Es werden ausschließlich technisch notwendige Cookies gesetzt (§ 25 Abs. 2 Nr. 2 TDDDG), keine zu Werbe- oder Analysezwecken:</p>
+    <ul>
+        <li><code>__Host-DartMetrics.Auth</code>: hält dich angemeldet, gültig höchstens 8 Stunden.</li>
+        <li><code>.AspNetCore.Antiforgery.*</code>: Schutz von Formularen gegen Missbrauch (CSRF), gilt bis zum Schließen des Browsers.</li>
+    </ul>
+    <p>Die Anmelde-Token selbst bleiben auf dem Server und erreichen deinen Browser nie.</p>
+
+    <h2>4. Speicherdauer und Löschung</h2>
+    <ul>
+        <li>Nicht bestätigte Registrierungen werden nach <strong>@Legal.UnverifiedAccountDays Tagen</strong> automatisch gelöscht.</li>
+        <li>Einträge im Fehlerprotokoll werden nach <strong>@Legal.LogMessageDays Tagen</strong> automatisch gelöscht.</li>
+        <li>
+            Dein Konto kannst du jederzeit im Profil löschen. Dabei werden Name, E-Mail-Adresse, Profilbild und Anmeldedaten
+            gelöscht. Gespielte Matches bleiben anonym als „Gelöschter Spieler“ in Statistiken und Turnieren erhalten, damit
+            Tabellen und Ergebnisse anderer Spieler stimmen.
+        </li>
+        <li>Alle übrigen Daten werden gespeichert, solange dein Konto besteht.</li>
+        <li>Datensicherungen der Datenbank werden rotierend überschrieben und nur für die Wiederherstellung genutzt.</li>
+    </ul>
+
+    <h2>5. Empfänger und Hosting</h2>
+    <p>
+        DartMetrics läuft auf einem eigenen Server des Betreibers. Es werden keine Daten an Dritte weitergegeben, verkauft
+        oder in Länder außerhalb der EU übermittelt. Es werden keine externen Dienste eingebunden (keine Fonts, Skripte,
+        Karten oder Videos von Drittanbietern).
+    </p>
+
+    <h2>6. Deine Rechte</h2>
+    <p>Du hast das Recht auf</p>
+    <ul>
+        <li>Auskunft über deine gespeicherten Daten (Art. 15 DSGVO),</li>
+        <li>Berichtigung (Art. 16 DSGVO), vieles davon direkt im Profil,</li>
+        <li>Löschung (Art. 17 DSGVO), direkt im Profil über „Konto löschen“,</li>
+        <li>Einschränkung der Verarbeitung (Art. 18 DSGVO),</li>
+        <li>Datenübertragbarkeit (Art. 20 DSGVO),</li>
+        <li>Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21 DSGVO).</li>
+    </ul>
+    <p>
+        Eine formlose E-Mail an <a href="mailto:@Legal.Email">@Legal.Email</a> genügt. Außerdem kannst du dich bei einer
+        Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), zum Beispiel bei der Behörde deines Bundeslandes.
+    </p>
+
+    <h2>7. Änderungen</h2>
+    <p>Ändert sich die App so, dass andere Daten verarbeitet werden, wird diese Erklärung angepasst. Es gilt die hier veröffentlichte Fassung.</p>
+
+    <p class="pl-legal__links">
+        <AreaLink Href="/impressum">Impressum</AreaLink> · <AreaLink Href="/">Zur Startseite</AreaLink>
+    </p>
+</section>
+
+@code {
+    private LegalOptions Legal => LegalOptions.Value;
+}

@@ -128,6 +128,17 @@ services:
       RateLimiting__Auth__PermitLimit: ${RATE_LIMIT_AUTH_PERMITS:-10}
       RateLimiting__Auth__WindowSeconds: ${RATE_LIMIT_AUTH_WINDOW_SECONDS:-60}
 
+      # Impressum / Datenschutz: Angaben zum Betreiber (nicht im Repository, nur in der .env)
+      Legal__Name: ${LEGAL_NAME:-}
+      Legal__Street: ${LEGAL_STREET:-}
+      Legal__City: ${LEGAL_CITY:-}
+      Legal__Country: ${LEGAL_COUNTRY:-Deutschland}
+      Legal__Email: ${LEGAL_EMAIL:-}
+      Legal__Phone: ${LEGAL_PHONE:-}
+      # Gleiche Löschfristen wie in der API, damit die Datenschutzerklärung stimmt
+      Legal__UnverifiedAccountDays: ${RETENTION_UNVERIFIED_DAYS:-7}
+      Legal__LogMessageDays: ${RETENTION_LOG_DAYS:-90}
+
 volumes:
   mysql_data:
   web_dataprotection:

@@ -8,9 +8,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <ResourcePreloader />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Caveat:wght@500;700&family=Inter:wght@400;600&display=swap" />
+    @* Schriften lokal (DSGVO): kein Aufruf von Google Fonts, siehe css/fonts.css *@
+    <link rel="stylesheet" href="@Assets["css/fonts.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["css/public.css"]" />
     <link rel="stylesheet" href="@Assets["css/player.css"]" />
@@ -34,10 +33,10 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     // /admin      -> Interactive Server (admin context, server-side only)
-    // /Error      -> static SSR
+    // /Error, /impressum, /datenschutz -> static SSR (reine Textseiten, ohne Login und ohne JavaScript nötig)
     // all others  -> Interactive WebAssembly (no prerendering: client services exist only in WASM)
     private IComponentRenderMode? PageRenderMode =>
-        HttpContext.Request.Path.StartsWithSegments("/Error")
+        HttpContext.Request.Path.StartsWithSegments("/Error") || AppAreas.IsStaticPage(HttpContext.Request.Path.Value)
             ? null
             : AppAreas.IsServerArea(HttpContext.Request.Path.Value)
                 ? InteractiveServer

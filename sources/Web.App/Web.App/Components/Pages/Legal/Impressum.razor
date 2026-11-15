@@ -1,0 +1,67 @@
+@page "/impressum"
+@layout Web.App.Client.Layout.PublicLayout
+@using Microsoft.Extensions.Options
+@using Web.App.Bundles
+@attribute [AllowAnonymous]
+@inject IOptions<LegalOptions> LegalOptions
+
+@*
+    Statisch gerendert (static SSR, siehe App.razor): reine Textseite, ohne Login erreichbar.
+    Angaben aus der Konfiguration (Legal__*), damit keine persönlichen Daten im Repository stehen.
+*@
+
+<PageTitle>Impressum – DartMetrics</PageTitle>
+
+<section class="pl-legal">
+    <h1 class="pl-legal__title">Impressum</h1>
+
+    @if (!Legal.IsComplete)
+    {
+        <p class="pl-alert" role="alert">
+            Die Angaben zum Betreiber fehlen noch. Betreiber: in der <code>.env</code> <code>LEGAL_NAME</code>,
+            <code>LEGAL_STREET</code>, <code>LEGAL_CITY</code> und <code>LEGAL_EMAIL</code> setzen.
+        </p>
+    }
+
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p>
+        @Legal.Name<br />
+        @Legal.Street<br />
+        @Legal.City<br />
+        @Legal.Country
+    </p>
+
+    <h2>Kontakt</h2>
+    <p>
+        E-Mail: <a href="mailto:@Legal.Email">@Legal.Email</a>
+        @if (!string.IsNullOrWhiteSpace(Legal.Phone))
+        {
+            <br />
+            <span>Telefon: @Legal.Phone</span>
+        }
+    </p>
+
+    <h2>Verantwortlich für den Inhalt</h2>
+    <p>@Legal.Name, Anschrift wie oben.</p>
+
+    <h2>Hinweis zum Angebot</h2>
+    <p>
+        DartMetrics ist ein privates, nicht kommerzielles Hobbyprojekt. Es gibt keine Werbung, keine kostenpflichtigen
+        Leistungen und keine Weitergabe von Daten an Dritte. Der Quellcode ist Open Source (MIT-Lizenz).
+    </p>
+
+    <h2>Haftung für Inhalte und Links</h2>
+    <p>
+        Die Inhalte dieser Anwendung wurden mit Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität
+        kann jedoch keine Gewähr übernommen werden. Für Inhalte verlinkter externer Seiten sind ausschließlich deren
+        Betreiber verantwortlich.
+    </p>
+
+    <p class="pl-legal__links">
+        <AreaLink Href="/datenschutz">Datenschutzerklärung</AreaLink> · <AreaLink Href="/">Zur Startseite</AreaLink>
+    </p>
+</section>
+
+@code {
+    private LegalOptions Legal => LegalOptions.Value;
+}

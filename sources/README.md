@@ -48,7 +48,8 @@ Architektur, Projekte und Service-Verzeichnis: **[ARCHITECTURE.md](ARCHITECTURE.
 ## Schnellstart
 
 ```
-cp .env.example .env                  # Platzhalter ersetzen (Passwörter, JWT_KEY, CERT_PASSWORD)
+cp .env.example .env                  # Platzhalter ersetzen (Passwörter, JWT_KEY, CERT_PASSWORD, LEGAL_*)
+./scripts/download-fonts.ps1          # Schriften einmalig lokal ablegen (kein Google Fonts, DSGVO)
 dotnet dev-certs https -ep certs/dartmetrics.pfx -p <CERT_PASSWORD>
 dotnet dev-certs https --trust
 docker compose up -d                  # MySQL, Mailpit, API, Web-App
@@ -57,6 +58,15 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 - Web-App: https://localhost:7254 · Swagger (nur Entwicklung): http://localhost:8080/swagger · Mails: http://localhost:8025
 - `docker compose` lädt in der Entwicklung automatisch `docker-compose.override.yml` (offene Ports nur auf `127.0.0.1`, Mailpit, Swagger).
 - Produktion (z. B. Raspberry Pi): in der `.env` `COMPOSE_FILE=docker-compose.yml` setzen. Dann ist nur die Web-App erreichbar; MySQL und API laufen nur im Docker-Netz. Backups: `scripts/backup-db.sh` per Cron.
+- Impressum und Datenschutzerklärung: `/impressum`, `/datenschutz`. Die Angaben zum Betreiber kommen aus `LEGAL_*` in der `.env`, nicht aus dem Repository.
 - Geheimnisse stehen nur in `.env` (nicht im Repository); alle Variablen mit Erklärung: `.env.example`.
 - Web-App ohne Docker (Debugging): `dotnet run --project Web.App/Web.App`
 - API aktualisieren: `scripts/update-containers.ps1` (Windows) bzw. `scripts/update-containers.sh`.
+
+## Eigene Instanz betreiben
+
+DartMetrics ist Open Source (MIT-Lizenz) und wird ohne Gewähr bereitgestellt. **Wer eine Instanz betreibt, ist dafür selbst verantwortlich**, rechtlich (Impressum, Datenschutz, DSGVO) und technisch (Updates, Backups, HTTPS).
+
+- Impressum und Datenschutzerklärung (`/impressum`, `/datenschutz`) sind **Vorlagen**. Sie beschreiben, was die App ab Werk speichert, ersetzen aber keine rechtliche Prüfung. Bitte prüfen und an die eigene Instanz anpassen, vor allem bei geändertem Code, eigenem Mail-Anbieter oder öffentlichem Betrieb.
+- Die Angaben zum Betreiber kommen aus `LEGAL_*` in der `.env` (siehe `.env.example`). Im Repository stehen keine persönlichen Daten.
+- Sicherheitslücken bitte vertraulich melden: siehe [SECURITY.md](../SECURITY.md).

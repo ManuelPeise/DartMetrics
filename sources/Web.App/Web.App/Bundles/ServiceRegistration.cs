@@ -29,6 +29,9 @@ namespace Web.App.Bundles
 
             AddRateLimiting(services, configuration);
 
+            // Impressum / Datenschutz (Angaben aus der Konfiguration, nicht aus dem Repository)
+            services.Configure<LegalOptions>(configuration.GetSection(LegalOptions.SectionName));
+
             // Session store, token refresh, API clients (Web.Shared)
             services.RegisterWebServices();
 

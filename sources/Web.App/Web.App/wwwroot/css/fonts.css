@@ -1,0 +1,55 @@
+/*
+  Schriften lokal ausgeliefert (DSGVO): kein Aufruf von fonts.googleapis.com / fonts.gstatic.com,
+  die IP-Adresse der Besucher geht nicht an Dritte. Dateien: wwwroot/fonts, Herkunft Fontsource,
+  Lizenz SIL Open Font License 1.1 (siehe wwwroot/fonts/LICENSE.md).
+  Neu laden: scripts/download-fonts.ps1 bzw. scripts/download-fonts.sh
+  Fehlen die Dateien, greifen die Ersatzschriften aus --pl-font-* (Arial Narrow, system-ui, Segoe Print).
+*/
+
+@font-face {
+    font-family: "Barlow Condensed";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Barlow Condensed";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Caveat";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/caveat-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Caveat";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/caveat-latin-700-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/inter-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/inter-latin-600-normal.woff2") format("woff2");
+}
