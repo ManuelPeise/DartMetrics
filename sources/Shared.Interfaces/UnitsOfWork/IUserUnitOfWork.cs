@@ -7,6 +7,7 @@ namespace Shared.Interfaces.UnitsOfWork
     {
         IRepositoryBase<UserEntity> UserRepository { get; }
         IRepositoryBase<UserCredentialsEntity> UserCredentialsRepository { get; }
+        IRepositoryBase<UserAvatarEntity> UserAvatarRepository { get; }
         IRepositoryBase<UserRoleEntity> UserRoleRepository { get; }
         IRepositoryBase<RoleEntity> RoleRepository { get; }
 

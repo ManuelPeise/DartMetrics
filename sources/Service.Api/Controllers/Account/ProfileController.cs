@@ -29,6 +29,39 @@ namespace Service.Api.Controllers.Account
             return await _profileService.UpdateUserProfile(model);
         }
 
+        [HttpPost(Name = "UploadAvatar")]
+        [RequestSizeLimit(1024 * 1024)] // Base64 von höchstens AvatarRules.MaxBytes plus JSON
+        public async Task<IActionResult> UploadAvatar([FromBody] UploadAvatarModel model)
+        {
+            // Als Objekt, nicht als nackter String (der würde als text/plain statt JSON geschrieben).
+            return Ok(new UploadAvatarResult { Version = await _profileService.UploadAvatar(model) });
+        }
+
+        [HttpPost(Name = "DeleteAvatar")]
+        public async Task<IActionResult> DeleteAvatar()
+        {
+            await _profileService.DeleteAvatar();
+
+            return Ok();
+        }
+
+        /// <summary>Eigenes Profilbild. Die URL enthält ?v=Version, daher darf der Browser lange cachen.</summary>
+        [HttpGet(Name = "GetAvatar")]
+        public async Task<IActionResult> GetAvatar()
+        {
+            var avatar = await _profileService.GetAvatar();
+
+            if (avatar is null)
+            {
+                return NotFound();
+            }
+
+            Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+            Response.Headers.XContentTypeOptions = "nosniff";
+
+            return File(avatar.Data, avatar.ContentType);
+        }
+
         [HttpPost(Name = "ChangePassword")]
         public async Task ChangePassword([FromBody] ChangePasswordRequest request)
         {

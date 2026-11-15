@@ -1,3 +1,6 @@
+﻿@implements IDisposable
+@inject PlayerProfileState _profile
+
 <header class="pa-topbar">
     <a href="@PlayerNavigation.Root" class="pa-brand" title="DartMetrics">
         <img src="img/dart_board.png" alt="" width="32" height="32" />
@@ -18,7 +21,11 @@
     <AuthorizeView>
         <div class="pa-user">
             <span class="pa-user__name">@context.User.Identity?.Name</span>
-            <span class="pa-avatar" aria-hidden="true">@Initial(context.User.Identity?.Name)</span>
+            <a href="player/profile" class="pa-user__avatar" title="Profil">
+                <PlayerAvatar FirstName="@_profile.Profile?.FirstName" LastName="@_profile.Profile?.LastName"
+                              Name="@context.User.Identity?.Name" AvatarVersion="@_profile.Profile?.AvatarVersion" Decorative="true" />
+                <span class="pa-sr-only">Profil</span>
+            </a>
             <AreaLink Href="/logout" Class="pa-icon-btn">
                 <PlayerIcon Name="PlayerIconName.Logout" />
                 <span class="pa-sr-only">Abmelden</span>
@@ -28,6 +35,13 @@
 </header>
 
 @code {
-    private static string Initial(string? name) =>
-        string.IsNullOrEmpty(name) ? "?" : name[..1].ToUpperInvariant();
+    protected override async Task OnInitializedAsync()
+    {
+        _profile.Changed += HandleChanged;
+        await _profile.EnsureLoadedAsync();
+    }
+
+    private void HandleChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => _profile.Changed -= HandleChanged;
 }

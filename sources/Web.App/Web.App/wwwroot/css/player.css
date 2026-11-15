@@ -878,3 +878,29 @@ a.pa-card:hover {
         .pa-history__rating.is-up small { color: #cdeed6; }
 
         .pa-history__rating.is-down small { color: rgba(200, 35, 47, 0.9); }
+
+/* Profilbild */
+.pa-avatar--image { object-fit: cover; padding: 0; }
+
+.pa-user__avatar { display: inline-flex; border-radius: 50%; }
+
+    .pa-user__avatar:focus-visible { outline: 2px solid var(--pl-brass); outline-offset: 2px; }
+
+.pa-profile-head {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.pa-profile-head__body { display: grid; gap: 0.35rem; min-width: 0; }
+
+.pa-profile-head__name { font-size: 1.15rem; }
+
+.pa-profile-head__hint { color: var(--pl-ink-muted); font-size: 0.8rem; }
+
+.pa-profile-head__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
+
+    .pa-profile-head__actions label.pl-btn { cursor: pointer; }
+
+    .pa-profile-head__actions label.is-disabled { opacity: 0.6; pointer-events: none; }

@@ -8,5 +8,13 @@ namespace Shared.Interfaces.User
         Task<UserProfileModel> GetProfileData();
         Task<UserProfileModel> UpdateUserProfile(UserProfileModel model);
         Task ChangePassword(ChangePasswordRequest request);
+
+        /// <summary>Speichert das Profilbild (ersetzt ein vorhandenes) und liefert die neue Version.</summary>
+        Task<string> UploadAvatar(UploadAvatarModel model);
+
+        Task DeleteAvatar();
+
+        /// <summary>Eigenes Profilbild, null wenn keins vorhanden.</summary>
+        Task<AvatarImage?> GetAvatar();
     }
 }

@@ -12,6 +12,7 @@ namespace Logic.Shared.UnitsOfWork
         public IRepositoryBase<UserEntity> UserRepository { get; }
         public IRepositoryBase<UserRoleEntity> UserRoleRepository { get; }
         public IRepositoryBase<UserCredentialsEntity> UserCredentialsRepository { get; }
+        public IRepositoryBase<UserAvatarEntity> UserAvatarRepository { get; }
 
         public IRepositoryBase<RoleEntity> RoleRepository { get; }
 
@@ -23,6 +24,7 @@ namespace Logic.Shared.UnitsOfWork
             UserRoleRepository = new RepositoryBase<UserRoleEntity>(_dartDatabaseContext);
             UserCredentialsRepository = new RepositoryBase<UserCredentialsEntity>(_dartDatabaseContext);
             RoleRepository = new RepositoryBase<RoleEntity>(_dartDatabaseContext);
+            UserAvatarRepository = new RepositoryBase<UserAvatarEntity>(_dartDatabaseContext);
         }
     }
 }

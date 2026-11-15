@@ -22,6 +22,7 @@ builder.Services.AddScoped<ApiClient>();
 
 // Typisierte API-Clients (Seiten kennen keine URLs)
 builder.Services.AddScoped<IProfileApi, ProfileApi>();
+builder.Services.AddScoped<PlayerProfileState>();
 builder.Services.AddScoped<IBotGameApi, BotGameApi>();
 builder.Services.AddScoped<ITrainingApi, TrainingApi>();
 

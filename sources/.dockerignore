@@ -12,3 +12,4 @@ Web.Shared/
 docker-compose*.yml
 **/Dockerfile*
 *.Tests/
+backups/

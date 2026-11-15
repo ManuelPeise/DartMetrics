@@ -257,7 +257,8 @@ namespace Logic.Bot.Games
 
                 var players = await UnitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
                     p => p.UserId == currentUser.UserId && p.RatingBefore != null && p.RatingAfter != null,
-                    asNoTracking: true,
+                    // Tracking nötig: Player -> Game -> Players ist ein Zyklus, den EF in No-Tracking-Abfragen ablehnt.
+                    asNoTracking: false,
                     include: q => q.Include(p => p.Game).ThenInclude(g => g.Players));
 
                 return players

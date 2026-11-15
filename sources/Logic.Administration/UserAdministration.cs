@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.User;
+﻿using Data.DartContext.Entities.User;
 using Logic.Shared;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums.Bot;
@@ -153,6 +153,16 @@ namespace Logic.Administration
                 {
                     UnitOfWork.UserUnitOfWork.UserCredentialsRepository.Delete(user.UserCredentials);
                 }
+
+                // Profilbild ist personenbezogen -> löschen.
+                var avatar = await UnitOfWork.UserUnitOfWork.UserAvatarRepository.GetFirstOrDefaultAsync(a => a.UserId == user.Id);
+
+                if (avatar is not null)
+                {
+                    UnitOfWork.UserUnitOfWork.UserAvatarRepository.Delete(avatar);
+                }
+
+                user.AvatarVersion = null;
 
                 // Bot-Spiele bleiben erhalten (Statistik, ML), nur der Name wird anonymisiert; laufende Spiele enden.
                 var botPlayers = await UnitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(

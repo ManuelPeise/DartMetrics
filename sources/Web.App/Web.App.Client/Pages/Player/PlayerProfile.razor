@@ -4,6 +4,8 @@
 @using global::Shared.Models.User
 @inject IProfileApi ProfileApi
 @inject IBotGameApi BotGameApi
+@inject PlayerProfileState ProfileState
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Profil – DartMetrics</PageTitle>
 
@@ -19,6 +21,35 @@ else if (_profile is null)
 }
 else
 {
+    <section class="pa-section pa-profile-head" aria-labelledby="avatar-title">
+        <h2 class="pa-sr-only" id="avatar-title">Profilbild</h2>
+        <PlayerAvatar FirstName="@_profile.FirstName" LastName="@_profile.LastName" Name="@_profile.DisplayName"
+                      AvatarVersion="@_profile.AvatarVersion" Size="96" />
+
+        <div class="pa-profile-head__body">
+            <strong class="pa-profile-head__name">@(string.IsNullOrWhiteSpace(_profile.DisplayName) ? $"{_profile.FirstName} {_profile.LastName}" : _profile.DisplayName)</strong>
+            <small class="pa-profile-head__hint">JPEG, PNG oder WebP. Das Bild wird auf @AvatarRules.MaxPixels px verkleinert.</small>
+
+            <div class="pa-profile-head__actions">
+                <label class="pl-btn pl-btn--ghost @(_avatarBusy ? "is-disabled" : "")">
+                    @(_avatarBusy ? "Lädt …" : _profile.AvatarVersion is null ? "Bild hochladen" : "Bild ändern")
+                    <InputFile class="pa-sr-only" accept="@AvatarRules.AcceptedFileTypes" OnChange="UploadAvatarAsync" disabled="@_avatarBusy" />
+                </label>
+                @if (_profile.AvatarVersion is not null)
+                {
+                    <button type="button" class="pl-btn pl-btn--link" disabled="@_avatarBusy" @onclick="DeleteAvatarAsync">Bild entfernen</button>
+                }
+            </div>
+
+            @if (_avatarError is not null)
+            {
+                <p class="pl-alert" role="alert">@_avatarError</p>
+            }
+        </div>
+    </section>
+
+    @if (_isPlayer)
+    {
     <section class="pa-section" aria-labelledby="elo-title">
         <h2 class="pa-section__title" id="elo-title">Elo</h2>
         <PlayerStatGrid Stats="EloStats" />
@@ -50,6 +81,8 @@ else
             <p class="pl-alert" role="alert">@_historyError</p>
         }
     </section>
+
+    }
 
     <section class="pa-section" aria-labelledby="data-title">
         <h2 class="pa-section__title" id="data-title">Persönliche Daten</h2>
@@ -119,6 +152,9 @@ else
     private string? _loadError;
     private UserProfileModel? _profile;
 
+    /// <summary>Bot-Spiele (und damit Elo) gibt es nur für die Rolle Player; Admin/GameMaster sehen nur Daten und Passwort.</summary>
+    private bool _isPlayer;
+
     private List<DartBotRatingHistoryEntry>? _history;
     private string? _historyError;
 
@@ -128,6 +164,12 @@ else
     private bool _savingProfile;
     private bool _profileSaved;
     private string? _profileMessage;
+
+    private bool _avatarBusy;
+    private string? _avatarError;
+
+    /// <summary>Vor dem Verkleinern: größere Dateien gar nicht erst lesen.</summary>
+    private const long MaxOriginalFileBytes = 20 * 1024 * 1024;
 
     private string? _currentPassword;
     private string? _newPassword;
@@ -160,14 +202,22 @@ else
         _loading = true;
         _loadError = null;
 
-        var historyTask = BotGameApi.GetRatingHistoryAsync(HistoryCount);
-        var profile = await ProfileApi.GetProfileAsync();
-        var history = await historyTask;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isPlayer = authState.User.IsInRole("Player");
+
+        var profileTask = ProfileApi.GetProfileAsync();
+
+        if (_isPlayer)
+        {
+            var history = await BotGameApi.GetRatingHistoryAsync(HistoryCount);
+            _history = history.Value;
+            _historyError = history.IsSuccess ? null : $"Der Elo-Verlauf ist gerade nicht erreichbar ({history.Error}).";
+        }
+
+        var profile = await profileTask;
 
         _profile = profile.Value;
         _loadError = profile.Error;
-        _history = history.Value;
-        _historyError = history.IsSuccess ? null : "Der Elo-Verlauf ist gerade nicht erreichbar.";
 
         if (_profile is not null)
         {
@@ -212,8 +262,87 @@ else
         _profile.FirstName = result.Value!.FirstName;
         _profile.LastName = result.Value.LastName;
         _profile.DisplayName = result.Value.DisplayName;
+        ProfileState.Update(p =>
+        {
+            p.FirstName = _profile.FirstName;
+            p.LastName = _profile.LastName;
+            p.DisplayName = _profile.DisplayName;
+        });
+
         _profileSaved = true;
         _profileMessage = "Gespeichert.";
+    }
+
+    private async Task UploadAvatarAsync(InputFileChangeEventArgs e)
+    {
+        _avatarError = null;
+        var file = e.File;
+
+        if (!AvatarRules.AcceptedFileTypes.Split(',').Contains(file.ContentType))
+        {
+            _avatarError = "Bitte ein JPEG-, PNG- oder WebP-Bild wählen.";
+            return;
+        }
+
+        if (file.Size > MaxOriginalFileBytes)
+        {
+            _avatarError = "Die Datei ist zu groß (höchstens 20 MB).";
+            return;
+        }
+
+        _avatarBusy = true;
+
+        try
+        {
+            // Der Browser verkleinert und wandelt in JPEG um; hochgeladen werden nur wenige KB.
+            var resized = await file.RequestImageFileAsync(AvatarRules.UploadContentType, AvatarRules.MaxPixels, AvatarRules.MaxPixels);
+
+            using var stream = resized.OpenReadStream(AvatarRules.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            var result = await ProfileApi.UploadAvatarAsync(new UploadAvatarModel { Data = buffer.ToArray() });
+
+            if (!result.IsSuccess)
+            {
+                _avatarError = result.Error;
+                return;
+            }
+
+            SetAvatarVersion(result.Value!.Version);
+        }
+        catch (IOException)
+        {
+            _avatarError = "Das Bild ist auch verkleinert noch zu groß.";
+        }
+        finally
+        {
+            _avatarBusy = false;
+        }
+    }
+
+    private async Task DeleteAvatarAsync()
+    {
+        _avatarBusy = true;
+        _avatarError = null;
+
+        var result = await ProfileApi.DeleteAvatarAsync();
+
+        _avatarBusy = false;
+
+        if (!result.IsSuccess)
+        {
+            _avatarError = result.Error;
+            return;
+        }
+
+        SetAvatarVersion(null);
+    }
+
+    private void SetAvatarVersion(string? version)
+    {
+        _profile!.AvatarVersion = version;
+        ProfileState.Update(p => p.AvatarVersion = version);
     }
 
     private async Task ChangePasswordAsync()

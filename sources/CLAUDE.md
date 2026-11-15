@@ -126,12 +126,18 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 - Einstellungen: Abschnitt `"DartBot"` (`DartBotOptions`).
 - Ausführlicher Plan: Claude-Doc „DartBot – Finaler Architektur- und Datenmodellplan“.
 
+## Profilbild
+
+- Bild im Browser verkleinern (256 px JPEG), Server prüft Größe (512 KB) und Signatur-Bytes. Kein Bild → `PlayerAvatar` zeigt Initialen.
+- Bild-URL immer mit `?v=AvatarVersion`; `PlayerProfileState` hält das Profil für Kopfzeile und Profilseite synchron.
+- Personenbezogen: beim Anonymisieren löschen.
+
 ## Arbeitsablauf
 
 - Branches: `feature/#<Nr>-<kurzbeschreibung>` (z. B. `feature/#07-implement-bot-ai`), Merge nach `master`.
 - Vor dem Commit: Solution bauen (`dotnet build DartMetrics.slnx`) und Tests laufen lassen (`dotnet test DartMetrics.slnx`), bei Datenmodelländerungen Migration anlegen und prüfen.
 - Tests: `Logic.Bot.Tests` (xUnit, ohne Datenbank). Zufall über `IRandomSource` injizieren, nie `Random` direkt verwenden.
-- Deployment der API: `scripts/update-containers.ps1` bzw. `.sh` (baut nur die API neu, Daten bleiben).
+- Deployment der API: `scripts/update-containers.ps1` bzw. `.sh` (sichert die DB nach `backups/`, baut die API neu, Daten bleiben; `-Test` führt vorher die Tests aus).
 
 ## Bekannte offene Punkte
 

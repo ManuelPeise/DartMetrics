@@ -1,4 +1,4 @@
-using Shared.Interfaces.Blazor.Api;
+﻿using Shared.Interfaces.Blazor.Api;
 using Shared.Interfaces.Blazor.Authentication;
 using Shared.Interfaces.Blazor.BlazorSession;
 using Shared.Models.Authentication;
@@ -223,6 +223,13 @@ namespace Web.App.Bundles
 
                 if (response.Content.Headers.ContentType != null)
                     context.Response.ContentType = response.Content.Headers.ContentType.ToString();
+
+                // Für Bilder (Profilbild): Cache- und nosniff-Header der API durchreichen.
+                if (response.Headers.CacheControl != null)
+                    context.Response.Headers.CacheControl = response.Headers.CacheControl.ToString();
+
+                if (response.Headers.TryGetValues("X-Content-Type-Options", out var noSniff))
+                    context.Response.Headers.XContentTypeOptions = noSniff.ToArray();
 
                 await response.Content.CopyToAsync(context.Response.Body, cancellationToken);
             }

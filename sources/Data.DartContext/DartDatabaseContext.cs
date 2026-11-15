@@ -11,6 +11,7 @@ namespace Data.DartContext
         public DbSet<LogMessageEntity> LogMessages { get; set; }
         public DbSet<UserEntity> Users => Set<UserEntity>();
         public DbSet<UserCredentialsEntity> UserCredentials => Set<UserCredentialsEntity>();
+        public DbSet<UserAvatarEntity> UserAvatars => Set<UserAvatarEntity>();
         public DbSet<RoleEntity> Roles => Set<RoleEntity>();
         public DbSet<UserRoleEntity> UserRoles => Set<UserRoleEntity>();
 

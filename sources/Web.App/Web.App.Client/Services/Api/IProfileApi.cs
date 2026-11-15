@@ -10,6 +10,11 @@ namespace Web.App.Client.Services.Api
 
         Task<ApiResult<UserProfileModel>> UpdateProfileAsync(UserProfileModel model, CancellationToken cancellationToken = default);
 
+        /// <summary>Liefert die neue Bildversion.</summary>
+        Task<ApiResult<UploadAvatarResult>> UploadAvatarAsync(UploadAvatarModel model, CancellationToken cancellationToken = default);
+
+        Task<ApiResult<bool>> DeleteAvatarAsync(CancellationToken cancellationToken = default);
+
         Task<ApiResult<bool>> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
     }
 }

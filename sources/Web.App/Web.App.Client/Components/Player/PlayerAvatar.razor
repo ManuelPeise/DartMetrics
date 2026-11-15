@@ -1,0 +1,76 @@
+@*
+    Profilbild oder – ohne Bild bzw. wenn es nicht lädt – die Initialen (Vor- und Nachname).
+*@
+@if (ShowImage)
+{
+    <img class="pa-avatar pa-avatar--image" src="@ImageUrl" alt="@(Decorative ? "" : $"Profilbild von {Name}")"
+         width="@Size" height="@Size" style="@SizeStyle" aria-hidden="@(Decorative ? "true" : null)"
+         @onerror="() => _imageFailed = true" />
+}
+else
+{
+    <span class="pa-avatar" style="@SizeStyle" role="@(Decorative ? null : "img")"
+          aria-label="@(Decorative ? null : $"Initialen von {Name}")" aria-hidden="@(Decorative ? "true" : null)">@Initials</span>
+}
+
+@code {
+    [Parameter] public string? FirstName { get; set; }
+
+    [Parameter] public string? LastName { get; set; }
+
+    /// <summary>Fallback für Initialen, wenn Vor-/Nachname fehlen (z. B. Anmeldename).</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Version aus dem Profil; null = kein Bild.</summary>
+    [Parameter] public string? AvatarVersion { get; set; }
+
+    [Parameter] public int Size { get; set; } = 36;
+
+    /// <summary>true, wenn daneben ohnehin der Name steht.</summary>
+    [Parameter] public bool Decorative { get; set; }
+
+    private bool _imageFailed;
+    private string? _lastVersion;
+
+    private bool ShowImage => AvatarVersion is not null && !_imageFailed;
+
+    private string ImageUrl => $"bff/api/Profile/GetAvatar?v={Uri.EscapeDataString(AvatarVersion!)}";
+
+    private string SizeStyle => $"width:{Size}px;height:{Size}px;font-size:{Size * 0.4:0}px";
+
+    protected override void OnParametersSet()
+    {
+        // Neues Bild -> erneut versuchen.
+        if (AvatarVersion != _lastVersion)
+        {
+            _imageFailed = false;
+            _lastVersion = AvatarVersion;
+        }
+    }
+
+    private string Initials
+    {
+        get
+        {
+            var first = FirstLetter(FirstName);
+            var last = FirstLetter(LastName);
+
+            if (first is not null || last is not null)
+            {
+                return $"{first}{last}";
+            }
+
+            var parts = (Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return parts.Length switch
+            {
+                0 => "?",
+                1 => FirstLetter(parts[0])!,
+                _ => $"{FirstLetter(parts[0])}{FirstLetter(parts[^1])}"
+            };
+        }
+    }
+
+    private static string? FirstLetter(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..1].ToUpperInvariant();
+}
