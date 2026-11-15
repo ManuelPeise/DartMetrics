@@ -125,6 +125,12 @@ namespace Web.Core.Bundles
                 .Bind(configuration.GetSection("DartBot"))
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
+
+            // Ohne Abschnitt "Tournament" gelten die Standardwerte (Bot-Aufnahme alle 5 Sekunden).
+            services.AddOptions<TournamentOptions>()
+                .Bind(configuration.GetSection("Tournament"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
         }
 
         private static void AddDiServices(this IServiceCollection services)

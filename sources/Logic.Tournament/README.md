@@ -27,7 +27,14 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 | `Knockout/KnockoutService` (`IKnockoutService`) | Anlegen (optional Setzliste aus einer Liga gleicher Art, 2/4/8 Gesetzte, Standard 4), Teilnehmer, Start: Top N der abgeschlossenen Liga werden gesetzt (fehlende ergänzt), Rest ausgelost, eine Satzlänge je Runde (leer = überall 5), Freilose sofort gewertet. `AdvanceAsync` trägt Sieger in die nächste Runde ein und schließt nach dem Finale ab (idempotent, ohne Rechteprüfung – nur für Server-Abläufe, nicht als API). |
 | `TournamentServiceBase` | Gemeinsam für Liga und K.o.: Anlegen, Teilnehmer, Laden mit Rechteprüfung, Termin, Übersicht (`TournamentOverview`). |
 
-API-Endpunkte folgen mit dem GameMaster-Bereich (Phase 4).
+## Stand (Phase 4a: Matches spielen)
+
+| Teil | Inhalt |
+|---|---|
+| `Play/TournamentMatchService` (`ITournamentMatchService`) | Match starten (mindestens ein Mensch; Spielleiter = GameMaster bzw. Besitzer), Profilversion und aktives Zielwahl-Modell der Bots beim Start gespeichert. Jeder Dart über `X01Match`, sofort gespeichert (Leg, Aufnahme, Wurf). Ist danach ein Bot am Wurf, wirft er sofort (`IBotVisitPlayer` mit der Zielwahl aus `ITargetSelectorFactory`, über die Interfaces – kein Verweis auf Logic.Bot). Veralteter `ConcurrencyStamp` → `DbUpdateConcurrencyException` (409). Stand mit Tafel-Daten (Legs, Aufnahmen, Darts, Rest, Average) für Spielleiter und Zuschauer. Matchende: Liga ggf. abschließen, K.o. weiterrücken. |
+| `Play/BotMatchWorker` | Hintergrunddienst: startet Bot-gegen-Bot-Matches erst zum Termin der Runde und spielt je Takt eine Aufnahme pro Match (live mitzuverfolgen). Einstellungen `Tournament:BotMatchesEnabled` (true), `Tournament:BotVisitIntervalSeconds` (5). |
+
+Noch offen: Korrektur (letzten Dart zurücknehmen) mit dem Eingabe-Screen (Phase 5), Elo/XP aus Turnieren (Phase 7). API-Endpunkte und GameMaster-Seiten folgen in Phase 4b.
 
 ## Regeln
 
@@ -38,4 +45,4 @@ API-Endpunkte folgen mit dem GameMaster-Bereich (Phase 4).
 
 ## DI
 
-`AddTournamentServices()` in `Web.Core/Bundles/Services.cs` (`ILeagueService`, `IKnockoutService`); im Dockerfile per `COPY Logic.Tournament/…` eingetragen. Tests: `Logic.Tournament.Tests`.
+`AddTournamentServices()` in `Web.Core/Bundles/Services.cs` (`ILeagueService`, `IKnockoutService`, `ITournamentMatchService`, Hintergrunddienst `BotMatchWorker`); im Dockerfile per `COPY Logic.Tournament/…` eingetragen. Tests: `Logic.Tournament.Tests`.
