@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Cryptography;
 using Shared.Models.Bot.Ml;
 
 namespace Tools.BotTrainer
@@ -38,12 +37,6 @@ namespace Tools.BotTrainer
         }
 
         public void Dispose() => _writer.Dispose();
-
-        public static string Sha256Of(string path)
-        {
-            using var stream = File.OpenRead(path);
-            return Convert.ToHexStringLower(SHA256.HashData(stream));
-        }
 
         private static string F(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
