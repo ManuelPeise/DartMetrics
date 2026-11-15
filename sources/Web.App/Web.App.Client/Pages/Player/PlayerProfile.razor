@@ -156,13 +156,13 @@ else
 
         @if (!_confirmDelete)
         {
-            <div class="pl-actions">
+            <div class="pl-actions pl-actions--spaced">
                 <button type="button" class="pl-btn pl-btn--ghost" @onclick="() => _confirmDelete = true">Konto löschen …</button>
             </div>
         }
         else
         {
-            <form class="pl-form" @onsubmit="DeleteAccountAsync" @onsubmit:preventDefault>
+            <form class="pl-form pl-actions--spaced" @onsubmit="DeleteAccountAsync" @onsubmit:preventDefault>
                 @if (_deleteError is not null)
                 {
                     <p class="pl-alert" role="alert">@_deleteError</p>
