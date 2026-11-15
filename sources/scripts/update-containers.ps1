@@ -52,7 +52,7 @@ if (-not (Test-Path (Join-Path $root '.env'))) { throw '.env fehlt im Lösungsor
 
 # [string[]] erzwingt ein Array: sonst wird ein einzelnes 'api' zum String, und @services
 # splattet ihn zeichenweise ('a', 'p', 'i') -> "no such service: a".
-[string[]] $services = if ($All) { @() } else { @('api') }   # leer = alle Dienste
+[string[]] $services = if ($All) { @() } else { @('api', 'web') }   # leer = alle Dienste
 
 if ($Test) {
     Invoke-Step 'Tests ausführen' { dotnet test DartMetrics.slnx --nologo }
@@ -91,7 +91,7 @@ if ($Pull) {
 $buildArgs = @('compose', 'build')
 if ($NoCache) { $buildArgs += '--no-cache' }
 $buildArgs += '--pull'
-$buildArgs += 'api'
+$buildArgs += @('api', 'web')
 Invoke-Step 'API-Image bauen' { docker @buildArgs }
 
 Invoke-Step 'Container ersetzen' { docker compose up -d --force-recreate --remove-orphans @services }

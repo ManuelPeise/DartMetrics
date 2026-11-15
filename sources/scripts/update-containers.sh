@@ -31,7 +31,7 @@ cd "$(dirname "$0")/.."
 docker info >/dev/null 2>&1 || { echo "Docker läuft nicht." >&2; exit 1; }
 [ -f .env ] || { echo ".env fehlt im Lösungsordner." >&2; exit 1; }
 
-SERVICES=(); [ "$ALL" -eq 1 ] || SERVICES=(api)
+SERVICES=(); [ "$ALL" -eq 1 ] || SERVICES=(api web)
 
 step() { printf '\n==> %s\n' "$1"; }
 

@@ -97,5 +97,39 @@ services:
       retries: 10
       start_period: 20s
 
+  # DartMetrics Web-App (Blazor, Web.App) - https://localhost:7254
+  # Benoetigt ein HTTPS-Zertifikat unter ./certs/dartmetrics.pfx (Cookie "__Host-" verlangt HTTPS).
+  web:
+    build:
+      context: .
+      dockerfile: Web.App/Dockerfile
+    image: dartmetrics-web:dev
+    container_name: dartmetrics-web
+    restart: unless-stopped
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    ports:
+      - "7254:7254"   # HTTPS
+      - "5123:5123"   # HTTP (leitet auf HTTPS um)
+
+    volumes:
+      - ./certs:/https:ro
+      - web_dataprotection:/home/app/.aspnet/DataProtection-Keys
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${WEB_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "5123"
+      ASPNETCORE_HTTPS_PORTS: "7254"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/dartmetrics.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERT_PASSWORD}
+
+      # Container network: API via service name, not localhost
+      ApiHttpClientOptions__ApiBaseUrl: http://api
+      ApiHttpClientOptions__Port: "8080"
+
 volumes:
   mysql_data:
+  web_dataprotection:
