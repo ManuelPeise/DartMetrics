@@ -22,6 +22,7 @@ Prüfen, was Unit-Tests nicht können: SQL-Übersetzung, Constraints, Migratione
 | `Bot/BotConcurrencyTests` | Zwei Anfragen ändern denselben Bot → Konflikt, Merge, keine XP verloren |
 | `Training/TrainingResumeTests` | Fortsetzen aller vier Trainings (Position, Rest, Treffer, Double-In), beendete werden nicht angeboten |
 | `Statistics/PlayerStatisticsTests` | Nur beendete Trainings zählen; Average stimmt mit der Ergebnisseite überein; leerer Zeitraum |
+| `Tournament/LeagueFlowTests` | Liga mit Spielern und Bots starten (Spielplan Hin- und Rückrunde, Spielfrei), Spieltag terminieren; Rechte GameMaster/Player, private Liga nur Besitzer und Bots; Grenzen; CHECK auf Teilnehmerart |
 | `Profile/UserProfileServiceTests` | Passwort ändern (richtig, falsch, zu kurz, gleich), Profilbild (PNG ok, Nicht-Bild abgelehnt, Löschen), Namensvalidierung |
 
 ## Regeln

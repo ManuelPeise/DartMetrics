@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -33,6 +33,7 @@
     <ProjectReference Include="..\Logic.Bot\Logic.Bot.csproj" />
     <ProjectReference Include="..\Logic.Profile\Logic.Profile.csproj" />
     <ProjectReference Include="..\Logic.Statistics\Logic.Statistics.csproj" />
+    <ProjectReference Include="..\Logic.Tournament\Logic.Tournament.csproj" />
     <ProjectReference Include="..\Logic.Training\Logic.Training.csproj" />
   </ItemGroup>
 

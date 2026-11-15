@@ -1,10 +1,11 @@
-using Data.DartContext;
+﻿using Data.DartContext;
 using Data.DartContext.Entities.User;
 using Data.DartContext.Security;
 using Logic.Bot.DI;
 using Logic.Profile.DI;
 using Logic.Shared.DI;
 using Logic.Statistics.DI;
+using Logic.Tournament.DI;
 using Logic.Training.DI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,6 +51,7 @@ namespace Logic.Integration.Tests.Infrastructure
             services.AddTrainingServices();
             services.AddBotServices();
             services.AddStatisticsServices();
+            services.AddTournamentServices();
 
             // Ein Benutzer für alle Scopes des Tests, umschaltbar per SignIn.
             services.AddSingleton<TestClaimsHelper>();
@@ -116,6 +118,15 @@ namespace Logic.Integration.Tests.Infrastructure
                 await db.SaveChangesAsync();
 
                 return user.Id;
+            });
+
+        /// <summary>Gibt einem Benutzer eine Rolle in der Datenbank (Rollen-Ids aus RoleSeed).</summary>
+        public Task AssignRoleAsync(int userId, UserRoleEnum role) =>
+            DbAsync(async db =>
+            {
+                var roleId = await db.Set<RoleEntity>().Where(r => r.UserRole == role).Select(r => r.Id).SingleAsync();
+                db.Set<UserRoleEntity>().Add(new UserRoleEntity { UserId = userId, RoleId = roleId, CreatedAt = DateTime.UtcNow, CreatedBy = "tests" });
+                return await db.SaveChangesAsync();
             });
 
         public async Task<int> SignInNewPlayerAsync()
