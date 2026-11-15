@@ -49,3 +49,24 @@ Ablauf:
 4. Kennzahlen RMSE, MAE, R² in `MetricsJson`; Modell als `ml_data/models/…zip` (nie überschrieben) + `DartBotModels` (nächste Version je Typ).
 
 Optional: `BOTTRAINER_COMMIT` (Git-Commit) wird als `CodeVersion` gespeichert.
+
+## compare (Phase 4)
+
+Spielt je Skill-Stufe (0,2 / 0,5 / 0,8 / 0,95; TacticalIntelligence 1) dieselben Legs ab 501 einmal mit der Modell-Zielwahl und einmal mit `RuleBasedTargetSelector`. Die Würfe nutzen je Leg denselben Zufallsstrom (gepaarter Vergleich), damit nur die Zielwahl den Unterschied macht.
+
+```powershell
+dotnet run --project Tools.BotTrainer -c Release -- compare --model 2 --legs 2000
+```
+
+| Option | Standard | Bedeutung |
+|---|---|---|
+| `--model` | – | Id aus `DartBotModels` (Pflicht) |
+| `--legs` | 2000 | Legs je Stufe und Strategie |
+| `--seed` | 1 | Zufall der Legs |
+| `--max-darts` | 60 | Obergrenze je Leg |
+| `--straight-out` | – | Straight-Out statt Double-Out |
+
+Ausgabe je Stufe: Darts pro Leg (Regelwerk, Modell), mittlere Differenz mit 95-%-Intervall (negativ = Modell besser), Anteil Legs, in denen das Modell besser bzw. schlechter war.
+Das Ergebnis wird unter `Comparison` in `MetricsJson` des Trainingslaufs gespeichert. Exit-Code 4, wenn das Modell auf einer Stufe signifikant schlechter ist.
+
+Die Modell-Zielwahl (`MlTargetSelector`) liegt vorläufig im Werkzeug; in Phase 5 wandert sie nach `Logic.Bot`.
