@@ -1,4 +1,4 @@
-# Build context: solution root (sources/)
+﻿# Build context: solution root (sources/)
 #   docker build -f Web.Core/Dockerfile -t dartmetrics-api .
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -13,6 +13,7 @@ COPY Logic.Authentication/Logic.Authentication.csproj Logic.Authentication/
 COPY Logic.Bot/Logic.Bot.csproj                       Logic.Bot/
 COPY Logic.Profile/Logic.Profile.csproj               Logic.Profile/
 COPY Logic.Shared/Logic.Shared.csproj                 Logic.Shared/
+COPY Logic.Statistics/Logic.Statistics.csproj         Logic.Statistics/
 COPY Logic.Training/Logic.Training.csproj             Logic.Training/
 COPY Shared.Enums/Shared.Enums.csproj                 Shared.Enums/
 COPY Shared.Interfaces/Shared.Interfaces.csproj       Shared.Interfaces/

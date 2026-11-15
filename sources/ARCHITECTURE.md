@@ -1,4 +1,4 @@
-# DartMetrics – Architektur und Service-Verzeichnis
+﻿# DartMetrics – Architektur und Service-Verzeichnis
 
 Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README.md). Regeln und Konventionen: [CLAUDE.md](CLAUDE.md).
 
@@ -19,7 +19,8 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Profile` | Benutzerprofil | [README](Logic.Profile/README.md) |
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung | [README](Logic.Bot/README.md) |
-| `Logic.Administration` | System-Logs, Benutzerverwaltung | [README](Logic.Administration/README.md) |
+| `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
+| `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
 | **Daten** | | |
 | `Data.DartContext` | EF Core (MySQL): Entities, Konfigurationen, Migrationen, Seeds | [README](Data.DartContext/README.md) |
 | **Gemeinsam** | | |
@@ -33,7 +34,7 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 Web.App.Client (WASM)            Web.App (Blazor Server, BFF, /admin)
                                    └─ Web.Shared ─ Shared.Interfaces
 Web.Core (API-Host) ─ Service.Api ─ Shared.Interfaces
-   └─ Logic.Administration │ Logic.Authentication │ Logic.Bot │ Logic.Profile │ Logic.Training
+   └─ Logic.Administration │ Logic.Authentication │ Logic.Bot │ Logic.Profile │ Logic.Statistics │ Logic.Training
         └─ Logic.Shared ─ Data.DartContext ─ Shared.Models ─ Shared.Enums
 ```
 
@@ -60,8 +61,8 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IEmailClient` | `EmailClient` | [Logic.Shared](Logic.Shared/README.md) | S | `SendMail` |
 | `IUserAuthentication` | `UserAuthentication` | [Logic.Authentication](Logic.Authentication/README.md) | S | `AuthenticateUser`, `RefreshToken`, `LogoutUser` |
 | `IUserRegistration` | `UserRegistration` | [Logic.Authentication](Logic.Authentication/README.md) | S | `RegisterUser`, `VerifyEmail` |
-| `IUserProfileService` | `UserProfileService` | [Logic.Profile](Logic.Profile/README.md) | S | `GetProfileData`, `UpdateUserProfile`, `ChangePassword` |
-| `ISegmentTraining` | `SegmentTraining` | [Logic.Training](Logic.Training/README.md) | S | `StartTrainingAsync`, `AddThrowAsync`, `FinishTrainingAsync`, `GetResultAsync` |
+| `IUserProfileService` | `UserProfileService` | [Logic.Profile](Logic.Profile/README.md) | S | `GetProfileData`, `UpdateUserProfile`, `ChangePassword`, `UploadAvatar`, `DeleteAvatar`, `GetAvatar` |
+| `ISegmentTraining` | `SegmentTraining` | [Logic.Training](Logic.Training/README.md) | S | `GetRunningTrainingAsync`, `StartTrainingAsync`, `AddThrowAsync`, `FinishTrainingAsync`, `GetResultAsync` |
 | `ICheckoutTraining` | `CheckoutTraining` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
 | `IX01TrainingGame` | `X01TrainingGame` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
 | `IAroundTheClockTraining` | `AroundTheClockTraining` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
@@ -70,10 +71,12 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `ITargetSelector` | `RuleBasedTargetSelector` | [Logic.Bot](Logic.Bot/README.md) | Si | `SelectTarget` |
 | `IBotVisitPlayer` | `BotVisitPlayer` | [Logic.Bot](Logic.Bot/README.md) | Si | `PlayVisit` |
 | `IDartBotAdministration` | `DartBotAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `CreateBotAsync`, `ActivateBotAsync`, `DeactivateBotAsync`, `GetBotsAsync`, `GetBotAsync` |
-| `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetAvailableBotsAsync` |
-| `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` |
+| `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetRatingHistoryAsync`, `GetAvailableBotsAsync` |
+| `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` (XP, Elo Bot + Spieler, Level), `MergeConcurrentBotUpdatesAsync` |
+| `IPlayerStatisticsService` | `PlayerStatisticsService` | [Logic.Statistics](Logic.Statistics/README.md) | S | `GetStatisticsAsync(period)` |
 | `ILogService` | `LogService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetLogMessages`, `DeleteMessage`, `DeleteMessages` |
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
+| `IDashboardStatisticsService` | `DashboardStatisticsService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetStatisticsAsync` (Zählwerte fürs Admin-Dashboard) |
 
 Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erzeugt (`RepositoryBase<TEntity>`).
 
@@ -95,9 +98,11 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | – | `ApiClient` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | API-Aufrufe über den BFF-Proxy `/bff/api/**` |
 | `AuthenticationStateProvider` | `BffAuthenticationStateProvider` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Anmeldestatus aus `/bff/user` |
 | – | `CsrfHeaderHandler` | [Web.App.Client](Web.App/Web.App.Client/README.md) | T | Setzt den CSRF-Header für BFF-Aufrufe |
-| `IProfileApi` | `ProfileApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetProfileAsync` (Profile/GetProfile) |
-| `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
-| `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand (DartBotGameController) |
+| `IProfileApi` | `ProfileApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Profil laden/speichern, Passwort, Profilbild hoch-/entfernen |
+| – | `PlayerProfileState` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Profil für Kopfzeile und Profilseite, `Changed`-Ereignis |
+| `IStatisticsApi` | `StatisticsApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetStatisticsAsync(period)` (PlayerStatistics) |
+| `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Offenes Training, Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
+| `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand, Elo-Verlauf (DartBotGameController) |
 
 ## Web-Bereiche
 
@@ -116,10 +121,12 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 | `UserAuthentication`, `Registration` | `IUserAuthentication`, `IUserRegistration` | anonym / angemeldet |
 | `Profile` | `IUserProfileService` | angemeldet |
 | `SegmentTraining`, `CheckoutTraining`, `X01TrainingGame`, `AroundTheClockTraining` | Trainings-Services | angemeldet |
-| `DartBotGame` | `IDartBotGameService` | angemeldet |
+| `DartBotGame` | `IDartBotGameService` | Player |
+| `PlayerStatistics` | `IPlayerStatisticsService` | Player |
 | `DartBotAdministration` | `IDartBotAdministration` | Admin |
 | `UserAdministration` | `IUserAdministration` | Admin |
 | `MessageLog` | `ILogService` | Admin |
+| `Dashboard` | `IDashboardStatisticsService` | Admin |
 | `Health` | – | anonym |
 
 ## Weitere Dokumente

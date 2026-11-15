@@ -1,0 +1,79 @@
+@*
+    Kleiner Linienverlauf als SVG (ohne Bibliothek). Mindestens zwei Punkte, sonst ein Hinweis.
+    Farben aus player.css (--pl-brass), keine neuen Farben.
+*@
+@using global::Shared.Models.Statistics
+
+<figure class="pa-trend">
+    <figcaption class="pa-trend__title">
+        <span>@Title</span>
+        @if (Points.Count > 0)
+        {
+            <small>@Format(Points[^1].Value) @Unit</small>
+        }
+    </figcaption>
+
+    @if (Points.Count < 2)
+    {
+        <p class="pa-section__hint">@EmptyText</p>
+    }
+    else
+    {
+        <svg class="pa-trend__chart" viewBox="0 0 @Width @Height" preserveAspectRatio="none" role="img"
+             aria-label="@($"{Title}: von {Format(Points[0].Value)} auf {Format(Points[^1].Value)}, Minimum {Format(_min)}, Maximum {Format(_max)}")">
+            <line class="pa-trend__grid" x1="0" y1="@Y(_max)" x2="@Width" y2="@Y(_max)" />
+            <line class="pa-trend__grid" x1="0" y1="@Y(_min)" x2="@Width" y2="@Y(_min)" />
+            <polyline class="pa-trend__line" points="@PolylinePoints" vector-effect="non-scaling-stroke" />
+        </svg>
+        <div class="pa-trend__axis">
+            <span>@Points[0].Date.ToLocalTime().ToString("dd.MM.yy")</span>
+            <span>min @Format(_min) · max @Format(_max)</span>
+            <span>@Points[^1].Date.ToLocalTime().ToString("dd.MM.yy")</span>
+        </div>
+    }
+</figure>
+
+@code {
+    private const double Width = 300;
+    private const double Height = 80;
+    private const double Padding = 6;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired] public IReadOnlyList<StatisticsTrendPoint> Points { get; set; } = [];
+
+    [Parameter] public string? Unit { get; set; }
+
+    [Parameter] public string EmptyText { get; set; } = "Noch zu wenige Werte für einen Verlauf.";
+
+    /// <summary>Nachkommastellen in Beschriftungen.</summary>
+    [Parameter] public int Decimals { get; set; } = 1;
+
+    private decimal _min;
+    private decimal _max;
+
+    protected override void OnParametersSet()
+    {
+        _min = Points.Count == 0 ? 0 : Points.Min(p => p.Value);
+        _max = Points.Count == 0 ? 0 : Points.Max(p => p.Value);
+    }
+
+    private string PolylinePoints => string.Join(" ",
+        Points.Select((p, i) => FormattableString.Invariant($"{X(i):0.#},{Y(p.Value):0.#}")));
+
+    private double X(int index) => Points.Count < 2 ? 0 : index * Width / (Points.Count - 1);
+
+    /// <summary>Flache Linie in der Mitte, wenn alle Werte gleich sind.</summary>
+    private double Y(decimal value)
+    {
+        if (_max == _min)
+        {
+            return Height / 2;
+        }
+
+        var ratio = (double)((value - _min) / (_max - _min));
+        return Height - Padding - ratio * (Height - 2 * Padding);
+    }
+
+    private string Format(decimal value) => value.ToString(Decimals == 0 ? "0" : "0." + new string('0', Decimals));
+}

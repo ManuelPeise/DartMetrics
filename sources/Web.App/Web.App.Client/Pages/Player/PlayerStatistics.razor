@@ -1,8 +1,204 @@
 @page "/player/statistics"
+@using global::Shared.Enums.Statistics
+@using global::Shared.Models.Statistics
+@inject IStatisticsApi StatisticsApi
 
 <PageTitle>Statistiken – DartMetrics</PageTitle>
 
-<PlayerPageHeader Eyebrow="Auswerten" Title="Statistiken" Subtitle="Averages, Doppelquoten und deine Entwicklung." />
+<PlayerPageHeader Eyebrow="Auswerten" Title="Statistiken" Subtitle="Averages, Quoten und deine Entwicklung." />
 
-<PlayerEmptyState Icon="PlayerIconName.Chart" Title="Kommt bald"
-                  Text="Dieser Bereich wird in einem der nächsten Schritte umgesetzt." />
+<PlayerChoiceGroup TValue="StatisticsPeriodEnum" Label="Zeitraum" Options="PeriodOptions" Value="_period"
+                   ValueChanged="ChangePeriodAsync" Disabled="_loading" />
+
+@if (_loading && _statistics is null)
+{
+    <PlayerLoadingState />
+}
+else if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" OnRetry="LoadAsync" />
+}
+else if (_statistics is null || !_statistics.HasData)
+{
+    <PlayerEmptyState Icon="PlayerIconName.Chart" Title="Noch keine Daten"
+                      Text="Beende ein Training oder ein Spiel gegen einen Bot – danach erscheinen hier deine Werte." />
+}
+else
+{
+    var s = _statistics;
+
+    if (s.IsFallbackToAll)
+    {
+        <p class="pl-alert pl-alert--success" role="status">
+            Im gewählten Zeitraum gibt es keine Daten – angezeigt wird der gesamte Zeitraum.
+        </p>
+    }
+
+    <section class="pa-section" aria-labelledby="overview-title">
+        <h2 class="pa-section__title" id="overview-title">Überblick</h2>
+        <PlayerStatGrid Stats="@OverviewStats(s)" />
+    </section>
+
+    <section class="pa-section" aria-labelledby="trend-title">
+        <h2 class="pa-section__title" id="trend-title">Entwicklung</h2>
+        <div class="pa-trend-grid">
+            <PlayerTrendChart Title="X01-Average (pro Aufnahme)" Points="s.X01AverageTrend"
+                              EmptyText="Ab zwei beendeten X01-Trainings erscheint hier dein Verlauf." />
+            <PlayerTrendChart Title="Elo" Points="s.RatingTrend" Decimals="0"
+                              EmptyText="Ab zwei gewerteten Bot-Spielen erscheint hier dein Verlauf." />
+        </div>
+    </section>
+
+    if (s.X01.Sessions > 0)
+    {
+        <section class="pa-section" aria-labelledby="x01-title">
+            <h2 class="pa-section__title" id="x01-title">X01-Training</h2>
+            <PlayerStatGrid Stats="@X01Stats(s.X01)" />
+        </section>
+    }
+
+    if (s.BotGames.Games > 0)
+    {
+        <section class="pa-section" aria-labelledby="bot-title">
+            <h2 class="pa-section__title" id="bot-title">Gegen Bots</h2>
+            <PlayerStatGrid Stats="@BotStats(s.BotGames)" />
+        </section>
+    }
+
+    if (s.Checkout.Sessions > 0)
+    {
+        <section class="pa-section" aria-labelledby="checkout-title">
+            <h2 class="pa-section__title" id="checkout-title">Checkout-Training</h2>
+            <PlayerStatGrid Stats="@CheckoutStats(s.Checkout)" />
+
+            @if (s.Checkout.ByTarget.Count > 0)
+            {
+                <ul class="pa-history" aria-label="Checkout-Quote je Zielwert">
+                    @foreach (var target in s.Checkout.ByTarget)
+                    {
+                        <li class="pa-history__item">
+                            <span><strong>@target.TargetScore</strong><small>@target.Successful von @target.Attempts Versuchen</small></span>
+                            <span class="pa-history__rating">@Percent(target.Rate)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+
+    if (s.Segment.Sessions > 0)
+    {
+        <section class="pa-section" aria-labelledby="segment-title">
+            <h2 class="pa-section__title" id="segment-title">Segment-Training</h2>
+            <PlayerStatGrid Stats="@SegmentStats(s.Segment)" />
+
+            @if (s.Segment.ByTarget.Count > 0)
+            {
+                <ul class="pa-history" aria-label="Trefferquote je Zielfeld">
+                    @foreach (var target in s.Segment.ByTarget)
+                    {
+                        <li class="pa-history__item">
+                            <span><strong>@(new DartThrowInput(target.Segment, target.Multiplier).Label)</strong><small>@target.Hits von @target.Darts Darts</small></span>
+                            <span class="pa-history__rating">@Percent(target.HitRate)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+
+    if (s.AroundTheClock.Sessions > 0)
+    {
+        <section class="pa-section" aria-labelledby="atc-title">
+            <h2 class="pa-section__title" id="atc-title">Around the Clock</h2>
+            <PlayerStatGrid Stats="@AroundTheClockStats(s.AroundTheClock)" />
+        </section>
+    }
+}
+
+@code {
+    private static readonly IReadOnlyList<PlayerChoice<StatisticsPeriodEnum>> PeriodOptions =
+    [
+        new(StatisticsPeriodEnum.Last30Days, "30 Tage"),
+        new(StatisticsPeriodEnum.Last90Days, "90 Tage"),
+        new(StatisticsPeriodEnum.All, "Gesamt")
+    ];
+
+    private StatisticsPeriodEnum _period = StatisticsPeriodEnum.Last30Days;
+    private PlayerStatistics? _statistics;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task ChangePeriodAsync(StatisticsPeriodEnum period)
+    {
+        _period = period;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await StatisticsApi.GetStatisticsAsync(_period);
+
+        _statistics = result.Value;
+        _error = result.Error;
+        _loading = false;
+    }
+
+    private static IReadOnlyList<PlayerStat> OverviewStats(PlayerStatistics s) =>
+    [
+        new("Trainings", s.Summary.TrainingSessions.ToString(),
+            Hint: $"X01 {s.Summary.X01Sessions} · ATC {s.Summary.AroundTheClockSessions} · Checkout {s.Summary.CheckoutSessions} · Segment {s.Summary.SegmentSessions}"),
+        new("Darts", s.Summary.TotalDarts.ToString("N0")),
+        new("Bot-Spiele", s.BotGames.Games.ToString(), Hint: s.BotGames.Games == 0 ? null : $"{Percent(s.BotGames.WinRate)} Siege"),
+        new("Elo", s.Summary.CurrentRating.ToString(), Highlight: true,
+            Hint: s.BotGames.RatingChange is { } change ? $"{Signed(change)} im Zeitraum" : null)
+    ];
+
+    private static IReadOnlyList<PlayerStat> X01Stats(X01Statistics x) =>
+    [
+        new("Average", Number(x.AveragePerVisit), Hint: $"{Number(x.AveragePerDart, 2)} pro Dart", Highlight: true),
+        new("Beste Aufnahme", x.BestVisit.ToString()),
+        new("Legs gecheckt", $"{x.LegsFinished} / {x.Sessions}"),
+        new("Darts pro Leg", x.AverageDartsPerLeg is { } d ? Number(d) : "–"),
+        new("Busts", x.Busts.ToString(), Hint: $"bei {x.Visits} Aufnahmen")
+    ];
+
+    private static IReadOnlyList<PlayerStat> BotStats(BotGameStatistics b) =>
+    [
+        new("Siege", $"{b.Wins} / {b.Games}", Hint: Percent(b.WinRate), Highlight: true),
+        new("Average", Number(b.AveragePerVisit), Hint: "pro Aufnahme"),
+        new("Elo-Änderung", b.RatingChange is { } change ? Signed(change) : "–")
+    ];
+
+    private static IReadOnlyList<PlayerStat> CheckoutStats(CheckoutStatistics c) =>
+    [
+        new("Checkout-Quote", Percent(c.Rate), Hint: $"{c.Successful} von {c.Attempts}", Highlight: true),
+        new("Darts pro Checkout", c.AverageDartsPerCheckout is { } d ? Number(d) : "–"),
+        new("Sessions", c.Sessions.ToString())
+    ];
+
+    private static IReadOnlyList<PlayerStat> SegmentStats(SegmentStatistics g) =>
+    [
+        new("Trefferquote", Percent(g.HitRate), Hint: $"{g.Hits} von {g.Darts} Darts", Highlight: true),
+        new("Sessions", g.Sessions.ToString())
+    ];
+
+    private static IReadOnlyList<PlayerStat> AroundTheClockStats(AroundTheClockStatistics a) =>
+    [
+        new("Trefferquote", Percent(a.HitRate), Highlight: true),
+        new("Komplett", $"{a.Completed} / {a.Sessions}"),
+        new("Bestwert", a.BestDarts is { } best ? $"{best} Darts" : "–"),
+        new("Ø Darts", a.AverageDarts is { } avg ? Number(avg) : "–")
+    ];
+
+    private static string Number(decimal value, int decimals = 1) => value.ToString(decimals == 2 ? "0.00" : "0.0");
+
+    private static string Percent(decimal value) => $"{value:0.#} %";
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString();
+}

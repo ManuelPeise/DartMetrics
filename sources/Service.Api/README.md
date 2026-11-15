@@ -1,4 +1,4 @@
-# Service.Api
+﻿# Service.Api
 
 API-Controller. Enthalten keine Logik, nur den Aufruf des passenden Services.
 
@@ -9,8 +9,9 @@ API-Controller. Enthalten keine Logik, nur den Aufruf des passenden Services.
 | Authentication | `UserAuthenticationController`, `RegistrationController` | anonym / angemeldet |
 | Account | `ProfileController` | angemeldet |
 | Training | `SegmentTraining…`, `CheckoutTraining…`, `X01TrainingGame…`, `AroundTheClockTraining…` | angemeldet |
-| Bot | `DartBotGameController` (Spiele gegen Bots, Bot-Auswahl) | `[Authorize]` |
-| Administration | `DartBotAdministrationController`, `UserAdministrationController`, `MessageLogController` | `[Authorize(Roles = Admin)]` |
+| Bot | `DartBotGameController` (Spiele gegen Bots, Bot-Auswahl, Elo-Verlauf) | Player |
+| Statistics | `PlayerStatisticsController` (eigene Statistik, `period`) | Player |
+| Administration | `DartBotAdministrationController`, `UserAdministrationController`, `MessageLogController`, `DashboardController` | `[Authorize(Roles = Admin)]` |
 | Health | `HealthController` | anonym |
 
 ## Regeln

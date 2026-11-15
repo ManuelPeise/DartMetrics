@@ -15,6 +15,7 @@ using Logic.Profile.DI;
 using Logic.Training.DI;
 using Logic.Bot.DI;
 using Logic.Administration.DI;
+using Logic.Statistics.DI;
 
 namespace Web.Core.Bundles
 {
@@ -133,6 +134,7 @@ namespace Web.Core.Bundles
             services.AddTrainingServices();
             services.AddBotServices();
             services.AddAdministrationServices();
+            services.AddStatisticsServices();
         }
     }
 }

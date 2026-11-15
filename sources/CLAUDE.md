@@ -37,6 +37,8 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 - Logic-Projekte greifen nur über `IUnitOfWork` auf die Datenbank zu, nie direkt auf den `DbContext` (Ausnahme: `MessageLog`).
 - Interfaces liegen in `Shared.Interfaces`, Transportmodelle in `Shared.Models`, Enums in `Shared.Enums` – jeweils im fachlichen Unterordner (`Bot`, `Training`, `Administration`, …).
 - Das Web (Web.App/Web.Shared) spricht die Datenbank nie direkt an, immer über die API.
+- Neues Logic-Projekt: in `DartMetrics.slnx`, `Web.Core.csproj`, `Web.Core/Bundles/Services.cs` **und** `Web.Core/Dockerfile` (COPY-Zeile) eintragen, eigene README, Eintrag in ARCHITECTURE.md.
+- Logic-Projekte referenzieren sich nicht gegenseitig; übergreifende Auswertungen (z. B. `Logic.Statistics`) lesen selbst über den UnitOfWork.
 
 ## Namenskonventionen
 

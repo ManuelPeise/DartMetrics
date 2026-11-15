@@ -25,5 +25,6 @@ builder.Services.AddScoped<IProfileApi, ProfileApi>();
 builder.Services.AddScoped<PlayerProfileState>();
 builder.Services.AddScoped<IBotGameApi, BotGameApi>();
 builder.Services.AddScoped<ITrainingApi, TrainingApi>();
+builder.Services.AddScoped<IStatisticsApi, StatisticsApi>();
 
 await builder.Build().RunAsync();

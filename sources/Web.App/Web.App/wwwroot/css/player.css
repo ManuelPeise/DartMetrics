@@ -904,3 +904,44 @@ a.pa-card:hover {
     .pa-profile-head__actions label.pl-btn { cursor: pointer; }
 
     .pa-profile-head__actions label.is-disabled { opacity: 0.6; pointer-events: none; }
+
+/* Statistik: Verlauf */
+.pa-trend-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.pa-trend {
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: 12px;
+}
+
+.pa-trend__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+    .pa-trend__title small { color: var(--pl-brass-strong); font-size: 1rem; }
+
+.pa-trend__chart { display: block; width: 100%; height: 80px; overflow: visible; }
+
+.pa-trend__line { fill: none; stroke: var(--pl-brass); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+
+.pa-trend__grid { stroke: var(--pl-line); stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+
+.pa-trend__axis {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+    color: var(--pl-ink-muted);
+    font-size: 0.72rem;
+}

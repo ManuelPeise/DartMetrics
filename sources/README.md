@@ -11,7 +11,7 @@
   - *Checkout-Training* – Finishes von einem Startwert üben.
   - *X01* – 301 oder 501 mit Double-Out allein spielen.
   - *Around the Clock* – die Segmente der Reihe nach treffen.
-- **Statistiken:** Averages, Doppelquoten, Trefferbilder und Fortschritt über Wochen und Monate.
+- **Statistiken:** Averages, Checkout- und Trefferquoten, Siege gegen Bots und Verlauf von Average und Elo – für 30 Tage, 90 Tage oder gesamt.
 - **Spiele gegen DartBots:** 301/501, Best of 1–11 Legs. Der Bot antwortet sofort mit seiner Aufnahme und zeigt, worauf er gezielt hat.
 
 ### DartBots
