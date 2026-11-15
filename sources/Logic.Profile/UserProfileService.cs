@@ -106,6 +106,13 @@ namespace Logic.Profile
                     throw new ArgumentException("Password and password replication do not match.");
                 }
 
+                PasswordPolicy.Validate(request.Password, nameof(request.Password));
+
+                if (PasswordHasher.IsMatchingPassword(request.Password, request.CurrentPassword))
+                {
+                    throw new ArgumentException("The new password must differ from the current password.");
+                }
+
                 var currentUser = _claimsHelper.GetCurrentUserFromClaims();
 
                 if(currentUser == null)
@@ -120,7 +127,8 @@ namespace Logic.Profile
                     throw new ArgumentException("User not found in database.");
                 }
 
-                if (!PasswordHasher.IsMatchingPassword(PasswordHasher.HashPassword(request.CurrentPassword), userEntity.UserCredentials.PasswordHash))
+                // BCrypt hasht mit Salt: vergleichen nur über Verify, nie über einen neuen Hash.
+                if (!PasswordHasher.VerifyPassword(request.CurrentPassword, userEntity.UserCredentials.PasswordHash))
                 {
                     throw new ArgumentException("Could not change password because the current password is incorrect.");
                 }

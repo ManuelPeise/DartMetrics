@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Web.App.Client.Authentication
 {
@@ -20,7 +20,7 @@ namespace Web.App.Client.Authentication
         public string EmailAddress { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Bitte Passwort eingeben.")]
-        [StringLength(128, MinimumLength = 8, ErrorMessage = "Mindestens 8 Zeichen.")]
+        [StringLength(72, MinimumLength = 8, ErrorMessage = "8 bis 72 Zeichen.")]
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Bitte Passwort wiederholen.")]

@@ -45,6 +45,8 @@ namespace Logic.Authentication
                     throw new ArgumentException("Password and PasswordReplication do not match.");
                 }
 
+                PasswordPolicy.Validate(registrationRequestModel.UserCredentials.Password, nameof(registrationRequestModel.UserCredentials.Password));
+
                 var userEntity = await UnitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(
                     u => u.EmailAddress == registrationRequestModel.EmailAddress,
                     include: u => u.Include(x => x.UserCredentials));

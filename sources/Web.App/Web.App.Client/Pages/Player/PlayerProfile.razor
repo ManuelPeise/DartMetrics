@@ -1,4 +1,4 @@
-@page "/player/profile"
+﻿@page "/player/profile"
 @using global::Shared.Models.Authentication
 @using global::Shared.Models.Bot
 @using global::Shared.Models.User
@@ -97,7 +97,7 @@ else
                 <input id="currentPassword" type="password" class="pl-input" autocomplete="current-password" @bind="_currentPassword" />
             </div>
             <div class="pl-field">
-                <label for="newPassword">Neues Passwort</label>
+                <label for="newPassword">Neues Passwort <span class="pl-optional">@PasswordPolicy.Description</span></label>
                 <input id="newPassword" type="password" class="pl-input" autocomplete="new-password" @bind="_newPassword" />
             </div>
             <div class="pl-field">
@@ -223,6 +223,18 @@ else
         if (string.IsNullOrEmpty(_currentPassword) || string.IsNullOrEmpty(_newPassword))
         {
             _passwordMessage = "Bitte aktuelles und neues Passwort eingeben.";
+            return;
+        }
+
+        if (_newPassword.Length < PasswordPolicy.MinLength)
+        {
+            _passwordMessage = $"Das neue Passwort braucht mindestens {PasswordPolicy.MinLength} Zeichen.";
+            return;
+        }
+
+        if (_newPassword == _currentPassword)
+        {
+            _passwordMessage = "Das neue Passwort muss sich vom aktuellen unterscheiden.";
             return;
         }
 
