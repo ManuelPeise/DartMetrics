@@ -1,4 +1,4 @@
-using Logic.Shared.Rules;
+﻿using Logic.Shared.Rules;
 using Shared.Enums.X01;
 using Shared.Models.Bot;
 using Shared.Models.Bot.Ml;
@@ -7,7 +7,7 @@ namespace Tools.BotTrainer
 {
     /// <summary>
     /// Zufällige Spielsituationen über den ganzen Bereich: Rest 2–501 (Straight-Out ab 1), 1–3 Darts in der Aufnahme,
-    /// Gegnerstand 2–501, alle Fähigkeiten 0–1, In-/Out-Modus zufällig. Reproduzierbar über den Seed.
+    /// Gegnerstand 2–501, Fähigkeiten überwiegend 0,3–1, In-/Out-Modus zufällig. Reproduzierbar über den Seed.
     /// </summary>
     public sealed class SituationSampler
     {
@@ -51,6 +51,12 @@ namespace Tools.BotTrainer
                 isOpened);
         }
 
-        private float Skill() => (float)Math.Round(_random.NextDouble(), 3);
+        /// <summary>
+        /// 80 % der Fähigkeiten 0,3–1, 20 % darunter: sehr schwache Profile erreichen oft die Rollout-Obergrenze
+        /// und liefern kaum Unterschiede zwischen Kandidaten.
+        /// </summary>
+        private float Skill() => (float)Math.Round(_random.NextDouble() < 0.8
+            ? 0.3 + _random.NextDouble() * 0.7
+            : _random.NextDouble() * 0.3, 3);
     }
 }

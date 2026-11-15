@@ -1,4 +1,4 @@
-namespace Shared.Models.Bot.Ml
+﻿namespace Shared.Models.Bot.Ml
 {
     /// <summary>
     /// Eine Trainingszeile: Situation + Profil + Kandidat (Merkmale) und das Label.
@@ -6,7 +6,11 @@ namespace Shared.Models.Bot.Ml
     /// </summary>
     public sealed class TargetCandidateFeatures
     {
-        public const int FeatureSchemaVersion = 1;
+        /// <summary>
+        /// 2: SituationId und relatives Label (RelativeDarts) ergänzt; Rollouts aller Kandidaten einer Situation
+        /// nutzen denselben Zufallsstrom.
+        /// </summary>
+        public const int FeatureSchemaVersion = 2;
 
         // Situation
         public float Remaining { get; set; }
@@ -38,5 +42,14 @@ namespace Shared.Models.Bot.Ml
         public float DartsStdDev { get; set; }
 
         public int Rollouts { get; set; }
+
+        /// <summary>Gruppierung: alle Kandidaten einer Situation tragen dieselbe Nummer (kein Merkmal).</summary>
+        public int SituationId { get; set; }
+
+        /// <summary>
+        /// Label (Schema 2): Darts mehr als der beste Kandidat derselben Situation (0 = bester).
+        /// Für die Zielwahl zählt die Rangfolge innerhalb der Situation, nicht der absolute Wert.
+        /// </summary>
+        public float RelativeDarts { get; set; }
     }
 }

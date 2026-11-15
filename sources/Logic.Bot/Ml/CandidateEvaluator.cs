@@ -1,4 +1,4 @@
-using Logic.Bot.Models;
+﻿using Logic.Bot.Models;
 using Logic.Bot.Simulation;
 using Logic.Bot.Tactics;
 using Shared.Interfaces.Bot;
@@ -9,8 +9,10 @@ namespace Logic.Bot.Ml
 {
     /// <summary>
     /// Bewertet alle Kandidaten einer Situation: je Kandidat N Rollouts mit der Regelstrategie,
-    /// Mittelwert der Darts = Label ExpectedDartsToFinish. Kandidaten laufen parallel, jeder mit eigenem
-    /// Zufallsstrom aus Seed und Index – das Ergebnis ist unabhängig von der Parallelisierung reproduzierbar.
+    /// Mittelwert der Darts = ExpectedDartsToFinish, Abstand zum besten Kandidaten = RelativeDarts.
+    /// Gemeinsamer Zufall: alle Kandidaten einer Situation werfen mit demselben Zufallsstrom (Rollout i hat
+    /// für jeden Kandidaten dieselben Würfe), damit der Unterschied zwischen Kandidaten nur von der Zielwahl kommt.
+    /// Würfe und Strategie haben getrennte Ströme, damit Taktikfehler die Würfe nicht verschieben.
     /// </summary>
     public sealed class CandidateEvaluator
     {
@@ -34,20 +36,34 @@ namespace Logic.Bot.Ml
 
             Parallel.For(0, candidates.Count, index =>
             {
-                results[index] = EvaluateCandidate(situation, candidates[index], options, StreamSeed(options.Seed, index));
+                results[index] = EvaluateCandidate(situation, candidates[index], options, options.Seed);
             });
+
+            if (results.Length > 0)
+            {
+                var best = results.Min(r => r.ExpectedDartsToFinish);
+
+                foreach (var row in results)
+                {
+                    row.RelativeDarts = (float)Math.Round(row.ExpectedDartsToFinish - best, 2);
+                }
+            }
 
             return results;
         }
 
         public TargetCandidateFeatures EvaluateCandidate(BotSituation situation, DartTarget candidate, RolloutOptions options, int seed)
         {
-            var random = _randomFactory(seed);
-            var simulator = new LegRolloutSimulator(new RuleBasedTargetSelector(random), new ThrowSimulator(random));
             var darts = new int[options.RolloutsPerCandidate];
 
             for (var i = 0; i < darts.Length; i++)
             {
+                // Je Rollout ein eigener Seed: Rollout i startet für jeden Kandidaten mit denselben Würfen.
+                var rolloutSeed = unchecked(seed * 486187739 + i * 16777619);
+                var simulator = new LegRolloutSimulator(
+                    new RuleBasedTargetSelector(_randomFactory(~rolloutSeed)),
+                    new ThrowSimulator(_randomFactory(rolloutSeed)));
+
                 darts[i] = simulator.Play(situation, candidate, options.MaxDartsPerLeg);
             }
 
@@ -61,8 +77,5 @@ namespace Logic.Bot.Ml
 
             return features;
         }
-
-        /// <summary>Fester, gut gestreuter Seed je Kandidat (unabhängig von der Thread-Reihenfolge).</summary>
-        private static int StreamSeed(int seed, int index) => unchecked(seed * 486187739 + index * 16777619);
     }
 }

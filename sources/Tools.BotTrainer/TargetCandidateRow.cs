@@ -1,4 +1,4 @@
-using Microsoft.ML.Data;
+﻿using Microsoft.ML.Data;
 
 namespace Tools.BotTrainer
 {
@@ -25,6 +25,9 @@ namespace Tools.BotTrainer
         [LoadColumn(14)] public float IsFinishingDart { get; set; }
         [LoadColumn(15)] public float LeftoverIsCheckable { get; set; }
         [LoadColumn(16)] public float ExpectedDartsToFinish { get; set; }
+        // 17 DartsStdDev, 18 Rollouts: nicht geladen
+        [LoadColumn(19)] public float SituationId { get; set; }
+        [LoadColumn(20)] public float RelativeDarts { get; set; }
 
         /// <summary>Numerische Merkmale (ohne die one-hot-kodierten Kategorien und ohne Label).</summary>
         public static readonly string[] NumericFeatures =

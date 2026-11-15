@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Logic.Bot.Ml;
@@ -23,7 +23,8 @@ namespace Tools.BotTrainer
     /// </summary>
     public static class CompareCommand
     {
-        private static readonly float[] SkillLevels = [0.2f, 0.5f, 0.8f, 0.95f];
+        /// <summary>Unter ~0,4 enden die meisten Legs an der Obergrenze; solche Stufen sagen nichts über die Zielwahl.</summary>
+        private static readonly float[] SkillLevels = [0.5f, 0.7f, 0.85f, 0.95f];
 
         public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
         {

@@ -70,6 +70,16 @@ namespace Logic.Bot.Tests.Ml
         }
 
         [Fact]
+        public void Evaluate_RelativeDarts_BestCandidateIsZero()
+        {
+            var options = new RolloutOptions { RolloutsPerCandidate = 10, Seed = 5 };
+            var rows = new CandidateEvaluator().Evaluate(new BotSituation(60, 3, 501, new BotSkillProfile(0.8f, 0.8f, 1f, 0.8f, 0.5f)), options);
+
+            Assert.Equal(0f, rows.Min(r => r.RelativeDarts));
+            Assert.All(rows, r => Assert.True(r.RelativeDarts >= 0));
+        }
+
+        [Fact]
         public void Evaluate_ReturnsOneRowPerCandidate()
         {
             var situation = new BotSituation(40, 3, 501, Profiles.Perfect);

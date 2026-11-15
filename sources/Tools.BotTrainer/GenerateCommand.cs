@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Data.DartContext.Entities.Bot;
 using Logic.Bot.Ml;
@@ -42,7 +42,14 @@ namespace Tools.BotTrainer
                         Seed = unchecked(options.Seed * 397 + i)
                     };
 
-                    writer.Write(evaluator.Evaluate(sampler.Next(), situationOptions));
+                    var rows = evaluator.Evaluate(sampler.Next(), situationOptions);
+
+                    foreach (var row in rows)
+                    {
+                        row.SituationId = i;
+                    }
+
+                    writer.Write(rows);
 
                     if ((i + 1) % 50 == 0 || i + 1 == situations)
                     {
@@ -82,7 +89,8 @@ namespace Tools.BotTrainer
                     options.RolloutsPerCandidate,
                     options.MaxDartsPerLeg,
                     strategy = "RuleBasedTargetSelector",
-                    label = nameof(TargetCandidateFeatures.ExpectedDartsToFinish)
+                    label = nameof(TargetCandidateFeatures.RelativeDarts),
+                    commonRandomNumbers = true
                 })
             };
 

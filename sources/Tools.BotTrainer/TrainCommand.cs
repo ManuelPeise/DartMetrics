@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Data.DartContext.Entities.Bot;
 using Microsoft.EntityFrameworkCore;
@@ -16,12 +16,14 @@ namespace Tools.BotTrainer
     /// Phase 3: Zielwahl-Modell aus einem Datensatz trainieren.
     /// - Datensatz über seine Id laden, SHA-256 und FeatureSchemaVersion prüfen.
     /// - Lauf als DartBotModelTrainingEntity (Running → Completed/Failed), auch Fehlschläge bleiben sichtbar.
-    /// - FastTree-Regression auf ExpectedDartsToFinish, Aufteilung Training/Test mit festem Seed.
+    /// - FastTree-Regression auf RelativeDarts; Aufteilung Training/Test nach Situationen (alle Kandidaten einer
+    ///   Situation landen auf derselben Seite), fester Seed.
     /// - Modell als ZIP unter ml_data/models (nie überschrieben) + DartBotModelEntity. Aktiviert wird nichts.
     /// </summary>
     public static class TrainCommand
     {
-        private const string Label = nameof(TargetCandidateRow.ExpectedDartsToFinish);
+        /// <summary>Schema 2: Abstand zum besten Kandidaten der Situation (die Rangfolge zählt, nicht der absolute Wert).</summary>
+        private const string Label = nameof(TargetCandidateRow.RelativeDarts);
 
         public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
         {
@@ -105,7 +107,8 @@ namespace Tools.BotTrainer
                 var ml = new MLContext(seed);
 
                 var data = ml.Data.LoadFromTextFile<TargetCandidateRow>(datasetPath, separatorChar: ',', hasHeader: true);
-                var split = ml.Data.TrainTestSplit(data, testFraction: hyperparameters.TestFraction, seed: seed);
+                var split = ml.Data.TrainTestSplit(data, testFraction: hyperparameters.TestFraction,
+                    samplingKeyColumnName: nameof(TargetCandidateRow.SituationId), seed: seed);
 
                 var pipeline = ml.Transforms.Categorical.OneHotEncoding(
                         [
@@ -129,8 +132,10 @@ namespace Tools.BotTrainer
 
                 var metrics = ml.Regression.Evaluate(model.Transform(split.TestSet), labelColumnName: Label);
                 var trainCount = CountRows(ml, split.TrainSet);
+                var topChoice = TopChoiceAccuracy(ml, model.Transform(split.TestSet));
 
                 Console.WriteLine($"Fertig nach {stopwatch.Elapsed:hh\\:mm\\:ss}: RMSE {metrics.RootMeanSquaredError:0.000}, MAE {metrics.MeanAbsoluteError:0.000}, R² {metrics.RSquared:0.0000}");
+                Console.WriteLine($"Zielwahl auf Testsituationen: bestes Ziel getroffen {topChoice.HitRate:P1}, mittlerer Verlust {topChoice.MeanRegret:0.000} Darts");
 
                 var storageKey = $"models/target-selection-v{TargetCandidateFeatures.FeatureSchemaVersion}-{DateTime.UtcNow:yyyyMMdd-HHmmss}-training{training.Id}.zip";
                 var modelPath = store.PathOf(storageKey);
@@ -161,6 +166,8 @@ namespace Tools.BotTrainer
                     metrics.RootMeanSquaredError,
                     metrics.MeanAbsoluteError,
                     metrics.RSquared,
+                    TopChoiceHitRate = Math.Round(topChoice.HitRate, 4),
+                    TopChoiceMeanRegret = Math.Round(topChoice.MeanRegret, 4),
                     TestFraction = hyperparameters.TestFraction,
                     DurationSeconds = Math.Round(stopwatch.Elapsed.TotalSeconds, 1)
                 });
@@ -181,6 +188,40 @@ namespace Tools.BotTrainer
                 Console.Error.WriteLine($"Training fehlgeschlagen: {training.ErrorMessage}");
                 return 3;
             }
+        }
+
+        /// <summary>
+        /// Was für die Zielwahl zählt: Wählt das Modell je Testsituation den Kandidaten mit dem kleinsten
+        /// simulierten Wert? Verlust = simulierte Darts des gewählten Kandidaten minus die des besten.
+        /// </summary>
+        private static (double HitRate, double MeanRegret) TopChoiceAccuracy(MLContext ml, IDataView scored)
+        {
+            var rows = ml.Data.CreateEnumerable<ScoredRow>(scored, reuseRowObject: false).ToList();
+            var situations = rows.GroupBy(r => r.SituationId).Where(g => g.Count() > 1).ToList();
+
+            if (situations.Count == 0)
+            {
+                return (0, 0);
+            }
+
+            var hits = 0;
+            double regret = 0;
+
+            foreach (var situation in situations)
+            {
+                var chosen = situation.MinBy(r => r.Score)!;
+                regret += chosen.RelativeDarts;
+                hits += chosen.RelativeDarts <= 0.0001f ? 1 : 0;
+            }
+
+            return (hits / (double)situations.Count, regret / situations.Count);
+        }
+
+        private sealed class ScoredRow
+        {
+            public float SituationId { get; set; }
+            public float RelativeDarts { get; set; }
+            public float Score { get; set; }
         }
 
         private static long CountRows(MLContext ml, IDataView view) =>

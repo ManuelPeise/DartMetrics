@@ -44,7 +44,7 @@ Grundlage für das spätere Zielwahl-Modell (Plan-Doc „ML.NET Phase 1 – Kand
 | `Ml/CandidateGenerator` | sinnvolle Ziele einer Situation (S/D/T 1–20, 25, Bull) ohne sichere Busts; vor der Double-In-Eröffnung nur Doubles |
 | `Ml/CandidateFeatureBuilder` | Merkmale je Kandidat (`TargetCandidateFeatures`, FeatureSchemaVersion 1) |
 | `Ml/LegRolloutSimulator` | spielt ab dem Kandidaten-Dart das Leg zu Ende (Regelstrategie, `ThrowSimulator`, `X01Rules`), zählt die Darts |
-| `Ml/CandidateEvaluator` | N Rollouts je Kandidat (Standard 50, max. 60 Darts), Mittelwert = Label `ExpectedDartsToFinish`; parallel, reproduzierbar über Seed |
+| `Ml/CandidateEvaluator` | N Rollouts je Kandidat (Standard 50, max. 60 Darts), Mittelwert = `ExpectedDartsToFinish`, Abstand zum besten Kandidaten = Label `RelativeDarts` (Schema 2). Gemeinsamer Zufall: Rollout i hat für alle Kandidaten einer Situation dieselben Würfe; Strategie mit eigenem Strom |
 | `Ml/RolloutOptions` | `RolloutsPerCandidate`, `MaxDartsPerLeg`, `Seed` |
 
 Situation: `Shared.Models/Bot/Ml/BotSituation` (Rest, Darts in der Aufnahme, Gegnerstand, Profil, In-/Out-Modus, eröffnet, Stand zu Beginn der Aufnahme).

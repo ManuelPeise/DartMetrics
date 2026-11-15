@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Shared.Models.Bot.Ml;
 
 namespace Tools.BotTrainer
@@ -10,7 +10,7 @@ namespace Tools.BotTrainer
             "Remaining,DartsAvailable,OpponentRemaining,OutMode,IsOpened," +
             "ThrowPrecision,ThrowConsistency,TacticalIntelligence,PressureResistance,RiskTaking," +
             "CandidateSegment,CandidateMultiplier,CandidateScore,LeftoverIfHit,IsFinishingDart,LeftoverIsCheckable," +
-            "ExpectedDartsToFinish,DartsStdDev,Rollouts";
+            "ExpectedDartsToFinish,DartsStdDev,Rollouts,SituationId,RelativeDarts";
 
         private readonly StreamWriter _writer;
 
@@ -31,7 +31,8 @@ namespace Tools.BotTrainer
                     F(r.ThrowPrecision), F(r.ThrowConsistency), F(r.TacticalIntelligence), F(r.PressureResistance), F(r.RiskTaking),
                     r.CandidateSegment.ToString(CultureInfo.InvariantCulture), r.CandidateMultiplier.ToString(CultureInfo.InvariantCulture),
                     F(r.CandidateScore), F(r.LeftoverIfHit), B(r.IsFinishingDart), B(r.LeftoverIsCheckable),
-                    F(r.ExpectedDartsToFinish), F(r.DartsStdDev), r.Rollouts.ToString(CultureInfo.InvariantCulture)));
+                    F(r.ExpectedDartsToFinish), F(r.DartsStdDev), r.Rollouts.ToString(CultureInfo.InvariantCulture),
+                    r.SituationId.ToString(CultureInfo.InvariantCulture), F(r.RelativeDarts)));
                 RowCount++;
             }
         }

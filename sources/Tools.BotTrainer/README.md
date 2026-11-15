@@ -22,7 +22,8 @@ dotnet run --project Tools.BotTrainer -c Release -- generate --situations 1000 -
 | `--no-db` | – | nur Datei schreiben, keine Metadaten |
 
 - **Ablage:** `MlData:Path` (Standard `ml_data` im Lösungsordner). `docker-compose.yml` bindet denselben Ordner schreibgeschützt in die API ein (`/data/ml`), damit sie später Modelle laden kann. `ml_data/` gehört nicht ins Git.
-- **Situationen:** 60 % im Finish-Bereich (≤ 170), 20 % Straight-Out, 20 % Double-In (davon ein Teil noch nicht eröffnet), alle Fähigkeiten gleichverteilt 0–1.
+- **Situationen:** 60 % im Finish-Bereich (≤ 170), 20 % Straight-Out, 20 % Double-In (davon ein Teil noch nicht eröffnet); Fähigkeiten zu 80 % zwischen 0,3 und 1.
+- **Schema 2:** Spalten `SituationId` (Gruppe) und `RelativeDarts` (Label: Darts mehr als der beste Kandidat der Situation). Datensätze mit Schema 1 können nicht mehr trainiert werden.
 - **Dauer:** grob einige Minuten für 1000 Situationen im Release-Build; die Kandidaten laufen parallel.
 - **CSV:** Kopfzeile = Spaltennamen von `TargetCandidateFeatures`, Dezimalpunkt, Bool als 0/1.
 
@@ -45,14 +46,14 @@ dotnet run --project Tools.BotTrainer -c Release -- train --dataset 4 --seed 1
 Ablauf:
 1. Datensatz laden, SHA-256 und FeatureSchemaVersion prüfen (verändert oder falsche Version → Abbruch).
 2. Lauf in `DartBotModelTrainings` anlegen (Status Running); bei Fehlern Status Failed mit Fehlermeldung.
-3. Pipeline: Segment und Multiplikator one-hot, alle Merkmale zusammenführen, FastTree-Regression auf `ExpectedDartsToFinish`; 80/20 Training/Test.
-4. Kennzahlen RMSE, MAE, R² in `MetricsJson`; Modell als `ml_data/models/…zip` (nie überschrieben) + `DartBotModels` (nächste Version je Typ).
+3. Pipeline: Segment und Multiplikator one-hot, alle Merkmale zusammenführen, FastTree-Regression auf `RelativeDarts`; 80/20 Training/Test, getrennt nach Situationen.
+4. Kennzahlen RMSE, MAE, R² und – entscheidend für die Zielwahl – Trefferquote des besten Ziels je Testsituation und mittlerer Verlust in Darts, in `MetricsJson`; Modell als `ml_data/models/…zip` (nie überschrieben) + `DartBotModels` (nächste Version je Typ).
 
 Optional: `BOTTRAINER_COMMIT` (Git-Commit) wird als `CodeVersion` gespeichert.
 
 ## compare (Phase 4)
 
-Spielt je Skill-Stufe (0,2 / 0,5 / 0,8 / 0,95; TacticalIntelligence 1) dieselben Legs ab 501 einmal mit der Modell-Zielwahl und einmal mit `RuleBasedTargetSelector`. Die Würfe nutzen je Leg denselben Zufallsstrom (gepaarter Vergleich), damit nur die Zielwahl den Unterschied macht.
+Spielt je Skill-Stufe (0,5 / 0,7 / 0,85 / 0,95; TacticalIntelligence 1) dieselben Legs ab 501 einmal mit der Modell-Zielwahl und einmal mit `RuleBasedTargetSelector`. Die Würfe nutzen je Leg denselben Zufallsstrom (gepaarter Vergleich), damit nur die Zielwahl den Unterschied macht.
 
 ```powershell
 dotnet run --project Tools.BotTrainer -c Release -- compare --model 2 --legs 2000
