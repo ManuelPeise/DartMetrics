@@ -25,7 +25,7 @@ namespace Data.DartContext.Configurations.Bot
                 table.HasCheckConstraint("CK_DartBotGameThrow_TargetXY", "(`TargetX` IS NULL) = (`TargetY` IS NULL)");
                 table.HasCheckConstraint("CK_DartBotGameThrow_HitXY", "(`HitX` IS NULL) = (`HitY` IS NULL)");
 
-                table.HasCheckConstraint("CK_DartBotGameThrow_ScoreBeforeThrow", "`ScoreBeforeThrow` BETWEEN 2 AND 501");
+                table.HasCheckConstraint("CK_DartBotGameThrow_ScoreBeforeThrow", "`ScoreBeforeThrow` BETWEEN 1 AND 501");
                 table.HasCheckConstraint("CK_DartBotGameThrow_DartsLeftInVisit", "`DartsLeftInVisit` = 3 - `ThrowNumber`");
             });
 

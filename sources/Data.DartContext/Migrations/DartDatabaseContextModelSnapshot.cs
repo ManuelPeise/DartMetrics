@@ -418,7 +418,7 @@ namespace Data.DartContext.Migrations
 
                             t.HasCheckConstraint("CK_DartBotGameThrow_Score", "`Score` = `Segment` * `Multiplier`");
 
-                            t.HasCheckConstraint("CK_DartBotGameThrow_ScoreBeforeThrow", "`ScoreBeforeThrow` BETWEEN 2 AND 501");
+                            t.HasCheckConstraint("CK_DartBotGameThrow_ScoreBeforeThrow", "`ScoreBeforeThrow` BETWEEN 1 AND 501");
 
                             t.HasCheckConstraint("CK_DartBotGameThrow_SegmentMultiplier", "((`Segment` BETWEEN 1 AND 20 AND `Multiplier` BETWEEN 1 AND 3) OR (`Segment` = 25 AND `Multiplier` BETWEEN 1 AND 2) OR (`Segment` = 0 AND `Multiplier` = 0))");
 
@@ -504,11 +504,11 @@ namespace Data.DartContext.Migrations
 
                             t.HasCheckConstraint("CK_DartBotGameVisit_DartsUsed", "`DartsUsed` BETWEEN 0 AND 3");
 
-                            t.HasCheckConstraint("CK_DartBotGameVisit_OpponentScoreBefore", "`OpponentScoreBefore` BETWEEN 2 AND 501");
+                            t.HasCheckConstraint("CK_DartBotGameVisit_OpponentScoreBefore", "`OpponentScoreBefore` BETWEEN 1 AND 501");
 
                             t.HasCheckConstraint("CK_DartBotGameVisit_ScoreAfter", "`ScoreAfter` BETWEEN 0 AND `ScoreBefore` AND `ScoreBefore` - `ScoreAfter` <= 180 AND (`IsBust` = 0 OR `ScoreAfter` = `ScoreBefore`)");
 
-                            t.HasCheckConstraint("CK_DartBotGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 2 AND 501");
+                            t.HasCheckConstraint("CK_DartBotGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");
 
                             t.HasCheckConstraint("CK_DartBotGameVisit_TurnNumber", "`TurnNumber` >= 1");
 
@@ -1375,7 +1375,7 @@ namespace Data.DartContext.Migrations
                         {
                             t.HasCheckConstraint("CK_TrainingGameVisit_ScoreAfter", "`ScoreAfter` BETWEEN 0 AND `ScoreBefore` AND `ScoreBefore` - `ScoreAfter` <= 180 AND (`IsBust` = 0 OR `ScoreAfter` = `ScoreBefore`)");
 
-                            t.HasCheckConstraint("CK_TrainingGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 2 AND 501");
+                            t.HasCheckConstraint("CK_TrainingGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");
 
                             t.HasCheckConstraint("CK_TrainingGameVisit_VisitNumber", "`VisitNumber` > 0");
                         });

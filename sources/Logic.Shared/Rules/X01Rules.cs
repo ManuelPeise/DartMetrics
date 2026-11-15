@@ -6,7 +6,8 @@ namespace Logic.Shared.Rules
 {
     /// <summary>
     /// X01-Regeln (301/501). Standard ist Straight-In / Double-Out; die Überladungen mit In-/Out-Modus
-    /// unterstützen zusätzlich Double-In und Master-Out. Rest 1 ist in beiden Out-Modi ein Bust.
+    /// unterstützen zusätzlich Double-In und Straight-Out. Bei Double-Out ist Rest 1 ein Bust,
+    /// bei Straight-Out beendet jedes Feld das Leg und Rest 1 ist erlaubt.
     /// </summary>
     public class X01Rules : DartRulesBase
     {
@@ -18,7 +19,7 @@ namespace Logic.Shared.Rules
             var newRemainingScore = remainingScore - visitScore;
 
             return newRemainingScore < 0 ||
-                   newRemainingScore == 1 ||
+                   (newRemainingScore == 1 && outMode == X01OutModeEnum.Double) ||
                    (newRemainingScore == 0 && !IsFinishingDart(lastSegment, lastMultiplier, outMode));
         }
 
@@ -32,7 +33,7 @@ namespace Logic.Shared.Rules
         public bool IsFinishingDart(int segment, int multiplier, X01OutModeEnum outMode) =>
             outMode switch
             {
-                X01OutModeEnum.Master => IsDouble(segment, multiplier) || IsTriple(segment, multiplier),
+                X01OutModeEnum.Straight => segment != 0,
                 _ => IsDouble(segment, multiplier)
             };
 
@@ -72,7 +73,7 @@ namespace Logic.Shared.Rules
         {
             var suggestions = new List<CheckoutSuggestion>();
 
-            if (remainingScore <= 1 || remainingDarts <= 0)
+            if (remainingScore < MinRemaining(outMode) || remainingDarts <= 0)
                 return suggestions;
 
             var possibleThrows = new List<CheckoutDart>();
@@ -121,7 +122,7 @@ namespace Logic.Shared.Rules
                     continue;
                 }
 
-                if (newRemainingScore <= 1 || remainingDarts <= 1)
+                if (newRemainingScore < MinRemaining(outMode) || remainingDarts <= 1)
                     continue;
 
                 FindCheckoutWays(
@@ -133,6 +134,9 @@ namespace Logic.Shared.Rules
                     outMode);
             }
         }
+
+        /// <summary>Kleinster Reststand, der noch gecheckt werden kann: 2 bei Double-Out, 1 bei Straight-Out.</summary>
+        public static int MinRemaining(X01OutModeEnum outMode) => outMode == X01OutModeEnum.Straight ? 1 : 2;
     }
 }
 

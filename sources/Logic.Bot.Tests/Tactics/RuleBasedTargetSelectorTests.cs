@@ -1,4 +1,4 @@
-using Logic.Bot.Tactics;
+﻿using Logic.Bot.Tactics;
 using Logic.Bot.Tests.Helpers;
 using Shared.Enums.X01;
 using Shared.Models.Bot;
@@ -35,10 +35,16 @@ namespace Logic.Bot.Tests.Tactics
         }
 
         [Fact]
-        public void MasterOut_OneDart_CanAimTriple()
+        public void StraightOut_OneDart_AimsSingle()
         {
-            // 57 ist nur als T19 in einem Dart zu checken.
-            Assert.Equal(DartTarget.Triple(19), Select(57, darts: 1, outMode: X01OutModeEnum.Master));
+            // Straight-Out: 5 ist mit S5 zu checken (bei Double-Out nicht in einem Dart).
+            Assert.Equal(DartTarget.Single(5), Select(5, darts: 1, outMode: X01OutModeEnum.Straight));
+        }
+
+        [Fact]
+        public void StraightOut_RestOne_AimsSingleOne()
+        {
+            Assert.Equal(DartTarget.Single(1), Select(1, darts: 1, outMode: X01OutModeEnum.Straight));
         }
 
         [Theory]

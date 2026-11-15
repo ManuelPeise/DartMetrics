@@ -173,7 +173,7 @@
     private static readonly IReadOnlyList<PlayerChoice<X01InModeEnum>> InOptions =
         [new(X01InModeEnum.Straight, "Straight-In"), new(X01InModeEnum.Double, "Double-In")];
     private static readonly IReadOnlyList<PlayerChoice<X01OutModeEnum>> OutOptions =
-        [new(X01OutModeEnum.Double, "Double-Out"), new(X01OutModeEnum.Master, "Master-Out")];
+        [new(X01OutModeEnum.Double, "Double-Out", "Finish mit Double"), new(X01OutModeEnum.Straight, "Straight-Out", "Jeder Dart zählt")];
     private static readonly IReadOnlyList<PlayerChoice<DartBotGameModeEnum>> ModeOptions =
     [
         new(DartBotGameModeEnum.Training, "Training", "Locker spielen"),
@@ -209,7 +209,7 @@
         ? $"Du gegen {_state.BotName}" : "Gegen Bot spielen";
 
     private string HeaderSubtitle => _state is not null && _phase is Phase.Playing or Phase.Result
-        ? $"{_state.StartingScore} · Best of {_state.BestOfLegs} · {(_state.InMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_state.OutMode == X01OutModeEnum.Master ? "Master-Out" : "Double-Out")}"
+        ? $"{_state.StartingScore} · Best of {_state.BestOfLegs} · {(_state.InMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_state.OutMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}"
         : "Wähle einen Gegner. Er lernt aus jedem Spiel gegen dich.";
 
     private bool IsUserActive => _state is { IsUserTurn: true } && !_animating;
@@ -318,8 +318,11 @@
         _botDarts.Clear();
         _botVisitResult = null;
 
-        // Drei Darts oder Rest ≤ 1 (dann Checkout oder Bust) -> automatisch abschicken.
-        if (_darts.Count == DartsPerVisit || (_state!.IsUserOpened && DisplayUserRemaining <= 1))
+        // Drei Darts oder Aufnahme sicher zu Ende (Checkout oder Bust) -> automatisch abschicken.
+        // Double-Out: Rest ≤ 1; Straight-Out: Rest ≤ 0 (Rest 1 kann noch mit S1 gecheckt werden).
+        var lastPossibleRest = _state!.OutMode == X01OutModeEnum.Straight ? 0 : 1;
+
+        if (_darts.Count == DartsPerVisit || (_state.IsUserOpened && DisplayUserRemaining <= lastPossibleRest))
         {
             await SubmitVisitAsync();
         }

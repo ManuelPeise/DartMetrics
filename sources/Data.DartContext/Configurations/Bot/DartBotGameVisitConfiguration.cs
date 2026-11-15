@@ -12,8 +12,8 @@ namespace Data.DartContext.Configurations.Bot
             {
                 table.HasCheckConstraint("CK_DartBotGameVisit_TurnNumber", "`TurnNumber` >= 1");
                 table.HasCheckConstraint("CK_DartBotGameVisit_VisitNumber", "`VisitNumber` >= 1");
-                table.HasCheckConstraint("CK_DartBotGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 2 AND 501");
-                table.HasCheckConstraint("CK_DartBotGameVisit_OpponentScoreBefore", "`OpponentScoreBefore` BETWEEN 2 AND 501");
+                table.HasCheckConstraint("CK_DartBotGameVisit_ScoreBefore", "`ScoreBefore` BETWEEN 1 AND 501");
+                table.HasCheckConstraint("CK_DartBotGameVisit_OpponentScoreBefore", "`OpponentScoreBefore` BETWEEN 1 AND 501");
                 table.HasCheckConstraint("CK_DartBotGameVisit_DartsUsed", "`DartsUsed` BETWEEN 0 AND 3");
 
                 // Wie TrainingGameVisits: Rest sinkt, max. 180, Bust behält den Stand.

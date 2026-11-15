@@ -79,7 +79,7 @@
     private static readonly IReadOnlyList<PlayerChoice<X01OutModeEnum>> OutOptions =
     [
         new(X01OutModeEnum.Double, "Double-Out", "Finish mit Double"),
-        new(X01OutModeEnum.Master, "Master-Out", "Double oder Triple")
+        new(X01OutModeEnum.Straight, "Straight-Out", "Jeder Dart zählt")
     ];
 
     private Phase _phase = Phase.Setup;
@@ -107,7 +107,7 @@
 
     private string Subtitle => _phase == Phase.Setup
         ? "Spiele ein Leg allein und verfolge deinen Average."
-        : $"{_startingScore} · {(_inMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_outMode == X01OutModeEnum.Master ? "Master-Out" : "Double-Out")}";
+        : $"{_startingScore} · {(_inMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}";
 
     private IReadOnlyList<PlayerStat> LiveStats =>
     [

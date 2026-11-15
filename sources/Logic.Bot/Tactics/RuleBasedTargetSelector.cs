@@ -18,7 +18,8 @@ namespace Logic.Bot.Tactics
     /// </summary>
     public sealed class RuleBasedTargetSelector : ITargetSelector
     {
-        private const int MaxCheckout = 170;
+        /// <summary>Höchstes Finish in drei Darts: 170 (T20 T20 Bull) bei Double-Out, 180 bei Straight-Out.</summary>
+        private static int MaxCheckout(X01OutModeEnum outMode) => outMode == X01OutModeEnum.Straight ? 180 : 170;
         private const int TopRoutesKept = 5;
         private const int RiskBuckets = 5;
 
@@ -42,8 +43,6 @@ namespace Logic.Bot.Tactics
         /// </summary>
         private static readonly ConcurrentDictionary<(int Remaining, int Darts, X01OutModeEnum OutMode), IReadOnlyList<CheckoutSuggestion>[]> RouteCache = new();
 
-        /// <summary>Zusätzliche Kosten für ein Triple als Abschluss (Master-Out): seltener geübt als Doubles.</summary>
-        private const int TripleFinishPenalty = 4;
 
         /// <summary>Ziel zum Eröffnen bei Double-In (größtes Double, Standard im Turnierdarts).</summary>
         private static readonly DartTarget OpeningTarget = DartTarget.Double(20);
@@ -71,7 +70,7 @@ namespace Logic.Bot.Tactics
                 return ToTarget(PickRoute(routes, context.Profile).Darts[0]);
             }
 
-            if (context.Remaining - DefaultScoringTarget.Score > MaxCheckout)
+            if (context.Remaining - DefaultScoringTarget.Score > MaxCheckout(context.OutMode))
             {
                 return DefaultScoringTarget;
             }
@@ -94,7 +93,7 @@ namespace Logic.Bot.Tactics
 
         /// <summary>
         /// Kein Checkout in dieser Aufnahme möglich: Ziel so wählen, dass der Rest (bei Treffer) gut zu checken ist.
-        /// Ziele, die bei Treffer busten würden (Rest kleiner 2), sind ausgeschlossen.
+        /// Ziele, die bei Treffer busten würden (Rest unter X01Rules.MinRemaining), sind ausgeschlossen.
         /// </summary>
         private DartTarget SelectSetupTarget(BotThrowDecisionContext context)
         {
@@ -105,7 +104,7 @@ namespace Logic.Bot.Tactics
             {
                 var leftover = context.Remaining - candidate.Score;
 
-                if (leftover < 2)
+                if (leftover < X01Rules.MinRemaining(context.OutMode))
                 {
                     continue;
                 }
@@ -145,7 +144,7 @@ namespace Logic.Bot.Tactics
             }
 
             // Nicht in einer Aufnahme checkbar: je näher an 170, desto besser.
-            return 40 + Math.Max(0, leftover - MaxCheckout) / 10.0;
+            return 40 + Math.Max(0, leftover - MaxCheckout(outMode)) / 10.0;
         }
 
         /// <summary>
@@ -154,7 +153,7 @@ namespace Logic.Bot.Tactics
         /// </summary>
         private IReadOnlyList<CheckoutSuggestion> GetBestRoutes(int remaining, int darts, float riskTaking, X01OutModeEnum outMode)
         {
-            if (remaining is < 2 or > MaxCheckout || darts < 1)
+            if (remaining < X01Rules.MinRemaining(outMode) || remaining > MaxCheckout(outMode) || darts < 1)
             {
                 return [];
             }
@@ -199,10 +198,11 @@ namespace Logic.Bot.Tactics
                 cost += TargetDifficulty(ToTarget(route.Darts[i]), (float)risk);
             }
 
+            // Double-Finish: beliebte Doubles bevorzugt. Straight-Out-Finish auf Single/Triple: nach Schwierigkeit.
             var finish = route.Darts[^1];
-            cost += finish.Multiplier == 3
-                ? TripleFinishPenalty + TargetDifficulty(ToTarget(finish), (float)risk)
-                : DoublePreference.GetValueOrDefault(finish.Segment, OtherDoublePreference);
+            cost += finish.Multiplier == 2
+                ? DoublePreference.GetValueOrDefault(finish.Segment, OtherDoublePreference)
+                : TargetDifficulty(ToTarget(finish), (float)risk);
 
             return cost;
         }

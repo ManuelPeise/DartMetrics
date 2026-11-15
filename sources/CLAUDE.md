@@ -88,9 +88,9 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
   `ArgumentException` → 400, `KeyNotFoundException` → 404, `UnauthorizedAccessException` → 403, sonst 500.
 - Aktueller Benutzer über `IClaimsHelper.GetCurrentUserFromClaims()`.
 - Dart-Regeln aus `Logic.Shared/Rules` (`X01Rules`, `DartRulesBase`) verwenden, nicht neu implementieren.
-- **X01-Varianten:** In-Modus `Straight`/`Double` (`X01InModeEnum`), Out-Modus `Double`/`Master` (`X01OutModeEnum`), Standard Straight-In/Double-Out. Gilt für X01-Training und Bot-Spiel; Checkout-Training bleibt Double-Out.
+- **X01-Varianten:** In-Modus `Straight`/`Double` (`X01InModeEnum`), Out-Modus `Double`/`Straight` (`X01OutModeEnum`), Standard Straight-In/Double-Out. Gilt für X01-Training und Bot-Spiel; Checkout-Training bleibt Double-Out.
   - Double-In: vor dem ersten Double zählen Darts 0 (`Score` speichert trotzdem den Trefferwert); „eröffnet“ wird abgeleitet (Rest < Startwert), keine eigene Spalte.
-  - Master-Out: Abschluss auch mit Triple; Rest 1 bleibt Bust, daher gelten die CHECK Constraints unverändert.
+  - Straight-Out: jeder Dart zählt, jedes Feld beendet das Leg, Rest 1 ist erlaubt (`X01Rules.MinRemaining`). CHECK Constraints für Reststände daher ab 1. Master-Out gibt es nicht mehr (Bestandsdaten → Double-Out).
   - Immer die Überladungen mit Modus verwenden (`IsBust(…, outMode)`, `IsCheckout(…, outMode)`, `GetCheckoutSuggestions(…, outMode)`, `CountedScore`).
 
 ## API (Service.Api / Web.Core)

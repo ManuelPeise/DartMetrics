@@ -1,4 +1,4 @@
-# Logic.Shared
+﻿# Logic.Shared
 
 Gemeinsame Bausteine der Fachlogik.
 
@@ -10,7 +10,7 @@ UnitsOfWork/               UnitOfWork (SaveChangesAsync, Audit-Felder, Unveränd
                            UserUnitOfWork, DartTrainingUnitOfWork, DartBotUnitOfWork
 Repositories/RepositoryBase Generisches Repository (Get…, Any, Add, Update, Delete)
 Rules/                     DartRulesBase (Segment/Multiplikator/Score), X01Rules (Bust, Checkout, Checkout-Wege;
-                           In-Modus Straight/Double, Out-Modus Double/Master, CountedScore für Double-In),
+                           In-Modus Straight/Double, Out-Modus Double/Straight, CountedScore für Double-In),
                            AroundTheClockRules
 Logger/MessageLog          Log in die Datenbank und den .NET-Logger
 Mail/                      EmailClient, EmailBodyFactory

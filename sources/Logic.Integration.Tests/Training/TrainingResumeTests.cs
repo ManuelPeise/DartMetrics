@@ -1,4 +1,4 @@
-using Logic.Integration.Tests.Infrastructure;
+﻿using Logic.Integration.Tests.Infrastructure;
 using Shared.Enums.X01;
 using Shared.Interfaces.Training;
 using Shared.Models.Training;
@@ -118,6 +118,31 @@ namespace Logic.Integration.Tests.Training
             Assert.Equal(2, running.NextThrowNumber);
             Assert.Equal(20, running.RemainingScore);
             Assert.NotEmpty(running.CheckoutSuggestions);
+        }
+
+        [Fact]
+        public async Task X01_StraightOut_RestOneIsAllowed_AndSingleOneChecksOut()
+        {
+            var id = await _host.RunAsync<IX01TrainingGame, int>(s => s.StartTrainingAsync(
+                new StartX01TrainingModel { StartingScore = 301, InMode = X01InModeEnum.Straight, OutMode = X01OutModeEnum.Straight }));
+
+            // 301 - 180 - 120 = 1 (bei Double-Out wäre das ein Bust; DB-Constraint erlaubt Rest 1).
+            var darts = new[] { (1, 1), (1, 2), (1, 3), (2, 1), (2, 2) };
+            X01TrainingThrowResult last = null!;
+
+            foreach (var (visit, throwNumber) in darts)
+            {
+                last = await _host.RunAsync<IX01TrainingGame, X01TrainingThrowResult>(s => s.AddThrowAsync(
+                    new X01TrainingThrow { TrainingId = id, VisitNumber = visit, ThrowNumber = throwNumber, Segment = 20, Multiplier = 3 }));
+            }
+
+            Assert.False(last.IsBust);
+            Assert.Equal(1, last.RemainingScore);
+
+            var finish = await _host.RunAsync<IX01TrainingGame, X01TrainingThrowResult>(s => s.AddThrowAsync(
+                new X01TrainingThrow { TrainingId = id, VisitNumber = 2, ThrowNumber = 3, Segment = 1, Multiplier = 1 }));
+
+            Assert.True(finish.IsCheckout);
         }
 
         [Fact]

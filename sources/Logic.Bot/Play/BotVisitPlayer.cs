@@ -31,9 +31,9 @@ namespace Logic.Bot.Play
 
         public BotVisitResult PlayVisit(BotVisitContext context)
         {
-            if (context.ScoreBefore < 2)
+            if (context.ScoreBefore < X01Rules.MinRemaining(context.OutMode))
             {
-                throw new ArgumentException("Der Reststand muss mindestens 2 sein.", nameof(context));
+                throw new ArgumentException("Der Reststand ist zu klein für eine Aufnahme.", nameof(context));
             }
 
             var result = new BotVisitResult { ScoreBefore = context.ScoreBefore };

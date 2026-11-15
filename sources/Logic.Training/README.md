@@ -1,4 +1,4 @@
-# Logic.Training
+﻿# Logic.Training
 
 Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntity` mit typabhängigen Detaildaten.
 
@@ -6,7 +6,7 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 |---|---|
 | `SegmentTraining` | Ein Zielfeld über mehrere Aufnahmen treffen |
 | `CheckoutTraining` | Checkouts von einem Startwert |
-| `X01TrainingGame` | 301/501 allein spielen (Straight-/Double-In, Double-/Master-Out) |
+| `X01TrainingGame` | 301/501 allein spielen (Straight-/Double-In, Double-/Straight-Out) |
 | `AroundTheClockTraining` | Segmente der Reihe nach |
 
 - `TrainingBase`: aktueller Benutzer, Laden eigener Trainings (`LoadSegmentTraining`, `LoadCheckoutTraining`, `LoadX01Training`, `LoadAroundTheClockTraining`), Wurfprüfung.
