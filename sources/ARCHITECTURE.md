@@ -18,7 +18,7 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Authentication` | Login, Registrierung, JWT | [README](Logic.Authentication/README.md) |
 | `Logic.Profile` | Benutzerprofil | [README](Logic.Profile/README.md) |
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
-| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung | [README](Logic.Bot/README.md) |
+| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML-Grundlagen (Kandidaten, Rollouts) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
 | **Tests** | | |

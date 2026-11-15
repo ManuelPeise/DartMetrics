@@ -34,3 +34,17 @@ Enden zwei Spiele gegen denselben Bot gleichzeitig, wirft das zweite Speichern e
 `DartBotGameService.AddUserVisitAsync` ruft dann `DartBotLearningService.MergeConcurrentBotUpdatesAsync` auf:
 die eigenen XP- und Elo-Deltas werden auf den aktuellen Datenbankstand gerechnet, das Level wird nie zurückgestuft, danach wird einmal erneut gespeichert.
 Betrifft der Konflikt andere Entitäten oder scheitert auch der zweite Versuch, liefert die API 409 (`GlobalExceptionHandlerMiddleware`).
+
+## ML (Phase 1: Kandidaten und Rollouts)
+
+Grundlage für das spätere Zielwahl-Modell (Plan-Doc „ML.NET Phase 1 – Kandidaten und Rollouts“). Reine Logik ohne Datenbank, nicht in der API registriert; Bots spielen weiter regelbasiert.
+
+| Klasse | Aufgabe |
+|---|---|
+| `Ml/CandidateGenerator` | sinnvolle Ziele einer Situation (S/D/T 1–20, 25, Bull) ohne sichere Busts; vor der Double-In-Eröffnung nur Doubles |
+| `Ml/CandidateFeatureBuilder` | Merkmale je Kandidat (`TargetCandidateFeatures`, FeatureSchemaVersion 1) |
+| `Ml/LegRolloutSimulator` | spielt ab dem Kandidaten-Dart das Leg zu Ende (Regelstrategie, `ThrowSimulator`, `X01Rules`), zählt die Darts |
+| `Ml/CandidateEvaluator` | N Rollouts je Kandidat (Standard 50, max. 60 Darts), Mittelwert = Label `ExpectedDartsToFinish`; parallel, reproduzierbar über Seed |
+| `Ml/RolloutOptions` | `RolloutsPerCandidate`, `MaxDartsPerLeg`, `Seed` |
+
+Situation: `Shared.Models/Bot/Ml/BotSituation` (Rest, Darts in der Aufnahme, Gegnerstand, Profil, In-/Out-Modus, eröffnet, Stand zu Beginn der Aufnahme).
