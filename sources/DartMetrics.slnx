@@ -19,6 +19,7 @@
   </Folder>
   <Folder Name="/06 Tests/">
     <Project Path="Logic.Bot.Tests/Logic.Bot.Tests.csproj" />
+    <Project Path="Logic.Integration.Tests/Logic.Integration.Tests.csproj" />
   </Folder>
   <Folder Name="/04 Data/">
     <Project Path="Data.DartContext/Data.DartContext.csproj" Id="d8d659d5-2abb-4846-87dd-9ca774ffd5a5" />

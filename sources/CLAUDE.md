@@ -138,7 +138,7 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 
 - Branches: `feature/#<Nr>-<kurzbeschreibung>` (z. B. `feature/#07-implement-bot-ai`), Merge nach `master`.
 - Vor dem Commit: Solution bauen (`dotnet build DartMetrics.slnx`) und Tests laufen lassen (`dotnet test DartMetrics.slnx`), bei Datenmodelländerungen Migration anlegen und prüfen.
-- Tests: `Logic.Bot.Tests` (xUnit, ohne Datenbank). Zufall über `IRandomSource` injizieren, nie `Random` direkt verwenden.
+- Tests: `Logic.Bot.Tests` (xUnit, ohne Datenbank) und `Logic.Integration.Tests` (MySQL per Testcontainers, Docker nötig). Zufall über `IRandomSource` injizieren, nie `Random` direkt verwenden. Neue Abläufe mit Datenbank bekommen einen Integrationstest.
 - Deployment der API: `scripts/update-containers.ps1` bzw. `.sh` (sichert die DB nach `backups/`, baut die API neu, Daten bleiben; `-Test` führt vorher die Tests aus).
 
 ## Bekannte offene Punkte
