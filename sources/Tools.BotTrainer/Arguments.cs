@@ -1,4 +1,4 @@
-namespace Tools.BotTrainer
+﻿namespace Tools.BotTrainer
 {
     /// <summary>Minimaler Parser: erstes Argument = Befehl, danach --name wert bzw. --flag.</summary>
     public sealed class Arguments
@@ -32,5 +32,29 @@ namespace Tools.BotTrainer
                 : fallback;
 
         public bool Flag(string name) => _values.ContainsKey(name);
+
+        /// <summary>Kommazahl mit Punkt (0.5).</summary>
+        public float Float(string name, float fallback) =>
+            _values.TryGetValue(name, out var value) &&
+            float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)
+                ? number
+                : fallback;
+
+        /// <summary>Liste mit Komma getrennt, Dezimalpunkt: --margins 0,0.3,0.5</summary>
+        public float[] Floats(string name, float[] fallback)
+        {
+            if (!_values.TryGetValue(name, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                return fallback;
+            }
+
+            var numbers = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(v => float.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : float.NaN)
+                .Where(n => !float.IsNaN(n) && n >= 0)
+                .Distinct()
+                .ToArray();
+
+            return numbers.Length == 0 ? fallback : numbers;
+        }
     }
 }

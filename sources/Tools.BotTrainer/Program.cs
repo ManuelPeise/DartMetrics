@@ -8,7 +8,7 @@ using Tools.BotTrainer;
 //
 //   dotnet run --project Tools.BotTrainer -c Release -- generate --situations 1000 --rollouts 50 --seed 1 [--max-darts 60] [--no-db]
 //   dotnet run --project Tools.BotTrainer -c Release -- train --dataset 4 [--seed 1] [--trees 200] [--leaves 64] [--min-leaf 20]
-//   dotnet run --project Tools.BotTrainer -c Release -- compare --model 2 [--legs 2000] [--seed 1] [--straight-out]
+//   dotnet run --project Tools.BotTrainer -c Release -- compare --model 3 [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--straight-out]
 //
 // Konfiguration: appsettings.json, Web.Core/appsettings.Development.json, Umgebungsvariablen (ConnectionStrings__DartContext, MlData__Path).
 
@@ -19,7 +19,7 @@ if (arguments.Command is not ("generate" or "train" or "compare"))
     Console.WriteLine("Verwendung:");
     Console.WriteLine("  generate --situations <n> [--rollouts 50] [--seed 1] [--max-darts 60] [--no-db]");
     Console.WriteLine("  train --dataset <id> [--seed 1] [--trees 200] [--leaves 64] [--min-leaf 20]");
-    Console.WriteLine("  compare --model <id> [--legs 2000] [--seed 1] [--max-darts 60] [--straight-out]");
+    Console.WriteLine("  compare --model <id> [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--max-darts 60] [--straight-out]");
     return 1;
 }
 

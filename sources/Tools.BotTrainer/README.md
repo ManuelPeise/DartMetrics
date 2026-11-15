@@ -66,6 +66,10 @@ dotnet run --project Tools.BotTrainer -c Release -- compare --model 2 --legs 200
 | `--seed` | 1 | Zufall der Legs |
 | `--max-darts` | 60 | Obergrenze je Leg |
 | `--straight-out` | – | Straight-Out statt Double-Out |
+| `--margins` | 0,0.3,0.5,1 | Schwellen für den Hybrid (Komma-Liste, Dezimalpunkt) |
+| `--tactical` | 1 | TacticalIntelligence der Testprofile (0–1); unter 1 macht das Regelwerk absichtliche Fehler |
+
+**Hybrid:** Das Regelwerk schlägt ein Ziel vor; das Modell ersetzt es nur, wenn sein bester Kandidat laut Vorhersage um mehr als die Schwelle (in Darts) besser ist. Schwelle 0 = reines Modell. Je Stufe und Schwelle wird zusätzlich ausgegeben, wie oft das Modell abgewichen ist. Am Ende stehen die Schwellen, mit denen das Modell auf keiner Stufe signifikant schlechter ist.
 
 Ausgabe je Stufe: Darts pro Leg (Regelwerk, Modell), mittlere Differenz mit 95-%-Intervall (negativ = Modell besser), Anteil Legs, in denen das Modell besser bzw. schlechter war.
 Das Ergebnis wird unter `Comparison` in `MetricsJson` des Trainingslaufs gespeichert. Exit-Code 4, wenn das Modell auf einer Stufe signifikant schlechter ist.

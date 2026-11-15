@@ -8,44 +8,83 @@ using Shared.Models.Bot.Ml;
 namespace Tools.BotTrainer
 {
     /// <summary>
-    /// Zielwahl über das Modell: alle Kandidaten der Situation bewerten, den mit den wenigsten erwarteten Darts wählen.
-    /// Nicht threadsicher (PredictionEngine) – je Thread eine eigene Instanz.
-    /// Vorläufig im Werkzeug für den Vergleich (Phase 4); in Phase 5 wandert die Zielwahl nach Logic.Bot.
+    /// Hybrid-Zielwahl: das Regelwerk schlägt ein Ziel vor; das Modell bewertet alle Kandidaten und ersetzt den
+    /// Vorschlag nur, wenn sein bester Kandidat laut Vorhersage um mehr als <c>margin</c> Darts besser ist.
+    /// margin 0 = reines Modell. So kann das Modell das Regelwerk nur dort ändern, wo es sich deutlich sicher ist.
+    /// Nicht threadsicher (PredictionEngine) – je Thread eine eigene Engine.
+    /// Vorläufig im Werkzeug (Phase 4); in Phase 5 wandert die Zielwahl nach Logic.Bot.
     /// </summary>
     public sealed class MlTargetSelector : ITargetSelector
     {
         private readonly CandidateGenerator _generator = new();
         private readonly CandidateFeatureBuilder _features = new();
         private readonly PredictionEngine<TargetCandidateRow, DartsPrediction> _engine;
+        private readonly ITargetSelector _rules;
+        private readonly float _margin;
 
-        public MlTargetSelector(MLContext ml, ITransformer model)
+        public MlTargetSelector(PredictionEngine<TargetCandidateRow, DartsPrediction> engine, ITargetSelector rules, float margin)
         {
-            _engine = ml.Model.CreatePredictionEngine<TargetCandidateRow, DartsPrediction>(model);
+            _engine = engine;
+            _rules = rules;
+            _margin = margin;
         }
+
+        /// <summary>Wie oft das Modell vom Regelwerk abgewichen ist (für die Auswertung).</summary>
+        public int Decisions { get; private set; }
+
+        public int Overrides { get; private set; }
+
+        public static PredictionEngine<TargetCandidateRow, DartsPrediction> CreateEngine(MLContext ml, ITransformer model) =>
+            ml.Model.CreatePredictionEngine<TargetCandidateRow, DartsPrediction>(model);
 
         public DartTarget SelectTarget(BotThrowDecisionContext context)
         {
+            var ruleTarget = _rules.SelectTarget(context);
+            Decisions++;
+
             var situation = new BotSituation(
                 context.Remaining, context.DartsAvailable, context.OpponentRemaining, context.Profile,
                 context.InMode, context.OutMode, context.IsOpened);
 
             DartTarget? best = null;
-            var bestDarts = float.MaxValue;
+            var bestScore = float.MaxValue;
+            float? ruleScore = null;
 
             foreach (var candidate in _generator.Generate(situation))
             {
-                var predicted = _engine.Predict(ToRow(_features.Build(situation, candidate))).Score;
+                var score = Predict(situation, candidate);
 
-                if (predicted < bestDarts)
+                if (candidate == ruleTarget)
                 {
-                    bestDarts = predicted;
+                    ruleScore = score;
+                }
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
                     best = candidate;
                 }
             }
 
-            // Ohne Kandidaten (kommt bei gültigen Ständen nicht vor) auf das sicherste Ziel ausweichen.
-            return best ?? DartTarget.Single(1);
+            if (best is null)
+            {
+                return ruleTarget;
+            }
+
+            // Regel-Ziel nicht unter den Kandidaten (z. B. sicherer Bust laut Generator): trotzdem bewerten.
+            ruleScore ??= Predict(situation, ruleTarget);
+
+            if (best.Value != ruleTarget && bestScore + _margin < ruleScore.Value)
+            {
+                Overrides++;
+                return best.Value;
+            }
+
+            return ruleTarget;
         }
+
+        private float Predict(BotSituation situation, DartTarget candidate) =>
+            _engine.Predict(ToRow(_features.Build(situation, candidate))).Score;
 
         public static TargetCandidateRow ToRow(TargetCandidateFeatures f) => new()
         {

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Logic.Bot.Ml;
@@ -23,8 +23,7 @@ namespace Tools.BotTrainer
     /// </summary>
     public static class CompareCommand
     {
-        /// <summary>Unter ~0,4 enden die meisten Legs an der Obergrenze; solche Stufen sagen nichts über die Zielwahl.</summary>
-        private static readonly float[] SkillLevels = [0.5f, 0.7f, 0.85f, 0.95f];
+        private static readonly float[] SkillLevels = [0.2f, 0.5f, 0.8f, 0.95f];
 
         public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
         {
@@ -40,6 +39,8 @@ namespace Tools.BotTrainer
             var seed = arguments.Int("seed", 1);
             var maxDarts = arguments.Int("max-darts", 60);
             var outMode = arguments.Flag("straight-out") ? X01OutModeEnum.Straight : X01OutModeEnum.Double;
+            var margins = arguments.Floats("margins", [0f, 0.3f, 0.5f, 1f]);
+            var tactical = Math.Clamp(arguments.Float("tactical", 1f), 0f, 1f);
 
             await using var scope = provider.CreateAsyncScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -72,61 +73,80 @@ namespace Tools.BotTrainer
             var model = ml.Model.Load(modelPath, out _);
 
             Console.WriteLine($"Vergleich Modell {modelEntity.Id} (Version {modelEntity.VersionNumber}) gegen Regelwerk: " +
-                              $"{legs} Legs je Stufe, 501 {(outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}, Seed {seed}");
+                              $"{legs} Legs je Stufe, 501 {(outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}, " +
+                              $"Taktik {tactical:0.##}, Schwellen {string.Join(" / ", margins.Select(m => m.ToString("0.##")))}, Seed {seed}");
+            Console.WriteLine("Schwelle = so viele Darts muss das Modell besser sein, damit es das Regel-Ziel ersetzt (0 = reines Modell).");
             Console.WriteLine();
-            Console.WriteLine("  Stufe   Regelwerk   Modell   Differenz (95 %)        Modell besser / schlechter");
+            Console.WriteLine("  Stufe  Schwelle   Regelwerk   Modell   Differenz (95 %)        besser / schlechter   abgewichen");
 
             var stopwatch = Stopwatch.StartNew();
             var levels = new List<object>();
-            var anyWorse = false;
+            var worseByMargin = margins.ToDictionary(m => m, _ => false);
 
             foreach (var skill in SkillLevels)
             {
-                var profile = new BotSkillProfile(skill, skill, 1f, skill, 0.5f);
+                var profile = new BotSkillProfile(skill, skill, tactical, skill, 0.5f);
                 var situation = new BotSituation(501, 3, 501, profile, X01InModeEnum.Straight, outMode);
 
                 var ruleDarts = new int[legs];
-                var modelDarts = new int[legs];
-                using var selectors = new ThreadLocal<MlTargetSelector>(() => new MlTargetSelector(ml, model));
-
                 Parallel.For(0, legs, i =>
                 {
-                    var legSeed = unchecked(seed * 1_000_003 + i);
-                    ruleDarts[i] = PlayLeg(situation, new RuleBasedTargetSelector(new DefaultRandomSource(new Random(~legSeed))), legSeed, maxDarts);
-                    modelDarts[i] = PlayLeg(situation, selectors.Value!, legSeed, maxDarts);
+                    var legSeed = LegSeed(seed, i);
+                    ruleDarts[i] = PlayLeg(situation, Rules(legSeed), legSeed, maxDarts);
                 });
 
-                var differences = modelDarts.Zip(ruleDarts, (m, r) => (double)(m - r)).ToArray();
-                var meanDifference = differences.Average();
-                var standardError = Math.Sqrt(differences.Sum(d => (d - meanDifference) * (d - meanDifference)) / (legs - 1) / legs);
-                var low = meanDifference - 1.96 * standardError;
-                var high = meanDifference + 1.96 * standardError;
-                var better = differences.Count(d => d < 0);
-                var worse = differences.Count(d => d > 0);
-
-                // Signifikant schlechter = ganzes Intervall über 0.
-                anyWorse |= low > 0;
-
-                Console.WriteLine($"  {skill,5:0.00}   {ruleDarts.Average(),9:0.00}   {modelDarts.Average(),6:0.00}   {meanDifference,6:+0.00;-0.00} [{low:+0.00;-0.00}; {high:+0.00;-0.00}]   {better * 100.0 / legs,5:0.0} % / {worse * 100.0 / legs:0.0} %");
-
-                levels.Add(new
+                foreach (var margin in margins)
                 {
-                    Skill = skill,
-                    RuleDartsPerLeg = Math.Round(ruleDarts.Average(), 3),
-                    ModelDartsPerLeg = Math.Round(modelDarts.Average(), 3),
-                    MeanDifference = Math.Round(meanDifference, 3),
-                    Ci95Low = Math.Round(low, 3),
-                    Ci95High = Math.Round(high, 3),
-                    ModelBetterShare = Math.Round(better / (double)legs, 4),
-                    ModelWorseShare = Math.Round(worse / (double)legs, 4)
-                });
+                    var modelDarts = new int[legs];
+                    long decisions = 0, overrides = 0;
+                    using var engines = new ThreadLocal<PredictionEngine<TargetCandidateRow, DartsPrediction>>(() => MlTargetSelector.CreateEngine(ml, model));
+
+                    Parallel.For(0, legs, i =>
+                    {
+                        var legSeed = LegSeed(seed, i);
+                        // Gleiche Würfe und gleicher Taktik-Zufall wie im Regelwerk-Leg: nur die Abweichungen des Modells zählen.
+                        var selector = new MlTargetSelector(engines.Value!, Rules(legSeed), margin);
+                        modelDarts[i] = PlayLeg(situation, selector, legSeed, maxDarts);
+                        Interlocked.Add(ref decisions, selector.Decisions);
+                        Interlocked.Add(ref overrides, selector.Overrides);
+                    });
+
+                    var differences = modelDarts.Zip(ruleDarts, (m, r) => (double)(m - r)).ToArray();
+                    var meanDifference = differences.Average();
+                    var standardError = Math.Sqrt(differences.Sum(d => (d - meanDifference) * (d - meanDifference)) / (legs - 1) / legs);
+                    var low = meanDifference - 1.96 * standardError;
+                    var high = meanDifference + 1.96 * standardError;
+                    var better = differences.Count(d => d < 0);
+                    var worse = differences.Count(d => d > 0);
+                    var overrideShare = decisions == 0 ? 0 : overrides / (double)decisions;
+
+                    // Signifikant schlechter = ganzes Intervall über 0.
+                    worseByMargin[margin] |= low > 0;
+
+                    Console.WriteLine($"  {skill,5:0.00}  {margin,8:0.0#}   {ruleDarts.Average(),9:0.00}   {modelDarts.Average(),6:0.00}   {meanDifference,6:+0.00;-0.00} [{low:+0.00;-0.00}; {high:+0.00;-0.00}]   {better * 100.0 / legs,5:0.0} % / {worse * 100.0 / legs,4:0.0} %   {overrideShare,8:P1}");
+
+                    levels.Add(new
+                    {
+                        Skill = skill,
+                        Margin = margin,
+                        RuleDartsPerLeg = Math.Round(ruleDarts.Average(), 3),
+                        ModelDartsPerLeg = Math.Round(modelDarts.Average(), 3),
+                        MeanDifference = Math.Round(meanDifference, 3),
+                        Ci95Low = Math.Round(low, 3),
+                        Ci95High = Math.Round(high, 3),
+                        ModelBetterShare = Math.Round(better / (double)legs, 4),
+                        ModelWorseShare = Math.Round(worse / (double)legs, 4),
+                        OverrideShare = Math.Round(overrideShare, 4)
+                    });
+                }
             }
 
             Console.WriteLine();
             Console.WriteLine($"Dauer {stopwatch.Elapsed:hh\\:mm\\:ss}. Differenz < 0 = Modell braucht weniger Darts.");
-            Console.WriteLine(anyWorse
-                ? "Ergebnis: Modell ist auf mindestens einer Stufe signifikant schlechter – nicht aktivieren."
-                : "Ergebnis: Modell ist auf keiner Stufe signifikant schlechter.");
+            var safeMargins = margins.Where(m => !worseByMargin[m]).ToList();
+            Console.WriteLine(safeMargins.Count == 0
+                ? "Ergebnis: mit keiner Schwelle ist das Modell auf allen Stufen mindestens gleich gut – nicht aktivieren."
+                : $"Ergebnis: auf keiner Stufe signifikant schlechter mit Schwelle {string.Join(", ", safeMargins.Select(m => m.ToString("0.##")))}.");
 
             // Vergleich am Trainingslauf ablegen (das Modell selbst ist unveränderlich).
             var metrics = string.IsNullOrWhiteSpace(modelEntity.Training.MetricsJson)
@@ -141,7 +161,9 @@ namespace Tools.BotTrainer
                 Seed = seed,
                 OutMode = outMode.ToString(),
                 MaxDartsPerLeg = maxDarts,
-                SignificantlyWorse = anyWorse,
+                TacticalIntelligence = tactical,
+                Margins = margins,
+                SafeMargins = safeMargins,
                 Levels = levels
             });
 
@@ -149,8 +171,13 @@ namespace Tools.BotTrainer
             await unitOfWork.SaveChangesAsync();
 
             Console.WriteLine($"Gespeichert in DartBotModelTrainings.Id {modelEntity.TrainingId} (MetricsJson.Comparison).");
-            return anyWorse ? 4 : 0;
+            return safeMargins.Count == 0 ? 4 : 0;
         }
+
+        private static int LegSeed(int seed, int leg) => unchecked(seed * 1_000_003 + leg);
+
+        /// <summary>Regelwerk mit eigenem Zufall für die Taktik (getrennt von den Würfen), je Leg gleich.</summary>
+        private static RuleBasedTargetSelector Rules(int legSeed) => new(new DefaultRandomSource(new Random(~legSeed)));
 
         /// <summary>Ein Leg ab 501; die Würfe nutzen für beide Strategien denselben Zufallsstrom (gepaarter Vergleich).</summary>
         private static int PlayLeg(BotSituation situation, ITargetSelector selector, int legSeed, int maxDarts)
