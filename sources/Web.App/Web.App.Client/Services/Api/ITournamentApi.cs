@@ -25,5 +25,6 @@ namespace Web.App.Client.Services.Api
         Task<ApiResult<TournamentMatchState>> GetMatchAsync(int matchId, CancellationToken cancellationToken = default);
         Task<ApiResult<TournamentMatchState>> StartMatchAsync(int matchId, CancellationToken cancellationToken = default);
         Task<ApiResult<TournamentMatchState>> AddDartAsync(int matchId, AddTournamentDartModel model, CancellationToken cancellationToken = default);
+        Task<ApiResult<TournamentMatchState>> UndoDartAsync(int matchId, Guid concurrencyStamp, CancellationToken cancellationToken = default);
     }
 }

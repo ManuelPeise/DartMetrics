@@ -1,4 +1,4 @@
-﻿# CLAUDE.md – DartMetrics
+# CLAUDE.md – DartMetrics
 
 Arbeitsregeln für Claude (und alle anderen) in dieser Lösung.
 
@@ -105,7 +105,7 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 ## Web (Web.App, Web.App.Client, Web.Shared)
 
 - `/admin` läuft **Interactive Server** in `Web.App`; alles andere **Interactive WebAssembly** in `Web.App.Client`.
-- Spieler-Bereich `/player` (Player, GameMaster) in `Web.App.Client`: Seiten rufen die API nur über typisierte Clients in `Services/Api` (`ApiResult<T>`) auf; Styles in `player.css` (Präfix `pa-`, nur `--pl-*`-Farben).
+- Spieler-Bereich `/player` (Player, GameMaster) in `Web.App.Client`: Seiten rufen die API nur über typisierte Clients in `Services/Api` (`ApiResult<T>`) auf; Styles in `player.css` (Präfix `pa-`, nur `--pl-*`-Farben). Einzige freigegebene Ausnahme bei Schriften: `--pl-font-chalk` (Caveat) nur für die Turnier-Tafel.
 - Links über die Bereichsgrenze: `AreaLink` (Client) bzw. `<a data-enhance-nav="false">` – erzwingt vollen Seitenwechsel.
 - API-Aufrufe vom Server: `IAuthorizedApiClient` (hängt das Token der Sitzung an). WASM ruft über den BFF-Proxy `/bff/api/**`.
 - Daten in Admin-Seiten in `OnAfterRenderAsync(firstRender)` laden (sonst doppelt durch Prerendering).

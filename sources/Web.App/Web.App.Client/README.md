@@ -54,5 +54,5 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 
 - `Tournaments/PlayerTournaments`: Liste (offizielle + eigene private) und Anlegen; GameMaster legt offizielle, Spieler private Turniere an (Liga oder K.o., 301/501, In/Out, K.o. optional mit Setzliste aus einer beendeten Liga).
 - `Tournaments/PlayerTournamentDetail` (`/player/tournaments/{league|knockout}/{id}`): Teilnehmer hinzufügen/entfernen, Start (Satzlänge bzw. je Runde), Termine je Runde (Ortszeit → UTC), Spielplan bzw. Baum, Liga-Tabelle, „Match leiten“ für Matches mit Menschen (Bot gegen Bot startet der Server zum Termin).
-- `Tournaments/PlayerTournamentMatch`: Spielstand, letzte Aufnahmen, Eingabe je Dart (`DartInputPad`) mit `ConcurrencyStamp`; ohne Eingaberecht wird alle 3 s nachgeladen. Der Eingabe-Screen mit Tafel folgt in Phase 5.
+- `Tournaments/PlayerTournamentMatch`: Eingabe-Screen – links Tafel (Handschrift `--pl-font-chalk`), rechts oben Spielstand und Finish-Weg, rechts unten `DartInputPad` mit Korrektur; jeder Aufruf mit `ConcurrencyStamp`, ohne Eingaberecht wird alle 3 s nachgeladen.
 - API: `ITournamentApi` / `TournamentApi`. Menüpunkt „Turniere“ (Bottom Navigation jetzt 6 Spalten).

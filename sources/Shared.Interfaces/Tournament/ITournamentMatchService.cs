@@ -14,6 +14,12 @@ namespace Shared.Interfaces.Tournament
 
         Task<TournamentMatchState> AddDartAsync(int matchId, AddTournamentDartModel model);
 
+        /// <summary>
+        /// Nimmt den letzten Dart eines Menschen zurück (nur solange das Match läuft). Hat danach ein Bot geworfen,
+        /// werden dessen Darts mit entfernt; der Bot wirft neu, sobald er wieder dran ist.
+        /// </summary>
+        Task<TournamentMatchState> UndoLastDartAsync(int matchId, Guid? concurrencyStamp);
+
         /// <summary>Stand für Spielleiter und Zuschauer (offizielle Turniere: alle angemeldeten Benutzer).</summary>
         Task<TournamentMatchState> GetMatchStateAsync(int matchId);
 

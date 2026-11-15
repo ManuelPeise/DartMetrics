@@ -112,6 +112,10 @@ namespace Service.Api.Controllers.Tournament
         public async Task<IActionResult> AddTournamentDart([FromQuery] int matchId, [FromBody] AddTournamentDartModel model) =>
             Ok(await _matches.AddDartAsync(matchId, model));
 
+        [HttpPost(Name = "UndoTournamentDart")]
+        public async Task<IActionResult> UndoTournamentDart([FromQuery] int matchId, [FromQuery] Guid? concurrencyStamp) =>
+            Ok(await _matches.UndoLastDartAsync(matchId, concurrencyStamp));
+
         [HttpGet(Name = "GetTournamentMatch")]
         public async Task<IActionResult> GetTournamentMatch([FromQuery] int matchId) => Ok(await _matches.GetMatchStateAsync(matchId));
     }

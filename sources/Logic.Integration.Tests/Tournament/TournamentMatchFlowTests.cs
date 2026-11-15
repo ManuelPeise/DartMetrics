@@ -76,6 +76,44 @@ namespace Logic.Integration.Tests.Tournament
         }
 
         [Fact]
+        public async Task Undo_TakesBackHumanDart_AndBotReplyAfterIt()
+        {
+            var (leagueId, playerId, _) = await CreateRunningLeagueAsync();
+            var league = await GetLeagueAsync(leagueId);
+            var user = league.Participants.Single(p => p.UserId == playerId).Id;
+            var match = league.Rounds.SelectMany(r => r.Matches).First(m => m.HomeParticipantId == user || m.AwayParticipantId == user);
+            var userNumber = match.HomeParticipantId == user ? 1 : 2;
+
+            var state = await Match(s => s.StartMatchAsync(match.Id));
+            var start = Side(state, userNumber).Remaining;
+            var visitsBefore = state.Legs.SelectMany(l => l.Visits).Count();
+
+            // Volle Aufnahme (3 × S20), der Bot antwortet sofort.
+            for (var i = 0; i < 3; i++)
+            {
+                state = await Match(s => s.AddDartAsync(match.Id, new AddTournamentDartModel { Segment = 20, Multiplier = 1, ConcurrencyStamp = state.ConcurrencyStamp }));
+            }
+
+            Assert.Equal(visitsBefore + 2, state.Legs.SelectMany(l => l.Visits).Count());
+            Assert.True(state.CanUndo);
+
+            // Zurücknehmen: dritter Dart und die Bot-Aufnahme danach sind weg, der Mensch ist wieder am Wurf.
+            state = await Match(s => s.UndoLastDartAsync(match.Id, state.ConcurrencyStamp));
+
+            Assert.Equal(userNumber, state.CurrentPlayer);
+            Assert.Equal(2, state.CurrentVisit.Count);
+            Assert.Equal(start - 40, Side(state, userNumber).Remaining);
+            Assert.Equal(visitsBefore + 1, state.Legs.SelectMany(l => l.Visits).Count());
+
+            // Gespeicherter Stand stimmt mit dem Neuladen überein; weiter geht es normal.
+            var reloaded = await Match(s => s.GetMatchStateAsync(match.Id));
+            Assert.Equal(state.CurrentVisit.Count, reloaded.CurrentVisit.Count);
+            state = await Match(s => s.AddDartAsync(match.Id, new AddTournamentDartModel { Segment = 0, Multiplier = 0, ConcurrencyStamp = reloaded.ConcurrencyStamp }));
+            Assert.Equal(userNumber, state.CurrentPlayer);
+            Assert.Empty(state.CurrentVisit);
+        }
+
+        [Fact]
         public async Task BotVsBot_StartsOnlyAtScheduledTime_AndPlaysVisitByVisit()
         {
             var (leagueId, _, _) = await CreateRunningLeagueAsync();
@@ -112,6 +150,8 @@ namespace Logic.Integration.Tests.Tournament
         }
 
         // ---------- Hilfen ----------
+
+        private static TournamentMatchSide Side(TournamentMatchState state, int player) => player == 1 ? state.Home : state.Away;
 
         private static AddTournamentDartModel Miss(TournamentMatchState state) =>
             new() { Segment = 0, Multiplier = 0, ConcurrencyStamp = state.ConcurrencyStamp };

@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    DartMetrics – public area (landing, login, register)
    Palette taken from the background photo (dark wood, brass darts) and the
    dartboard (red / green rings).
@@ -23,6 +23,8 @@ html, body {
     --pl-radius: 14px;
     --pl-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
     --pl-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    /* Nur für die Turnier-Tafel (freigegebene Ausnahme von "keine neuen Fonts"). */
+    --pl-font-chalk: "Caveat", "Segoe Print", "Bradley Hand", cursive;
 }
 
 .pl-root {

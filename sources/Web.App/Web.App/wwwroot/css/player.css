@@ -1002,3 +1002,92 @@ a.pa-card:hover {
     .pa-round__schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 
     .pa-round .pa-history { margin-top: 0.6rem; }
+
+/* ---------- Turnier-Eingabe: Tafel | Spielstand / Eingabe ---------- */
+
+.pa-conduct {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 520px);
+    grid-template-areas:
+        "chalk info"
+        "chalk input";
+    gap: 1.25rem;
+    align-items: start;
+}
+
+    .pa-conduct__chalk { grid-area: chalk; }
+    .pa-conduct__info { grid-area: info; display: grid; gap: 1rem; }
+    .pa-conduct__input { grid-area: input; }
+
+.pa-chalk {
+    padding: 1rem 1.25rem 1.5rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+    font-family: var(--pl-font-chalk);
+    color: var(--pl-ink);
+}
+
+    .pa-chalk__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.5rem;
+        font-size: 1.4rem;
+        color: var(--pl-ink-muted);
+    }
+
+    .pa-chalk__board {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pa-chalk__column { padding: 0 0.75rem; }
+
+        .pa-chalk__column + .pa-chalk__column { border-left: 2px solid var(--pl-line); }
+
+    .pa-chalk__name {
+        margin: 0 0 0.25rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 2px solid var(--pl-line);
+        font-size: 1.6rem;
+        font-weight: 700;
+        text-align: center;
+    }
+
+        .pa-chalk__name.is-active { color: var(--pl-brass-strong); }
+
+    .pa-chalk__list { list-style: none; margin: 0; padding: 0; }
+
+    .pa-chalk__row {
+        display: grid;
+        grid-template-columns: 3.5rem 1fr;
+        align-items: baseline;
+        font-size: 1.7rem;
+        line-height: 1.25;
+    }
+
+        .pa-chalk__scored { color: var(--pl-ink-muted); font-size: 1.3rem; text-align: right; padding-right: 0.75rem; }
+
+        .pa-chalk__rest { text-align: center; }
+
+        .pa-chalk__row.is-crossed .pa-chalk__rest { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--pl-ink-muted); }
+
+        .pa-chalk__row.is-bust .pa-chalk__scored { color: var(--pl-red); }
+
+        .pa-chalk__row.is-checkout .pa-chalk__rest { color: var(--pl-green); font-weight: 700; }
+
+    .pa-chalk__legs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.75rem;
+        font-family: var(--pl-font-body);
+    }
+
+@media (max-width: 900px) {
+    .pa-conduct {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "info" "input" "chalk";
+    }
+}

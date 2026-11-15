@@ -1,4 +1,5 @@
 using Data.DartContext.Entities.Tournament;
+using Logic.Shared.Rules;
 using Logic.Tournament.Match;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enums.Bot;
@@ -16,6 +17,8 @@ namespace Logic.Tournament.Play
 {
     public class TournamentMatchService : TournamentServiceBase, ITournamentMatchService
     {
+        private static readonly X01Rules Rules = new();
+
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly ILeagueService _leagueService;
@@ -101,6 +104,69 @@ namespace Logic.Tournament.Play
             catch (Exception exception)
             {
                 await MessageLog.LogMessage($"Error adding dart to tournament match {matchId}.", nameof(TournamentMatchService), exception);
+                throw;
+            }
+        }
+
+        public async Task<TournamentMatchState> UndoLastDartAsync(int matchId, Guid? concurrencyStamp)
+        {
+            try
+            {
+                var match = await LoadMatchAsync(matchId);
+                TournamentAccess.EnsureCanManage(ClaimsHelper.GetCurrentUserFromClaims(), match.Round.Tournament);
+
+                if (match.Status != TournamentMatchStatusEnum.Running)
+                {
+                    throw new BusinessRuleException("Only darts of a running match can be taken back.");
+                }
+
+                if (concurrencyStamp is Guid stamp && stamp != match.ConcurrencyStamp)
+                {
+                    throw new DbUpdateConcurrencyException("The match was changed in the meantime. Reload and try again.");
+                }
+
+                var throws = OrderedThrows(match);
+                var lastHuman = throws.FindLastIndex(t => !IsBot(SideOf(match, t.Visit.PlayerNumber)));
+
+                if (lastHuman < 0)
+                {
+                    throw new BusinessRuleException("There is no dart of a human player to take back.");
+                }
+
+                // Den Dart und alles danach (Bot-Aufnahmen) entfernen: immer ein Ende der Wurffolge, daher nur Löschungen.
+                var removed = throws.Skip(lastHuman).Select(t => t.Throw).ToList();
+                var bots = Tournaments;
+
+                foreach (var t in removed)
+                {
+                    t.Visit.Throws.Remove(t);
+                    bots.TournamentMatchThrowRepository.Delete(t);
+                }
+
+                foreach (var leg in match.Legs.ToList())
+                {
+                    foreach (var visit in leg.Visits.Where(v => v.Throws.Count == 0).ToList())
+                    {
+                        leg.Visits.Remove(visit);
+                        bots.TournamentMatchVisitRepository.Delete(visit);
+                    }
+
+                    if (leg.Visits.Count == 0)
+                    {
+                        match.Legs.Remove(leg);
+                        bots.TournamentMatchLegRepository.Delete(leg);
+                    }
+                }
+
+                RecalculateStoredState(match);
+                match.ConcurrencyStamp = Guid.NewGuid();
+
+                await UnitOfWork.SaveChangesAsync();
+                return ToState(match, Replay(match), canEnter: true);
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage($"Error taking back a dart in tournament match {matchId}.", nameof(TournamentMatchService), exception);
                 throw;
             }
         }
@@ -418,13 +484,52 @@ namespace Logic.Tournament.Play
         private static X01Match Replay(TournamentMatchEntity match)
         {
             var tournament = match.Round.Tournament;
-            var darts = match.Legs
-                .OrderBy(l => l.LegNumber)
-                .SelectMany(l => l.Visits.OrderBy(v => v.VisitNumber))
-                .SelectMany(v => v.Throws.OrderBy(t => t.ThrowNumber))
-                .Select(t => (t.Segment, t.Multiplier));
+            var darts = OrderedThrows(match).Select(t => (t.Throw.Segment, t.Throw.Multiplier));
 
             return X01Match.Replay(tournament.StartingScore, tournament.InMode, tournament.OutMode, match.Round.BestOfLegs, darts);
+        }
+
+        private static List<(TournamentMatchThrowEntity Throw, TournamentMatchVisitEntity Visit)> OrderedThrows(TournamentMatchEntity match) =>
+            match.Legs
+                .OrderBy(l => l.LegNumber)
+                .SelectMany(l => l.Visits.OrderBy(v => v.VisitNumber))
+                .SelectMany(v => v.Throws.OrderBy(t => t.ThrowNumber).Select(t => (t, v)))
+                .ToList();
+
+        /// <summary>Nach einer Korrektur: Aufnahmen, Leg-Sieger und Leg-Stand aus den verbliebenen Darts neu berechnen.</summary>
+        private static void RecalculateStoredState(TournamentMatchEntity match)
+        {
+            var tournament = match.Round.Tournament;
+            var engine = new X01Match(tournament.StartingScore, tournament.InMode, tournament.OutMode, match.Round.BestOfLegs);
+
+            // Endzeiten beendeter Legs behalten, nur wo das Leg wieder offen ist, entfällt sie.
+            var finishedAt = match.Legs.ToDictionary(l => l.LegNumber, l => l.FinishedAt);
+
+            foreach (var leg in match.Legs)
+            {
+                leg.WinnerPlayerNumber = null;
+                leg.FinishedAt = null;
+            }
+
+            foreach (var (dart, visit) in OrderedThrows(match))
+            {
+                var outcome = engine.Throw(dart.Segment, dart.Multiplier);
+
+                visit.ScoreAfter = outcome.RemainingAfter;
+                visit.IsBust = outcome.IsBust;
+                visit.IsCheckout = outcome.IsCheckout;
+                visit.DartsUsed = dart.ThrowNumber;
+
+                if (outcome.LegWinner is int winner)
+                {
+                    var leg = match.Legs.Single(l => l.LegNumber == outcome.LegNumber);
+                    leg.WinnerPlayerNumber = winner;
+                    leg.FinishedAt = finishedAt.GetValueOrDefault(leg.LegNumber) ?? DateTime.UtcNow;
+                }
+            }
+
+            match.HomeLegs = engine.LegsWon(1);
+            match.AwayLegs = engine.LegsWon(2);
         }
 
         private static TournamentParticipantEntity? SideOf(TournamentMatchEntity match, int player) =>
@@ -476,6 +581,11 @@ namespace Logic.Tournament.Play
                 LegStarter = engine.LegStarter,
                 CurrentVisit = engine.CurrentVisit.Select(d => new TournamentDartItem { Segment = d.Segment, Multiplier = d.Multiplier, Score = d.Segment * d.Multiplier }).ToList(),
                 CanEnterDarts = canEnter && match.Status == TournamentMatchStatusEnum.Running && !IsBot(SideOf(match, engine.CurrentPlayer)),
+                CanUndo = canEnter && match.Status == TournamentMatchStatusEnum.Running
+                          && match.Legs.SelectMany(l => l.Visits).Any(v => !IsBot(SideOf(match, v.PlayerNumber))),
+                CheckoutSuggestions = match.Status == TournamentMatchStatusEnum.Running && engine.IsOpened(engine.CurrentPlayer)
+                    ? Rules.GetCheckoutSuggestions(engine.Remaining(engine.CurrentPlayer), X01Match.DartsPerVisit - engine.CurrentVisit.Count, tournament.OutMode)
+                    : new List<CheckoutSuggestion>(),
                 WinnerParticipantId = match.WinnerParticipantId,
                 ConcurrencyStamp = match.ConcurrencyStamp,
                 Legs = match.Legs

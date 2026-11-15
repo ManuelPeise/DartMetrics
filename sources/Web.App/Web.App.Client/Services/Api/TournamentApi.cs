@@ -55,6 +55,9 @@ namespace Web.App.Client.Services.Api
         public Task<ApiResult<TournamentMatchState>> StartMatchAsync(int matchId, CancellationToken ct = default) =>
             ApiResponse.ReadAsync<TournamentMatchState>(_api.PostAsJsonAsync<object?>($"{Controller}StartTournamentMatch?matchId={matchId}", null, ct), ct);
 
+        public Task<ApiResult<TournamentMatchState>> UndoDartAsync(int matchId, Guid concurrencyStamp, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<TournamentMatchState>(_api.PostAsJsonAsync<object?>($"{Controller}UndoTournamentDart?matchId={matchId}&concurrencyStamp={concurrencyStamp}", null, ct), ct);
+
         public Task<ApiResult<TournamentMatchState>> AddDartAsync(int matchId, AddTournamentDartModel model, CancellationToken ct = default) =>
             ApiResponse.ReadAsync<TournamentMatchState>(_api.PostAsJsonAsync($"{Controller}AddTournamentDart?matchId={matchId}", model, ct), ct);
     }

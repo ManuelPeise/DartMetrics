@@ -4,9 +4,12 @@
 @implements IDisposable
 @inject ITournamentApi TournamentApi
 
-@* Phase 4b: schlichte Eingabe und Live-Ansicht. Der eigene Eingabe-Screen mit Tafel folgt in Phase 5. *@
+@*
+    Eingabe-Screen für Turnier-Matches: links die Tafel (Rechnung wie mit Kreide), rechts oben der Spielstand,
+    rechts unten die Eingabe je Dart mit Korrektur. Zuschauer und Bot-Züge: Nachladen alle 3 Sekunden.
+*@
 
-<PageTitle>Match – DartMetrics</PageTitle>
+<PageTitle>@(_state is null ? "Match" : $"{_state.Home.DisplayName} – {_state.Away.DisplayName}") – DartMetrics</PageTitle>
 
 <PlayerPageHeader Eyebrow="@(_state is null ? "Turnier" : $"{_state.TournamentName} · {_state.RoundName}")"
                   Title="@(_state is null ? "Match" : $"{_state.Home.DisplayName} – {_state.Away.DisplayName}")"
@@ -21,7 +24,7 @@
 
 @if (_error is not null)
 {
-    <PlayerErrorState Text="@_error" OnRetry="LoadAsync" />
+    <p class="pl-alert" role="alert">@_error</p>
 }
 
 @if (_state is null)
@@ -34,8 +37,56 @@
 else
 {
     var s = _state;
-    <div class="pa-play">
-        <div class="pa-play__info">
+    var leg = ShownLeg;
+
+    <div class="pa-conduct">
+        <section class="pa-conduct__chalk pa-chalk" aria-label="Tafel">
+            <div class="pa-chalk__head">
+                <span>Leg @(leg?.LegNumber ?? s.LegNumber)</span>
+                <span>@s.Home.LegsWon : @s.Away.LegsWon</span>
+            </div>
+            <div class="pa-chalk__board">
+                @foreach (var player in new[] { 1, 2 })
+                {
+                    var side = player == 1 ? s.Home : s.Away;
+                    var rows = ChalkRows(leg, player);
+                    <div class="pa-chalk__column">
+                        <p class="pa-chalk__name @(s.Status == TournamentMatchStatusEnum.Running && s.CurrentPlayer == player && leg?.LegNumber == s.LegNumber ? "is-active" : "")">@side.DisplayName</p>
+                        <ul class="pa-chalk__list">
+                            <li class="pa-chalk__row @(rows.Count > 0 ? "is-crossed" : "")">
+                                <span class="pa-chalk__scored"></span>
+                                <span class="pa-chalk__rest">@s.StartingScore</span>
+                            </li>
+                            @for (var i = 0; i < rows.Count; i++)
+                            {
+                                var row = rows[i];
+                                var last = i == rows.Count - 1;
+                                <li class="pa-chalk__row @(last ? "" : "is-crossed") @(row.IsBust ? "is-bust" : "") @(row.IsCheckout ? "is-checkout" : "")">
+                                    <span class="pa-chalk__scored">@(row.IsBust ? "—" : (row.ScoreBefore - row.ScoreAfter).ToString())</span>
+                                    <span class="pa-chalk__rest">@(row.IsCheckout ? "✓" : row.ScoreAfter.ToString())</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+
+            @if (s.Legs.Count > 1)
+            {
+                <div class="pa-chalk__legs" role="group" aria-label="Leg wählen">
+                    @foreach (var l in s.Legs)
+                    {
+                        var number = l.LegNumber;
+                        <button type="button" class="pl-btn @(number == (leg?.LegNumber ?? 0) ? "pl-btn--ghost" : "pl-btn--link")"
+                                @onclick="() => _shownLeg = number == s.Legs[^1].LegNumber ? null : number">
+                            Leg @number@(l.WinnerPlayer is int w ? $" · {(w == 1 ? s.Home.DisplayName : s.Away.DisplayName)}" : "")
+                        </button>
+                    }
+                </div>
+            }
+        </section>
+
+        <div class="pa-conduct__info">
             <div class="pa-duel">
                 <div class="pa-duel__player @(s.Status == TournamentMatchStatusEnum.Running && s.CurrentPlayer == 1 ? "is-active" : "")">
                     <p class="pa-duel__name">@s.Home.DisplayName</p>
@@ -54,43 +105,32 @@ else
                 </div>
             </div>
 
-            @if (s.Status == TournamentMatchStatusEnum.Finished)
+            @switch (s.Status)
             {
-                <PlayerScoreboard Label="Beendet" Value="@($"{s.Home.LegsWon} : {s.Away.LegsWon}")"
-                                  Status="@($"Sieger {(s.WinnerParticipantId == s.Home.ParticipantId ? s.Home.DisplayName : s.Away.DisplayName)}")" Tone="success" />
-            }
-            else if (s.Status == TournamentMatchStatusEnum.Scheduled)
-            {
-                <PlayerScoreboard Label="Geplant" Value="–" Status="@(s.ScheduledAt is DateTime at ? $"Termin {at.ToLocalTime():g}" : "noch kein Termin")" />
-            }
-
-            @if (LastVisits.Count > 0)
-            {
-                <ul class="pa-history" aria-label="Letzte Aufnahmen">
-                    @foreach (var v in LastVisits)
-                    {
-                        <li class="pa-history__item">
-                            <span>
-                                <strong>@(v.PlayerNumber == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong>
-                                <small>@string.Join(" ", v.Darts.Select(d => new DartThrowInput(d.Segment, d.Multiplier).Label))</small>
-                            </span>
-                            <span class="pa-history__rating">
-                                @(v.IsBust ? "Bust" : (v.ScoreBefore - v.ScoreAfter).ToString())
-                                <small>Rest @v.ScoreAfter</small>
-                            </span>
-                        </li>
-                    }
-                </ul>
+                case TournamentMatchStatusEnum.Finished:
+                    <PlayerScoreboard Label="Beendet" Value="@($"{s.Home.LegsWon} : {s.Away.LegsWon}")"
+                                      Status="@($"Sieger {(s.WinnerParticipantId == s.Home.ParticipantId ? s.Home.DisplayName : s.Away.DisplayName)}")" Tone="success" />
+                    break;
+                case TournamentMatchStatusEnum.Scheduled:
+                    <PlayerScoreboard Label="Geplant" Value="–" Status="@(s.ScheduledAt is DateTime at ? $"Termin {at.ToLocalTime():g}" : "noch kein Termin")" />
+                    break;
+                default:
+                    <CheckoutHint Suggestions="s.CheckoutSuggestions" />
+                    break;
             }
         </div>
 
-        @if (s.CanEnterDarts)
-        {
-            <div>
-                <p class="pa-section__hint">Eingabe für <strong>@(s.CurrentPlayer == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong></p>
-                <DartInputPad CurrentDarts="CurrentDarts" OnDart="AddDartAsync" CanUndo="false" Disabled="_busy" />
-            </div>
-        }
+        <div class="pa-conduct__input">
+            @if (s.CanEnterDarts)
+            {
+                <p class="pa-section__hint">Am Wurf: <strong>@(s.CurrentPlayer == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong></p>
+                <DartInputPad CurrentDarts="CurrentDarts" OnDart="AddDartAsync" OnUndo="UndoAsync" CanUndo="s.CanUndo" Disabled="_busy" />
+            }
+            else if (s.Status == TournamentMatchStatusEnum.Running)
+            {
+                <p class="pa-section__hint">@(s.CanUndo ? "Ein Bot wirft …" : "Live – der Stand lädt automatisch nach.")</p>
+            }
+        </div>
     </div>
 }
 
@@ -102,20 +142,25 @@ else
     private TournamentMatchState? _state;
     private string? _error;
     private bool _busy;
+    private int? _shownLeg;
     private Timer? _timer;
+
+    private TournamentLegItem? ShownLeg =>
+        _state?.Legs.FirstOrDefault(l => l.LegNumber == _shownLeg) ?? CurrentLeg;
+
+    /// <summary>Das laufende Leg; nach einem Checkout (neues Leg noch ohne Aufnahme) das zuletzt gespielte.</summary>
+    private TournamentLegItem? CurrentLeg =>
+        _state?.Legs.FirstOrDefault(l => l.LegNumber == _state.LegNumber) ?? _state?.Legs.LastOrDefault();
 
     private IReadOnlyList<DartThrowInput> CurrentDarts =>
         _state?.CurrentVisit.Select(d => new DartThrowInput(d.Segment, d.Multiplier)).ToList() ?? [];
 
-    /// <summary>Die letzten Aufnahmen des laufenden (bzw. letzten) Legs, neueste zuerst.</summary>
-    private List<TournamentVisitItem> LastVisits =>
-        _state?.Legs.LastOrDefault()?.Visits.OrderByDescending(v => v.VisitNumber).Take(6).ToList() ?? [];
+    private static List<TournamentVisitItem> ChalkRows(TournamentLegItem? leg, int player) =>
+        leg?.Visits.Where(v => v.PlayerNumber == player).OrderBy(v => v.VisitNumber).ToList() ?? [];
 
     protected override async Task OnParametersSetAsync()
     {
         await LoadAsync();
-
-        // Zuschauen bzw. Bot am Wurf: regelmäßig nachladen, solange das Match nicht beendet ist.
         _timer ??= new Timer(async _ => await PollAsync(), null, TimeSpan.FromSeconds(PollSeconds), TimeSpan.FromSeconds(PollSeconds));
     }
 
@@ -137,7 +182,17 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task AddDartAsync(DartThrowInput dart)
+    private Task AddDartAsync(DartThrowInput dart) =>
+        SendAsync(() => TournamentApi.AddDartAsync(MatchId, new AddTournamentDartModel
+        {
+            Segment = dart.Segment,
+            Multiplier = dart.Multiplier,
+            ConcurrencyStamp = _state!.ConcurrencyStamp
+        }));
+
+    private Task UndoAsync() => SendAsync(() => TournamentApi.UndoDartAsync(MatchId, _state!.ConcurrencyStamp));
+
+    private async Task SendAsync(Func<Task<ApiResult<TournamentMatchState>>> request)
     {
         if (_state is null)
         {
@@ -145,21 +200,17 @@ else
         }
 
         _busy = true;
-        var result = await TournamentApi.AddDartAsync(MatchId, new AddTournamentDartModel
-        {
-            Segment = dart.Segment,
-            Multiplier = dart.Multiplier,
-            ConcurrencyStamp = _state.ConcurrencyStamp
-        });
+        var result = await request();
 
         if (result.IsSuccess)
         {
             _state = result.Value;
             _error = null;
+            _shownLeg = null;
         }
         else
         {
-            // z. B. 409 von einem zweiten Gerät: Stand neu laden.
+            // z. B. 409 von einem zweiten Gerät: Stand neu laden, Meldung behalten.
             var error = result.Error;
             await LoadAsync();
             _error = error;
@@ -169,7 +220,7 @@ else
     }
 
     private static string SideMeta(TournamentMatchSide side) =>
-        side.ParticipantType == TournamentParticipantTypeEnum.Bot ? $"Bot · Ø {side.Average:0.0}" : $"Ø {side.Average:0.0}";
+        (side.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot · " : "") + $"Ø {side.Average:0.0}" + (side.IsOpened ? "" : " · nicht eröffnet");
 
     public void Dispose() => _timer?.Dispose();
 }

@@ -1,5 +1,6 @@
 using Shared.Enums.Tournament;
 using Shared.Enums.X01;
+using Shared.Models.Shared;
 
 namespace Shared.Models.Tournament
 {
@@ -45,6 +46,12 @@ namespace Shared.Models.Tournament
 
         /// <summary>Darf der angemeldete Benutzer gerade eingeben (Spielleiter und ein Mensch am Wurf)?</summary>
         public bool CanEnterDarts { get; set; }
+
+        /// <summary>Gibt es einen Dart eines Menschen, den der Spielleiter zurücknehmen kann?</summary>
+        public bool CanUndo { get; set; }
+
+        /// <summary>Finish-Wege für den Spieler am Wurf (leer, wenn kein Finish möglich).</summary>
+        public List<CheckoutSuggestion> CheckoutSuggestions { get; set; } = [];
 
         public int? WinnerParticipantId { get; set; }
         public Guid ConcurrencyStamp { get; set; }

@@ -41,7 +41,13 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 - Zustandsfehler (Turnier gestartet, Match läuft nicht, Bot am Wurf …) werfen `BusinessRuleException` (`Shared.Models/Shared`); die Middleware antwortet mit 409 und der Meldung.
 - Seiten unter `/player/tournaments` (Web.App.Client): Liste und Anlegen, Detail (Teilnehmer, Start mit Satzlänge, Spielplan/Baum mit Terminen, Tabelle, Match leiten), schlichte Match-Seite mit Eingabe und Live-Ansicht (Nachladen alle 3 s).
 
-Noch offen: eigener Eingabe-Screen mit Tafel und Korrektur (Phase 5), Anmeldung durch Spieler und Live-Verfolgen für Zuschauer im Detail (Phase 6), Elo/XP aus Turnieren und Caller (Phase 7).
+## Stand (Phase 5: Eingabe-Screen)
+
+- `UndoLastDartAsync`: nimmt den letzten Dart eines Menschen zurück (nur laufende Matches, mit `ConcurrencyStamp`); Bot-Darts danach werden mit entfernt, der Bot wirft neu. Es wird nur ein Ende der Wurffolge gelöscht, danach Aufnahmen, Leg-Sieger und Leg-Stand aus den verbliebenen Darts neu berechnet.
+- Matchstand mit `CanUndo` und Finish-Wegen (`CheckoutSuggestions`) für den Spieler am Wurf.
+- Seite `/player/tournaments/match/{id}`: links die Tafel (Rest je Aufnahme, ältere durchgestrichen, Bust und Checkout markiert, Legs umschaltbar) in der Handschrift Caveat, rechts oben Spielstand mit Finish-Weg, rechts unten Eingabe je Dart mit Korrektur.
+
+Noch offen: Anmeldung durch Spieler und Live-Verfolgen für Zuschauer im Detail (Phase 6), Elo/XP aus Turnieren und Caller (Phase 7).
 
 ## Regeln
 
