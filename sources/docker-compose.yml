@@ -63,7 +63,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
       ASPNETCORE_HTTP_PORTS: "8080"
-      MlData__Path: /data/ml
+      DartBot__Ml__Path: /data/ml
 
       # Container network: host "mysql", not localhost
       ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"

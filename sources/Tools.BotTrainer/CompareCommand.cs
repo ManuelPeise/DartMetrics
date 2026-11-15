@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Logic.Bot.Ml;
@@ -7,7 +7,6 @@ using Logic.Bot.Simulation;
 using Logic.Bot.Tactics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.ML;
 using Shared.Enums.X01;
 using Shared.Interfaces.Bot;
 using Shared.Interfaces.UnitsOfWork;
@@ -23,7 +22,8 @@ namespace Tools.BotTrainer
     /// </summary>
     public static class CompareCommand
     {
-        private static readonly float[] SkillLevels = [0.2f, 0.5f, 0.8f, 0.95f];
+        /// <summary>Unter ~0,4 enden die meisten Legs an der Obergrenze; solche Stufen sagen nichts über die Zielwahl.</summary>
+        private static readonly float[] SkillLevels = [0.5f, 0.7f, 0.85f, 0.95f];
 
         public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
         {
@@ -69,8 +69,7 @@ namespace Tools.BotTrainer
                 return 1;
             }
 
-            var ml = new MLContext(seed);
-            var model = ml.Model.Load(modelPath, out _);
+            var loaded = LoadedTargetModel.Load(modelPath, modelEntity.Sha256);
 
             Console.WriteLine($"Vergleich Modell {modelEntity.Id} (Version {modelEntity.VersionNumber}) gegen Regelwerk: " +
                               $"{legs} Legs je Stufe, 501 {(outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}, " +
@@ -99,13 +98,12 @@ namespace Tools.BotTrainer
                 {
                     var modelDarts = new int[legs];
                     long decisions = 0, overrides = 0;
-                    using var engines = new ThreadLocal<PredictionEngine<TargetCandidateRow, DartsPrediction>>(() => MlTargetSelector.CreateEngine(ml, model));
 
                     Parallel.For(0, legs, i =>
                     {
                         var legSeed = LegSeed(seed, i);
                         // Gleiche Würfe und gleicher Taktik-Zufall wie im Regelwerk-Leg: nur die Abweichungen des Modells zählen.
-                        var selector = new MlTargetSelector(engines.Value!, Rules(legSeed), margin);
+                        var selector = new HybridTargetSelector(loaded, Rules(legSeed), margin);
                         modelDarts[i] = PlayLeg(situation, selector, legSeed, maxDarts);
                         Interlocked.Add(ref decisions, selector.Decisions);
                         Interlocked.Add(ref overrides, selector.Overrides);

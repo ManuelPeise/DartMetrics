@@ -18,11 +18,11 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Authentication` | Login, Registrierung, JWT | [README](Logic.Authentication/README.md) |
 | `Logic.Profile` | Benutzerprofil | [README](Logic.Profile/README.md) |
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
-| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML-Grundlagen (Kandidaten, Rollouts) | [README](Logic.Bot/README.md) |
+| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
-| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen (später Training, Vergleich) | [README](Tools.BotTrainer/README.md) |
+| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren | [README](Tools.BotTrainer/README.md) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
 | `Logic.Integration.Tests` | Integrationstests gegen MySQL 8.4 (Testcontainers) | [README](Logic.Integration.Tests/README.md) |

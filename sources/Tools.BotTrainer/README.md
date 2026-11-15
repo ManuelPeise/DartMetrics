@@ -74,4 +74,13 @@ dotnet run --project Tools.BotTrainer -c Release -- compare --model 2 --legs 200
 Ausgabe je Stufe: Darts pro Leg (Regelwerk, Modell), mittlere Differenz mit 95-%-Intervall (negativ = Modell besser), Anteil Legs, in denen das Modell besser bzw. schlechter war.
 Das Ergebnis wird unter `Comparison` in `MetricsJson` des Trainingslaufs gespeichert. Exit-Code 4, wenn das Modell auf einer Stufe signifikant schlechter ist.
 
-Die Modell-Zielwahl (`MlTargetSelector`) liegt vorläufig im Werkzeug; in Phase 5 wandert sie nach `Logic.Bot`.
+Die Hybrid-Zielwahl (`HybridTargetSelector`, `LoadedTargetModel`) liegt in `Logic.Bot/Ml`; Werkzeug und API nutzen denselben Code.
+
+## activate / deactivate (Phase 5)
+
+```powershell
+dotnet run --project Tools.BotTrainer -c Release -- activate --model 3
+dotnet run --project Tools.BotTrainer -c Release -- deactivate
+```
+
+`activate` prüft Typ, FeatureSchemaVersion und SHA-256 der Datei und setzt den Eintrag für TargetSelection in `DartBotActiveModels` (`ActivatedBy` = BotTrainer). Neu gestartete Bot-Spiele nutzen dann die Hybrid-Zielwahl mit `DartBot:Ml:Margin` (Standard 0,3). `deactivate` entfernt den Eintrag: neue Spiele sind wieder regelbasiert.

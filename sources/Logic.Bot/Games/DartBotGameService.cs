@@ -30,6 +30,7 @@ namespace Logic.Bot.Games
         private readonly IClaimsHelper _claimsHelper;
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly IDartBotLearningService _learningService;
+        private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
@@ -37,11 +38,13 @@ namespace Logic.Bot.Games
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
-            IDartBotLearningService learningService) : base(unitOfWork, messageLog)
+            IDartBotLearningService learningService,
+            ITargetSelectorFactory targetSelectorFactory) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
             _learningService = learningService;
+            _targetSelectorFactory = targetSelectorFactory;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -392,7 +395,8 @@ namespace Logic.Bot.Games
                     profile.RiskTaking),
                 game.InMode,
                 game.OutMode,
-                IsOpened(game, leg, botPlayer)));
+                IsOpened(game, leg, botPlayer)),
+                _targetSelectorFactory.For(botPlayer.TargetModel));
 
             var visit = NewVisit(game, leg, botPlayer, scoreBefore, opponentScoreBefore);
             visit.ScoreAfter = result.ScoreAfter;
@@ -617,6 +621,7 @@ namespace Logic.Bot.Games
                 asNoTracking: false,
                 include: q => q
                     .Include(g => g.Players).ThenInclude(p => p.ProfileVersion)
+                    .Include(g => g.Players).ThenInclude(p => p.TargetModel)
                     .Include(g => g.Legs).ThenInclude(l => l.Visits).ThenInclude(v => v.Throws)
                     .AsSplitQuery());
 

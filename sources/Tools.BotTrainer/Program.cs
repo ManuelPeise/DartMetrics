@@ -1,25 +1,30 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Tools.BotTrainer;
 
 // BotTrainer – Werkzeug für die ML-Phasen der DartBots (läuft nie in der API).
 //   generate  Datensatz aus simulierten Situationen erzeugen (CSV) + Metadaten in DartBotTrainingDatasets
 //   train     Zielwahl-Modell aus einem Datensatz trainieren (ZIP) + DartBotModelTrainings / DartBotModels
 //   compare   Modell gegen Regelwerk in simulierten Legs je Skill-Stufe (Ergebnis in MetricsJson)
+//   activate  Zielwahl-Modell aktiv setzen (DartBotActiveModels); deactivate entfernt es
 //
 //   dotnet run --project Tools.BotTrainer -c Release -- generate --situations 1000 --rollouts 50 --seed 1 [--max-darts 60] [--no-db]
 //   dotnet run --project Tools.BotTrainer -c Release -- train --dataset 4 [--seed 1] [--trees 200] [--leaves 64] [--min-leaf 20]
 //   dotnet run --project Tools.BotTrainer -c Release -- compare --model 3 [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--straight-out]
+//   dotnet run --project Tools.BotTrainer -c Release -- activate --model 3
+//   dotnet run --project Tools.BotTrainer -c Release -- deactivate
 //
 // Konfiguration: appsettings.json, Web.Core/appsettings.Development.json, Umgebungsvariablen (ConnectionStrings__DartContext, MlData__Path).
 
 var arguments = Arguments.Parse(args);
 
-if (arguments.Command is not ("generate" or "train" or "compare"))
+if (arguments.Command is not ("generate" or "train" or "compare" or "activate" or "deactivate"))
 {
     Console.WriteLine("Verwendung:");
     Console.WriteLine("  generate --situations <n> [--rollouts 50] [--seed 1] [--max-darts 60] [--no-db]");
     Console.WriteLine("  train --dataset <id> [--seed 1] [--trees 200] [--leaves 64] [--min-leaf 20]");
     Console.WriteLine("  compare --model <id> [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--max-darts 60] [--straight-out]");
+    Console.WriteLine("  activate --model <id>");
+    Console.WriteLine("  deactivate");
     return 1;
 }
 
@@ -47,5 +52,7 @@ return arguments.Command switch
 {
     "generate" => await GenerateCommand.RunAsync(arguments, store, provider),
     "train" => await TrainCommand.RunAsync(arguments, store, provider!),
+    "activate" => await ActivateCommand.ActivateAsync(arguments, store, provider!),
+    "deactivate" => await ActivateCommand.DeactivateAsync(provider!),
     _ => await CompareCommand.RunAsync(arguments, store, provider!)
 };

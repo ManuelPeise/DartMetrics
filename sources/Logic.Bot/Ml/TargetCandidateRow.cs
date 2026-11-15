@@ -1,6 +1,6 @@
 ﻿using Microsoft.ML.Data;
-
-namespace Tools.BotTrainer
+using Shared.Models.Bot.Ml;
+namespace Logic.Bot.Ml
 {
     /// <summary>
     /// Eine CSV-Zeile des Datensatzes für ML.NET (Spaltenreihenfolge = CsvDatasetWriter.Header).
@@ -8,6 +8,27 @@ namespace Tools.BotTrainer
     /// </summary>
     public sealed class TargetCandidateRow
     {
+        /// <summary>Merkmale eines Kandidaten als Modell-Eingabe (Label-Spalten bleiben leer).</summary>
+        public static TargetCandidateRow From(TargetCandidateFeatures f) => new()
+        {
+            Remaining = f.Remaining,
+            DartsAvailable = f.DartsAvailable,
+            OpponentRemaining = f.OpponentRemaining,
+            OutMode = f.OutMode,
+            IsOpened = f.IsOpened ? 1 : 0,
+            ThrowPrecision = f.ThrowPrecision,
+            ThrowConsistency = f.ThrowConsistency,
+            TacticalIntelligence = f.TacticalIntelligence,
+            PressureResistance = f.PressureResistance,
+            RiskTaking = f.RiskTaking,
+            CandidateSegment = f.CandidateSegment.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            CandidateMultiplier = f.CandidateMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            CandidateScore = f.CandidateScore,
+            LeftoverIfHit = f.LeftoverIfHit,
+            IsFinishingDart = f.IsFinishingDart ? 1 : 0,
+            LeftoverIsCheckable = f.LeftoverIsCheckable ? 1 : 0
+        };
+
         [LoadColumn(0)] public float Remaining { get; set; }
         [LoadColumn(1)] public float DartsAvailable { get; set; }
         [LoadColumn(2)] public float OpponentRemaining { get; set; }
@@ -36,5 +57,15 @@ namespace Tools.BotTrainer
             nameof(ThrowPrecision), nameof(ThrowConsistency), nameof(TacticalIntelligence), nameof(PressureResistance), nameof(RiskTaking),
             nameof(CandidateScore), nameof(LeftoverIfHit), nameof(IsFinishingDart), nameof(LeftoverIsCheckable)
         ];
+    }
+}
+
+namespace Logic.Bot.Ml
+{
+    /// <summary>Modellausgabe: vorhergesagte Darts mehr als der beste Kandidat (kleiner = besser).</summary>
+    public sealed class DartsPrediction
+    {
+        [ColumnName("Score")]
+        public float Score { get; set; }
     }
 }

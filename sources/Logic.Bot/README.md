@@ -25,7 +25,7 @@ DI/BotServiceRegistration          AddBotServices()
 - Level aus Gesamt-XP (`LevelXpBase × n^LevelXpExponent`), Fähigkeiten steigen linear bis `SkillAtMaxLevel`.
 - Alle Werte konfigurierbar über `DartBotOptions` (Abschnitt `"DartBot"`).
 - Zufall über `IRandomSource` (für reproduzierbare Tests austauschbar).
-- Später: `MlTargetSelector` hinter `ITargetSelector`.
+- Mit aktivem Modell: `HybridTargetSelector` hinter `ITargetSelector` (siehe ML, Phase 5).
 
 ## Nebenläufigkeit
 
@@ -42,9 +42,22 @@ Grundlage für das spätere Zielwahl-Modell (Plan-Doc „ML.NET Phase 1 – Kand
 | Klasse | Aufgabe |
 |---|---|
 | `Ml/CandidateGenerator` | sinnvolle Ziele einer Situation (S/D/T 1–20, 25, Bull) ohne sichere Busts; vor der Double-In-Eröffnung nur Doubles |
-| `Ml/CandidateFeatureBuilder` | Merkmale je Kandidat (`TargetCandidateFeatures`, FeatureSchemaVersion 1) |
+| `Ml/CandidateFeatureBuilder` | Merkmale je Kandidat (`TargetCandidateFeatures`, FeatureSchemaVersion 2) |
 | `Ml/LegRolloutSimulator` | spielt ab dem Kandidaten-Dart das Leg zu Ende (Regelstrategie, `ThrowSimulator`, `X01Rules`), zählt die Darts |
 | `Ml/CandidateEvaluator` | N Rollouts je Kandidat (Standard 50, max. 60 Darts), Mittelwert = `ExpectedDartsToFinish`, Abstand zum besten Kandidaten = Label `RelativeDarts` (Schema 2). Gemeinsamer Zufall: Rollout i hat für alle Kandidaten einer Situation dieselben Würfe; Strategie mit eigenem Strom |
 | `Ml/RolloutOptions` | `RolloutsPerCandidate`, `MaxDartsPerLeg`, `Seed` |
 
 Situation: `Shared.Models/Bot/Ml/BotSituation` (Rest, Darts in der Aufnahme, Gegnerstand, Profil, In-/Out-Modus, eröffnet, Stand zu Beginn der Aufnahme).
+
+## ML (Phase 5: Modell im Bot-Spiel)
+
+| Klasse | Aufgabe |
+|---|---|
+| `Ml/TargetCandidateRow` | Eingabezeile des ML.NET-Modells (aus `TargetCandidateFeatures`), `DartsPrediction` als Ausgabe |
+| `Ml/LoadedTargetModel` | lädt die ZIP nach SHA-256-Prüfung, Pool von `PredictionEngine`s (threadsicher) |
+| `Ml/HybridTargetSelector` | nimmt das Regel-Ziel, ersetzt es nur, wenn das Modell einen Kandidaten um mehr als `Margin` Darts besser bewertet |
+| `Ml/TargetSelectorFactory` | Singleton, `ITargetSelectorFactory`: Modell je Id einmal geladen; fehlt die Datei, passt SHA/Schema nicht oder ist ML aus → Regelwerk |
+
+Ablauf: `StartGameAsync` merkt sich das aktive Modell (`DartBotActiveModels`) in `DartBotGamePlayer.TargetModelId`; `PlayBotVisit` holt die Zielwahl über die Factory. Laufende Spiele behalten ihr Modell, auch nach einem Wechsel.
+
+Einstellungen `DartBot:Ml`: `Enabled` (true), `Path` (Ordner der ML-Daten, Container `/data/ml`), `Margin` (0,3 – im Vergleich auf allen Skill-Stufen signifikant besser als das Regelwerk). Aktivieren: `Tools.BotTrainer activate --model <id>`.
