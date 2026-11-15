@@ -41,7 +41,7 @@ namespace Logic.Shared.Mail
                 </html>";
         }
 
-        private static string GetAccountActivationBody(string applicationUrl)
+        private static string GetAccountActivationBody(string? applicationUrl)
         {
             if (string.IsNullOrEmpty(applicationUrl))
             {
