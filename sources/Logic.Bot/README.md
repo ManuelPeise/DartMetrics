@@ -41,7 +41,7 @@ Betrifft der Konflikt andere Entitäten oder scheitert auch der zweite Versuch, 
 
 ## ML (Phase 1: Kandidaten und Rollouts)
 
-Grundlage für das spätere Zielwahl-Modell (Plan-Doc „ML.NET Phase 1 – Kandidaten und Rollouts“). Reine Logik ohne Datenbank, nicht in der API registriert; Bots spielen weiter regelbasiert.
+Grundlage des Zielwahl-Modells: Datensätze für das Training (Tools.BotTrainer). Reine Logik ohne Datenbank. Im Bot-Spiel wird das trainierte Modell über die Hybrid-Zielwahl genutzt (Phase 5); ohne aktives Modell spielen die Bots regelbasiert.
 
 | Klasse | Aufgabe |
 |---|---|
@@ -64,7 +64,7 @@ Situation: `Shared.Models/Bot/Ml/BotSituation` (Rest, Darts in der Aufnahme, Geg
 
 Ablauf: `StartGameAsync` merkt sich das aktive Modell (`DartBotActiveModels`) in `DartBotGamePlayer.TargetModelId`; `PlayBotVisit` holt die Zielwahl über die Factory. Laufende Spiele behalten ihr Modell, auch nach einem Wechsel.
 
-Einstellungen `DartBot:Ml`: `Enabled` (true), `Path` (Ordner der ML-Daten, Container `/data/ml`), `Margin` (0,3 – im Vergleich auf allen Skill-Stufen signifikant besser als das Regelwerk). Aktivieren: Admin-Seite `/admin/models` oder `Tools.BotTrainer activate --model <id>`.
+Einstellungen `DartBot:Ml`: `Enabled` (true), `Path` (Ordner der ML-Daten, Container `/data/ml`), `Margin` (0,3 – im Vergleich auf allen Skill-Stufen signifikant besser als das Regelwerk). Aktivieren: Admin-Seite `/admin/models`, `Tools.BotTrainer activate --model <id>` oder komplett automatisch `deploy/train-model.ps1` / `.sh` (siehe Tools.BotTrainer).
 
 ## ML (Phase 6: Admin-Seite)
 

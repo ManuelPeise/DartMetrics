@@ -1,6 +1,26 @@
 ﻿# Tools.BotTrainer
 
-Konsolenwerkzeug für die ML-Phasen der DartBots. Läuft lokal, nie in der API (Roadmap 3.5).
+Konsolenwerkzeug für die ML-Phasen der DartBots. Läuft lokal oder als Docker-Container, nie in der API.
+
+## Schnellweg: alles in Docker
+
+Nach einem frischen Deployment ist kein Modell aktiv (die Bots spielen dann regelbasiert). Ein Befehl erledigt generate → train → compare → activate:
+
+```powershell
+.\deploy\train-model.ps1                    # Windows
+./deploy/train-model.sh                      # Linux / Raspberry Pi
+```
+
+Aktiviert wird nur, wenn das Modell auf keiner Stufe signifikant schlechter ist als das Regelwerk. Ohne `-Force` / `--force` passiert nichts, wenn schon ein Modell aktiv ist. `deploy/deploy.ps1` ruft das Skript automatisch auf.
+
+Einzelne Befehle im Container (Dienst `bottrainer`, Profil `tools`, schreibt nach `./ml_data`):
+
+```powershell
+docker compose --profile tools run --rm bottrainer generate --situations 1000 --rollouts 50 --seed 1
+docker compose --profile tools run --rm bottrainer train --dataset 4
+```
+
+Die Optionen unten gelten für beide Wege. Lokal mit `dotnet run` nutzt das Werkzeug die DB auf `localhost:3306` (nur in der Entwicklung offen, siehe `docker-compose.override.yml`).
 
 ## generate (Phase 2)
 
@@ -21,7 +41,7 @@ dotnet run --project Tools.BotTrainer -c Release -- generate --situations 1000 -
 | `--max-darts` | 60 | Obergrenze je Rollout |
 | `--no-db` | – | nur Datei schreiben, keine Metadaten |
 
-- **Ablage:** `MlData:Path` (Standard `ml_data` im Lösungsordner). `docker-compose.yml` bindet denselben Ordner schreibgeschützt in die API ein (`/data/ml`), damit sie später Modelle laden kann. `ml_data/` gehört nicht ins Git.
+- **Ablage:** `MlData:Path` (Standard `ml_data` im Lösungsordner). `docker-compose.yml` bindet denselben Ordner schreibgeschützt in die API ein (`/data/ml`), damit sie die Modelle laden kann; der Container `bottrainer` bindet ihn beschreibbar ein. `ml_data/` gehört nicht ins Git.
 - **Situationen:** 60 % im Finish-Bereich (≤ 170), 20 % Straight-Out, 20 % Double-In (davon ein Teil noch nicht eröffnet); Fähigkeiten zu 80 % zwischen 0,3 und 1.
 - **Schema 2:** Spalten `SituationId` (Gruppe) und `RelativeDarts` (Label: Darts mehr als der beste Kandidat der Situation). Datensätze mit Schema 1 können nicht mehr trainiert werden.
 - **Dauer:** grob einige Minuten für 1000 Situationen im Release-Build; die Kandidaten laufen parallel.

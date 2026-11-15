@@ -14,7 +14,7 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 - Jeder `AddThrow…` liefert ein Ergebnis je Dart (Rest, Bust/Checkout, Treffer, Ende), damit die Oberfläche keine Dart-Regeln nachbauen muss.
 - Darts strikt der Reihe nach (Aufnahme/Versuch und Dart-Nummer werden geprüft).
 - Checkout-Training: Versuch = bis zu 3 Darts auf den Zielwert, endet mit Checkout, Bust oder dem 3. Dart; immer Double-Out.
-- Regeln aus `Logic.Shared/Rules`.
+- Regeln aus `Logic.Shared/Rules`. Checkout-Wege für die Anzeige aus `CheckoutAdvisor` (`Shared.Models/Shared`): bester Weg zuerst, nach jedem Dart neu; nach Aufnahme-Ende, Bust oder einem beendeten Checkout-Versuch schon für die nächste Aufnahme (3 Darts).
 - DI: `AddTrainingServices()` registriert alle vier Services.
 
 ## Fortsetzen nach Reload

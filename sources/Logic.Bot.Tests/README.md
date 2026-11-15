@@ -13,6 +13,7 @@ xUnit-Tests für die datenbankfreie Bot-Logik.
 | `Ml/CandidateFeatureBuilderTests` | Rest nach Treffer, Finish-Dart, checkbarer Rest, Bogey 169 |
 | `Ml/CandidateEvaluatorTests` | ohne Streuung exakt (D20 auf 40 = 1, S20 = 2, 501 = Neun-Darter), Obergrenze, gleicher Seed = gleiche Labels, stärkeres Profil braucht weniger Darts |
 | `Rules/X01RulesTests` | Bust/Checkout für Double-/Straight-Out, CountedScore bei Double-In |
+| `Rules/CheckoutAdvisorTests` | Checkout-Empfehlung für Menschen: alle Reste 2–170 (gültiger Weg, wenigste Darts, kein Zwischenrest < 2), unmögliche Reste (159, 162, 163, 165, 166, 168, 169), Standardwege (170, 160, 100, 98, 60, 40, 32, 50), Straight-Out, Kopien statt Cache-Objekten |
 
 `Helpers/FixedRandomSource` liefert immer 0.25. Box-Muller ergibt damit 0, also keine Streuung: der Bot trifft jeden Zielpunkt, die Tests sind deterministisch.
 

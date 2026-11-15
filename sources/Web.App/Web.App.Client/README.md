@@ -16,10 +16,12 @@ Pages/                Home, Login (mit „Passwort vergessen“ und „Bestätig
 Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken (Zeitraum, Kennzahlen je Trainingsart, Verlauf), Profil (Elo + Verlauf, Daten, Passwort, Konto löschen), Turniere (Liste, Detail mit Teilnehmern/Spielplan/Tabelle, Match-Eingabe)
   Training/           X01, Around the Clock, Checkout, Segment (Einstellung → Spiel → Ergebnis; offenes Training wird beim Öffnen fortgesetzt)
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
-Routing/AppAreas      Grenze zwischen WASM und Server-Bereich (/admin)
+Routing/AppAreas      Grenze zwischen WASM und Server: /admin (Interactive Server), /impressum und /datenschutz
+                      (static SSR); RequiresFullPageLoad für Links dorthin
 Services/             AccountService (Login, Registrierung, E-Mail-Bestätigung, Logout über /bff),
                       ApiClient (API über den BFF-Proxy /bff/api/**), BffHttpClient + CsrfHeaderHandler
-Services/Api/         Typisierte API-Clients je Fachbereich (IProfileApi, IBotGameApi, ITrainingApi), ApiResult<T>
+Services/Api/         Typisierte API-Clients je Fachbereich (IProfileApi, IBotGameApi, ITrainingApi, IStatisticsApi,
+                      ITournamentApi), ApiResult<T>
 ```
 
 Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Spieler-Bereich, Präfix `pa-`), beide in `Web.App/wwwroot/css`.
@@ -32,7 +34,8 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 - `@using global::Shared.…` statt `@using Shared.…` (sonst `Web.App.Client.Pages.Shared`).
 - Neue Spieler-Seite: Datei in `Pages/Player`, Menüpunkt in `Layout/Player/PlayerNavigation.cs`.
 - Nach dem Login: Admins → `/admin`, Player/GameMaster → `/player` (sofern keine andere Seite angefordert war).
-- Links in den Admin-Bereich mit `AreaLink` (voller Seitenwechsel).
+- Links in den Admin-Bereich und zu Impressum/Datenschutz mit `AreaLink` (voller Seitenwechsel; der WASM-Router kennt diese Seiten nicht).
+- Login/Registrierung/Passwort-Seiten zeigen bei HTTP 429 (Rate Limiting) „Zu viele Versuche“.
 - Responsiv: Desktop Top-Leiste mit Text, Tablet (< 1024 px) nur Icons, Smartphone (< 768 px) Bottom Navigation.
 
 ## Wurfeingabe (`DartInputPad`)
@@ -49,6 +52,11 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
   oder bei Rest ≤ 1 automatisch abgeschickt; für einen Checkout mit 1–2 Darts gibt es „Aufnahme abschicken“.
 - Der Rest während der Eingabe ist nur eine Vorschau (Summe); Bust, Checkout und Double-In wertet der Server.
 - Die Antwort enthält bereits die Bot-Aufnahme(n); sie werden Dart für Dart mit Zielfeld angezeigt.
+- Checkout-Hinweis nach jedem eingegebenen Dart, im Browser berechnet (`CheckoutAdvisor` aus `Shared.Models`), ab dem Eröffnen.
+
+## Checkout-Hinweis (`CheckoutHint`)
+
+Zeigt den besten Weg aus `CheckoutSuggestions` (z. B. „T20 · T20 · Bull“). In Trainings und Turnier-Matches liefert der Server die Wege nach jedem Dart, in der Bot-Partie rechnet die Seite selbst.
 
 ## Turniere (`/player/tournaments`)
 

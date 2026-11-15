@@ -1,55 +1,44 @@
-# DartMetrics
+# DartMetrics – Technische Dokumentation
 
-**Jeder Wurf zählt.** DartMetrics ist eine Web-Anwendung für Steel- und Softdart-Spieler: Spiele und Trainings werden Wurf für Wurf erfasst, ausgewertet und über die Zeit verfolgt. Dazu kommen virtuelle Gegner – DartBots –, die mit jedem Spiel gegen Menschen dazulernen.
+Setup, Betrieb und Entwicklung. Für Spieler und Admins: **[Benutzerhandbuch](../docs/user-guide.md)** · Projektüberblick: **[README im Hauptordner](../README.md)**.
 
-## Was die Anwendung kann
-
-### Für Spieler
-- **Konto:** Registrierung mit E-Mail-Bestätigung, Login, Profil, Passwort ändern.
-- **Trainings**, jeder Dart einzeln erfasst:
-  - *Segment-Training* – ein Zielfeld über mehrere Aufnahmen treffen.
-  - *Checkout-Training* – Finishes von einem Startwert üben.
-  - *X01* – 301 oder 501 mit Double-Out allein spielen.
-  - *Around the Clock* – die Segmente der Reihe nach treffen.
-- **Statistiken:** Averages, Checkout- und Trefferquoten, Siege gegen Bots und Verlauf von Average und Elo – für 30 Tage, 90 Tage oder gesamt.
-- **Spiele gegen DartBots:** 301/501, Best of 1–11 Legs. Der Bot antwortet sofort mit seiner Aufnahme und zeigt, worauf er gezielt hat.
-
-### DartBots
-- Jeder Bot startet als **Anfänger (Level 0)** und entwickelt sich bis zum Profi (Level 20).
-- Nach jedem abgeschlossenen Spiel gegen einen Menschen erhält der Bot **Erfahrungspunkte und eine Elo-Wertung**; ein Level-Aufstieg verbessert Präzision, Konstanz, Taktik und Druckresistenz.
-- Würfe werden realistisch simuliert (Streuung um das Ziel, Formschwankungen, Druck beim Checkout).
-- Die Zielwahl ist zunächst regelbasiert (Checkout-Wege, Setup-Würfe); später übernehmen gemeinsam trainierte **ML.NET-Modelle**.
-
-### Für Administratoren (`/admin`)
-- **Dashboard** mit Benutzern, Bots, Systemstatus und letzten Aktivitäten.
-- **Benutzerverwaltung:** Rollen vergeben (Player/GameMaster), Konten sperren oder anonymisiert löschen. Admin-Konten und das eigene Konto sind geschützt.
-- **DartBot-Verwaltung:** Bots anlegen, aktivieren, deaktivieren, Entwicklung verfolgen.
-- **System-Logs:** Fehler, Warnungen und Hinweise durchsuchen und bereinigen.
-
-## Rollen
-
-| Rolle | Zugriff |
+| Dokument | Inhalt |
 |---|---|
-| Player | Eigene Trainings, Statistiken, Spiele gegen Bots |
-| GameMaster | Erweiterte Spielfunktionen |
-| Admin | Administrationsbereich |
-
-Jeder Benutzer hat genau eine Rolle.
+| Diese Datei | Voraussetzungen, Schnellstart, Deployment, Skripte, Betrieb einer eigenen Instanz |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Projekte, Abhängigkeiten, Laufzeit, Service-Verzeichnis, Web-Bereiche, API |
+| [CLAUDE.md](CLAUDE.md) | Entwicklungsregeln und Konventionen |
+| `*/README.md` je Projekt | Details zu Aufbau und Regeln des Projekts |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Mitarbeit: Branches, Commits, Tests, Pull Requests |
 
 ## Technik
 
-- **.NET 10**, ASP.NET Core Web API, **Blazor** (WebAssembly für Spieler, Interactive Server für die Administration), Backend-for-Frontend mit Cookie-Anmeldung und JWT zur API.
+- **.NET 10**, ASP.NET Core Web API, **Blazor** (WebAssembly für Spieler, Interactive Server für die Administration, statische Seiten für Impressum/Datenschutz), Backend-for-Frontend mit Cookie-Anmeldung; JWT nur zwischen Web-App und API.
 - **MySQL 8.4** mit Entity Framework Core (Oracle-Provider), Migrationen beim Start.
-- **ML.NET** für die Bot-Zielwahl (in Vorbereitung).
-- **Docker Compose** für Web-App, API, Datenbank und Mailpit.
+- **ML.NET** (FastTree) für die Zielwahl der DartBots, trainiert mit `Tools.BotTrainer`.
+- **Docker Compose** für Web-App, API, Datenbank, Mailpit (Entwicklung) und den ML-Trainer.
+- Tests: xUnit, Testcontainers (MySQL), GitHub Actions.
 
-Architektur, Projekte und Service-Verzeichnis: **[ARCHITECTURE.md](ARCHITECTURE.md)** · Entwicklungsregeln: **[CLAUDE.md](CLAUDE.md)**
+## Voraussetzungen
+
+- Docker (Docker Desktop unter Windows/macOS, Docker Engine + Compose-Plugin unter Linux/Raspberry Pi OS 64 Bit)
+- Für die Entwicklung: .NET SDK 10
+- Windows: PowerShell für die `.ps1`-Skripte; Linux: bash, `openssl`, `curl`
 
 ## Schnellstart
 
+Am einfachsten mit dem Deployment-Skript (prüft alles, legt Zertifikat und Schriften an, baut und startet, trainiert ein Bot-Modell):
+
+```
+cd sources                            # alle Befehle im Ordner sources
+cp .env.example .env                  # Platzhalter ersetzen
+./deploy/deploy.ps1                   # Windows   (Linux/Pi: ./deploy/deploy.sh)
+```
+
+Oder Schritt für Schritt:
+
 ```
 cp .env.example .env                  # Platzhalter ersetzen (Passwörter, JWT_KEY, CERT_PASSWORD, LEGAL_*)
-./deploy/download-fonts.ps1          # Schriften einmalig lokal ablegen (kein Google Fonts, DSGVO)
+./deploy/download-fonts.ps1           # Schriften einmalig lokal ablegen (kein Google Fonts, DSGVO)
 dotnet dev-certs https -ep certs/dartmetrics.pfx -p <CERT_PASSWORD>
 dotnet dev-certs https --trust
 docker compose up -d                  # MySQL, Mailpit, API, Web-App
@@ -84,3 +73,11 @@ DartMetrics ist Open Source (MIT-Lizenz) und wird ohne Gewähr bereitgestellt. *
 - Impressum und Datenschutzerklärung (`/impressum`, `/datenschutz`) sind **Vorlagen**. Sie beschreiben, was die App ab Werk speichert, ersetzen aber keine rechtliche Prüfung. Bitte prüfen und an die eigene Instanz anpassen, vor allem bei geändertem Code, eigenem Mail-Anbieter oder öffentlichem Betrieb.
 - Die Angaben zum Betreiber kommen aus `LEGAL_*` in der `.env` (siehe `.env.example`). Im Repository stehen keine persönlichen Daten.
 - Sicherheitslücken bitte vertraulich melden: siehe [SECURITY.md](../SECURITY.md).
+
+## Tests
+
+```
+dotnet test DartMetrics.slnx          # Unit- und Integrationstests (Integrationstests brauchen Docker)
+```
+
+Die GitHub-Action `.github/workflows/build.yml` baut die Solution, führt alle Tests aus und baut die Docker-Images bei jedem Push und Pull Request.

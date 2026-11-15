@@ -1,0 +1,69 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security issues:** please do not report them here, see SECURITY.md.
+        Please do not post passwords, `.env` contents or personal data of other users.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to /player/training/x01
+        2. Start 501, double-out
+        3. Enter T20, T20, ...
+        4. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Account / login / registration
+        - Training
+        - Game against a bot
+        - Tournaments
+        - Statistics
+        - Profile
+        - Administration
+        - Deployment / Docker / scripts
+        - Bot trainer / ML
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Branch or commit you are running (`git rev-parse --short HEAD`)
+  - type: dropdown
+    id: hosting
+    attributes:
+      label: Hosting
+      options:
+        - Docker on Windows
+        - Docker on Linux
+        - Docker on Raspberry Pi
+        - Local development (dotnet run)
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: e.g. Chrome 140 on Android phone
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Browser console, `docker compose logs api web` (remove personal data first)
+      render: shell

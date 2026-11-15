@@ -1,6 +1,6 @@
 # DartMetrics – Architektur und Service-Verzeichnis
 
-Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README.md). Regeln und Konventionen: [CLAUDE.md](CLAUDE.md).
+Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bedienung: [Benutzerhandbuch](../docs/user-guide.md) · Regeln und Konventionen: [CLAUDE.md](CLAUDE.md).
 
 ## Projekte
 
@@ -21,9 +21,10 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell, Modellverwaltung für Admins) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
 | `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart, Liga (Spielplan, Tabelle), K.-o. (Baum, Setzliste, Weiterrücken) | [README](Logic.Tournament/README.md) |
-| `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
+| `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen, Löschfristen (`DataRetentionWorker`) | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
-| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren | [README](Tools.BotTrainer/README.md) |
+| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren (lokal oder als Container `bottrainer`) | [README](Tools.BotTrainer/README.md) |
+| `deploy/` | Skripte: Deployment, Updates, Modell-Training, Backups, Schriften | [README](README.md#deployment-und-skripte) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
 | `Logic.Tournament.Tests` | Unit-Tests der Turnier-Logik (ohne Datenbank) | [README](Logic.Tournament.Tests/README.md) |
@@ -32,7 +33,7 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Data.DartContext` | EF Core (MySQL): Entities, Konfigurationen, Migrationen, Seeds | [README](Data.DartContext/README.md) |
 | **Gemeinsam** | | |
 | `Shared.Interfaces` | Interfaces aller Services, UnitOfWork, Repositories | [README](Shared.Interfaces/README.md) |
-| `Shared.Models` | Transportmodelle (API ↔ Web) und Optionen | [README](Shared.Models/README.md) |
+| `Shared.Models` | Transportmodelle (API ↔ Web), Optionen, `CheckoutAdvisor` (Server und Browser) | [README](Shared.Models/README.md) |
 | `Shared.Enums` | Enums | [README](Shared.Enums/README.md) |
 
 ## Abhängigkeiten
@@ -50,8 +51,12 @@ Web.Core (API-Host) ─ Service.Api ─ Shared.Interfaces
 ```
 Browser ──► Web.App (Blazor, BFF, Cookie)  ──JWT──►  Web.Core / Service.Api  ──►  MySQL 8.4
                 │                                         │
-                ├─ /admin: Interactive Server             └─ Mailpit (SMTP, Entwicklung)
+                ├─ /admin: Interactive Server             ├─ Mailpit (SMTP, Entwicklung) bzw. SMTP-Anbieter
+                ├─ /impressum, /datenschutz: static SSR   └─ BotMatchWorker, DataRetentionWorker (Hintergrund)
                 └─ sonst:  WebAssembly (Web.App.Client) ──/bff/api/**──► Proxy in Web.App
+
+Docker: mysql, api, web (+ mailpit in der Entwicklung, bottrainer als Werkzeug mit Profil "tools").
+Produktion (docker-compose.yml allein): nur die Web-App ist von außen erreichbar (7254/5123).
 ```
 
 ## Service-Verzeichnis
@@ -91,6 +96,10 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `ILogService` | `LogService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetLogMessages`, `DeleteMessage`, `DeleteMessages` |
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
 | `IDashboardStatisticsService` | `DashboardStatisticsService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetStatisticsAsync` (Zählwerte fürs Admin-Dashboard) |
+| `IDartBotModelAdministration` | `DartBotModelAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `GetModelsAsync`, `ActivateModelAsync`, `DeactivateTargetModelAsync` |
+| `ITargetSelectorFactory` | `TargetSelectorFactory` | [Logic.Bot](Logic.Bot/README.md) | Si | Zielwahl je Spiel: Regelwerk oder Hybrid mit geladenem ML-Modell |
+| `IHostedService` | `BotMatchWorker` | [Logic.Tournament](Logic.Tournament/README.md) | Si | Bot-gegen-Bot-Matches zum Termin, eine Aufnahme je Takt |
+| `IHostedService` | `DataRetentionWorker` | [Logic.Administration](Logic.Administration/README.md) | Si | Löschfristen: unbestätigte Konten (7 Tage), Logs (90 Tage) |
 
 Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erzeugt (`RepositoryBase<TEntity>`).
 
@@ -117,12 +126,14 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | `IStatisticsApi` | `StatisticsApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetStatisticsAsync(period)` (PlayerStatistics) |
 | `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Offenes Training, Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
 | `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand, Elo-Verlauf (DartBotGameController) |
+| `ITournamentApi` | `TournamentApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Turniere, Anmeldung, Liga, K.o., Match-Eingabe (TournamentController) |
 
 ## Web-Bereiche
 
 | Pfad | Bereich | Render-Modus | Zugriff | Layout |
 |---|---|---|---|---|
 | `/`, `/login`, `/register`, … | Öffentlich | WebAssembly | alle | `PublicLayout` |
+| `/impressum`, `/datenschutz` | Rechtliches | Static SSR (Server) | alle | `PublicLayout` |
 | `/player/**` | Spieler-Bereich | WebAssembly | Player, GameMaster | `PlayerLayout` |
 | `/admin/**` | Administration | Interactive Server | Admin | `AdminLayout` |
 
@@ -139,6 +150,7 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 | `Tournament` | `ITournamentQueryService`, `ITournamentRegistrationService`, `ILeagueService`, `IKnockoutService`, `ITournamentMatchService` | GameMaster, Player (Rechte je Turnier im Service) |
 | `PlayerStatistics` | `IPlayerStatisticsService` | Player |
 | `DartBotAdministration` | `IDartBotAdministration` | Admin |
+| `DartBotModelAdministration` | `IDartBotModelAdministration` | Admin |
 | `UserAdministration` | `IUserAdministration` | Admin |
 | `MessageLog` | `ILogService` | Admin |
 | `Dashboard` | `IDashboardStatisticsService` | Admin |
@@ -146,8 +158,9 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 
 ## Weitere Dokumente
 
-- DartBot-Architektur und Datenmodell: Claude-Doc „DartBot – Finaler Architektur- und Datenmodellplan“.
-- Deployment: `docker-compose.yml`, `Web.Core/Dockerfile`, `deploy/update-containers.ps1` / `.sh`.
+- Deployment: `docker-compose.yml` (Produktion) + `docker-compose.override.yml` (Entwicklung), Dockerfiles in `Web.Core`, `Web.App`, `Tools.BotTrainer`, Skripte in `deploy/` (siehe [README](README.md#deployment-und-skripte)).
+- Sicherheit: Rate Limiting im BFF, Cookies `__Host-` + HttpOnly, JWT nur serverseitig, Passwörter BCrypt, Meldungen nach [SECURITY.md](../SECURITY.md).
+- Lizenzen von Bildern, Schriften und Paketen: [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 
 ## Optimistische Nebenläufigkeit
 

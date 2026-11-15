@@ -27,6 +27,7 @@ Prüfen, was Unit-Tests nicht können: SQL-Übersetzung, Constraints, Migratione
 | `Tournament/TournamentMatchFlowTests` | Mensch gegen Bot: GameMaster gibt Darts ein, Bot wirft sofort, Ergebnis in der Tabelle; Korrektur nimmt Dart und Bot-Antwort zurück; Spieler darf nicht eingeben; veralteter Stand → Konflikt. Bot gegen Bot: erst ab Termin, eine Aufnahme je Takt, bis zum Ende |
 | `Tournament/TournamentRegistrationTests` | Anmeldung öffnen, Spieler meldet sich an (wartet), GameMaster bestätigt, Abmelden und erneut anmelden; private Turniere ohne Anmeldung |
 | `Account/AccountRecoveryTests` | Passwort-Reset (einmal nutzbar, überall abgemeldet, Spam-Sperre, ungültiges Token, unbekannte Adresse), Bestätigungsmail nur für unbestätigte Konten, Konto selbst löschen (falsches Passwort, Anonymisierung, Liga-Matches kampflos), Admin-Löschung meldet von nicht gestarteten Turnieren ab; Passwort ändern hebt das Einmal-Passwort auf |
+| `Account/LoginAndRegistrationTests` | Registrierung → Bestätigung → Login, schwaches/abweichendes Passwort, bereits bestätigte Adresse, manipuliertes Token; fehlgeschlagener Login ohne Log-Eintrag; inaktives Konto; Refresh-Token-Rotation (altes Token wertlos); Löschfristen (nur alte unbestätigte Konten, Cascade der Anmeldedaten) |
 | `Profile/UserProfileServiceTests` | Passwort ändern (richtig, falsch, zu kurz, gleich), Profilbild (PNG ok, Nicht-Bild abgelehnt, Löschen), Namensvalidierung |
 
 ## Regeln

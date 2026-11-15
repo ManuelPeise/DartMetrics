@@ -12,7 +12,7 @@ Repositories/RepositoryBase Generisches Repository (Get…, Any, Add, Update, De
 Rules/                     DartRulesBase (Segment/Multiplikator/Score), X01Rules (Bust, Checkout, Checkout-Wege;
                            In-Modus Straight/Double, Out-Modus Double/Straight, CountedScore für Double-In),
                            AroundTheClockRules
-Logger/MessageLog          Log in die Datenbank und den .NET-Logger
+Logger/MessageLog          Log in die Datenbank (eigener, kurzlebiger DbContext) und den .NET-Logger
 Mail/                      EmailClient, EmailBodyFactory (Bestätigung, Aktivierung, Passwort-Reset)
 Users/UserAnonymizer       Kontolöschung (Admin und selbst): Daten ersetzen, Login/Bild löschen, Bot-Spiele anonym,
                            Turniere über ITournamentWithdrawal
@@ -24,5 +24,6 @@ DI/SharedServiceRegistration AddSharedServices(): IUnitOfWork, IMessageLog, ICla
 
 - Ein `SaveChangesAsync()` pro fachlichem Vorgang.
 - Kein `Update()` auf geladene Objektgraphen; getrackte Entities direkt ändern.
-- `MessageLog.LogMessage` leert den ChangeTracker – nur nach dem Speichern oder im catch-Block aufrufen.
+- `MessageLog.LogMessage` schreibt über einen eigenen DbContext; der DbContext der Anfrage bleibt unberührt.
+- Checkout-Empfehlungen für Menschen: `CheckoutAdvisor` in `Shared.Models/Shared` (läuft auch im Browser). `X01Rules.GetCheckoutSuggestions` liefert alle Wege ungeordnet und ist für die Bot-Logik gedacht.
 - Neues Repository: Property in der passenden `…UnitOfWork` und deren Interface in `Shared.Interfaces`.
