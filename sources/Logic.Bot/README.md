@@ -60,4 +60,8 @@ Situation: `Shared.Models/Bot/Ml/BotSituation` (Rest, Darts in der Aufnahme, Geg
 
 Ablauf: `StartGameAsync` merkt sich das aktive Modell (`DartBotActiveModels`) in `DartBotGamePlayer.TargetModelId`; `PlayBotVisit` holt die Zielwahl über die Factory. Laufende Spiele behalten ihr Modell, auch nach einem Wechsel.
 
-Einstellungen `DartBot:Ml`: `Enabled` (true), `Path` (Ordner der ML-Daten, Container `/data/ml`), `Margin` (0,3 – im Vergleich auf allen Skill-Stufen signifikant besser als das Regelwerk). Aktivieren: `Tools.BotTrainer activate --model <id>`.
+Einstellungen `DartBot:Ml`: `Enabled` (true), `Path` (Ordner der ML-Daten, Container `/data/ml`), `Margin` (0,3 – im Vergleich auf allen Skill-Stufen signifikant besser als das Regelwerk). Aktivieren: Admin-Seite `/admin/models` oder `Tools.BotTrainer activate --model <id>`.
+
+## ML (Phase 6: Admin-Seite)
+
+`Administration/DartBotModelAdministration` (`IDartBotModelAdministration`, nur Admin, Prüfung im Server): listet die Zielwahl-Modelle mit Training (Datensatz, Trefferquote, Regret) und letztem Vergleich aus `MetricsJson`, prüft jede Datei mit `Ml/ModelFileCheck` (Pfad im ML-Ordner, vorhanden, Schema, SHA-256) und setzt bzw. entfernt das aktive Modell. Aktivieren geht nur mit gültiger Datei; `ActivatedBy` = E-Mail des Admins. API: `DartBotModelAdministration/GetDartBotModels`, `ActivateDartBotModel?modelId=`, `DeactivateDartBotModel`.

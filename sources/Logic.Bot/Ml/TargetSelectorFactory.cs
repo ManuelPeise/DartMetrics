@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Data.DartContext.Entities.Bot;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -50,12 +50,11 @@ namespace Logic.Bot.Ml
                     return null;
                 }
 
-                var root = Path.GetFullPath(_options.Path);
-                var path = Path.GetFullPath(Path.Combine(root, model.StorageKey));
+                var path = ModelFileCheck.ResolvePath(_options.Path, model.StorageKey);
 
-                if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !File.Exists(path))
+                if (path is null || !File.Exists(path))
                 {
-                    _logger.LogWarning("Modelldatei für Modell {ModelId} nicht gefunden ({Path}) – regelbasiert.", model.Id, path);
+                    _logger.LogWarning("Modelldatei für Modell {ModelId} nicht gefunden ({StorageKey}) – regelbasiert.", model.Id, model.StorageKey);
                     return null;
                 }
 
