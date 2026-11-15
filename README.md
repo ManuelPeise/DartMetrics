@@ -19,12 +19,11 @@ DartMetrics records steel and soft-tip darts **dart by dart**, turns them into s
 
 > The user interface is currently in **German**. Code, API and this README are in English; the detailed docs are in German.
 
-<!-- Screenshots: add files to docs/images (see docs/images/README.md) and uncomment
 <p align="center">
-  <img src="docs/images/x01-training.png" width="45%" alt="X01 training with checkout hint" />
-  <img src="docs/images/bot-game.gif" width="45%" alt="Game against a DartBot" />
+  <img src="docs/images/landing.jpg" width="32%" alt="Landing page" />
+  <img src="docs/images/x01-training.jpg" width="32%" alt="X01 training with checkout hint" />
+  <img src="docs/images/statistics.jpg" width="32%" alt="Statistics" />
 </p>
--->
 
 ## Features
 

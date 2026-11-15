@@ -1,6 +1,6 @@
 # Screenshots
 
-Bilder für das README im Hauptordner. Empfohlen (PNG, ca. 1280 px breit, oder GIF für Abläufe):
+Bilder für das README im Hauptordner. Empfohlen (JPG/PNG, ca. 800–1280 px breit, oder GIF für Abläufe). Vorhanden: `landing.jpg`, `x01-training.jpg`, `statistics.jpg`:
 
 | Datei | Motiv |
 |---|---|
