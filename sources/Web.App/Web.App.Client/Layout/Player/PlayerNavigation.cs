@@ -1,4 +1,4 @@
-using Web.App.Client.Components.Player;
+﻿using Web.App.Client.Components.Player;
 
 namespace Web.App.Client.Layout.Player
 {
@@ -17,6 +17,7 @@ namespace Web.App.Client.Layout.Player
             new("Start", "Start", Root, PlayerIconName.Home, MatchExact: true),
             new("Training", "Training", Root + "/training", PlayerIconName.Training),
             new("Gegen Bot spielen", "Bot", Root + "/bots", PlayerIconName.Bot),
+            new("Turniere", "Turniere", Root + "/tournaments", PlayerIconName.Trophy),
             new("Statistiken", "Statistik", Root + "/statistics", PlayerIconName.Chart),
             new("Profil", "Profil", Root + "/profile", PlayerIconName.User)
         ];

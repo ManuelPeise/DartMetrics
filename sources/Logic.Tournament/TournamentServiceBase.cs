@@ -8,6 +8,7 @@ using Shared.Enums.X01;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.UnitsOfWork;
+using Shared.Models.Shared;
 using Shared.Models.Tournament;
 
 namespace Logic.Tournament
@@ -197,12 +198,13 @@ namespace Logic.Tournament
         {
             if (tournament.Status is not (TournamentStatusEnum.Draft or TournamentStatusEnum.Registration))
             {
-                throw new InvalidOperationException("The tournament has already started.");
+                throw new BusinessRuleException("The tournament has already started.");
             }
         }
 
-        protected static TournamentOverview ToOverview(TournamentEntity tournament) => new()
+        protected TournamentOverview ToOverview(TournamentEntity tournament) => new()
         {
+            CanManage = TournamentAccess.CanManage(ClaimsHelper.GetCurrentUserFromClaims(), tournament),
             Id = tournament.Id,
             Name = tournament.Name,
             Type = tournament.Type,
@@ -265,7 +267,7 @@ namespace Logic.Tournament
         {
             if (tournament.Status != TournamentStatusEnum.Running)
             {
-                throw new InvalidOperationException("Only running tournaments can be scheduled.");
+                throw new BusinessRuleException("Only running tournaments can be scheduled.");
             }
 
             var round = await Tournaments.TournamentRoundRepository.GetFirstOrDefaultAsync(
@@ -275,7 +277,7 @@ namespace Logic.Tournament
 
             if (round.Matches.Any(m => m.Status is TournamentMatchStatusEnum.Running or TournamentMatchStatusEnum.Finished))
             {
-                throw new InvalidOperationException("A round with started matches cannot be rescheduled.");
+                throw new BusinessRuleException("A round with started matches cannot be rescheduled.");
             }
 
             round.ScheduledAt = DateTime.SpecifyKind(scheduledAtUtc, DateTimeKind.Utc);

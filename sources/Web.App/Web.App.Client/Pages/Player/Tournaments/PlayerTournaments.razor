@@ -1,0 +1,193 @@
+@page "/player/tournaments"
+@using global::Shared.Enums.Tournament
+@using global::Shared.Enums.X01
+@using global::Shared.Models.Tournament
+@inject ITournamentApi TournamentApi
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Turniere – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="Spielen" Title="Turniere"
+                  Subtitle="@(_isGameMaster ? "Offizielle Ligen und K.-o.-Turniere anlegen und leiten." : "Offizielle Turniere verfolgen und eigene Turniere gegen Bots spielen.")" />
+
+@if (_loading && _tournaments is null)
+{
+    <PlayerLoadingState />
+}
+else if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" OnRetry="LoadAsync" />
+}
+else
+{
+    <section class="pa-section" aria-labelledby="list-title">
+        <h2 class="pa-section__title" id="list-title">Alle Turniere</h2>
+
+        @if (_tournaments is null || _tournaments.Count == 0)
+        {
+            <PlayerEmptyState Icon="PlayerIconName.Trophy" Title="Noch keine Turniere"
+                              Text="@(_isGameMaster ? "Lege unten das erste offizielle Turnier an." : "Lege unten ein eigenes Turnier gegen Bots an.")" />
+        }
+        else
+        {
+            <ul class="pa-history">
+                @foreach (var t in _tournaments)
+                {
+                    <li class="pa-history__item">
+                        <a href="@DetailHref(t)">
+                            <strong>@t.Name</strong>
+                            <small>@TypeText(t.Type) · @(t.Kind == TournamentKindEnum.Official ? "offiziell" : "privat") · @t.ParticipantCount Teilnehmer@(t.WinnerName is null ? "" : $" · Sieger {t.WinnerName}")</small>
+                        </a>
+                        <span class="pa-history__rating">@StatusText(t.Status)</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="pa-section" aria-labelledby="create-title">
+        <h2 class="pa-section__title" id="create-title">@(_isGameMaster ? "Offizielles Turnier anlegen" : "Eigenes Turnier anlegen")</h2>
+
+        <form class="pl-form" style="max-width: 560px" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+            <div class="pl-field">
+                <label for="t-name">Name</label>
+                <input id="t-name" class="pl-input" maxlength="100" @bind="_name" placeholder="z. B. Liga Winter 2026" />
+            </div>
+
+            <PlayerChoiceGroup TValue="TournamentTypeEnum" Label="Art" Options="TypeOptions" Value="_type" ValueChanged="v => _type = v" />
+            <PlayerChoiceGroup TValue="int" Label="Startwert" Options="ScoreOptions" Value="_startingScore" ValueChanged="v => _startingScore = v" />
+            <PlayerChoiceGroup TValue="X01InModeEnum" Label="Start" Options="InOptions" Value="_inMode" ValueChanged="v => _inMode = v" />
+            <PlayerChoiceGroup TValue="X01OutModeEnum" Label="Finish" Options="OutOptions" Value="_outMode" ValueChanged="v => _outMode = v" />
+
+            @if (_type == TournamentTypeEnum.Knockout && FinishedLeagues.Count > 0)
+            {
+                <div class="pl-field">
+                    <label for="t-seed">Setzliste aus Liga (die besten 4 werden gesetzt)</label>
+                    <select id="t-seed" class="pl-input" @bind="_seedSourceId">
+                        <option value="0">Keine Setzliste</option>
+                        @foreach (var league in FinishedLeagues)
+                        {
+                            <option value="@league.Id">@league.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @if (_createError is not null)
+            {
+                <p class="pl-alert" role="alert">@_createError</p>
+            }
+
+            <div class="pl-actions">
+                <button type="submit" class="pl-btn pl-btn--primary" disabled="@_creating">Turnier anlegen</button>
+            </div>
+        </form>
+    </section>
+}
+
+@code {
+    private static readonly IReadOnlyList<PlayerChoice<TournamentTypeEnum>> TypeOptions =
+    [
+        new(TournamentTypeEnum.League, "Liga", "8–16, Hin- und Rückrunde"),
+        new(TournamentTypeEnum.Knockout, "K.-o. (WM)", "4–64, Freilose für Gesetzte")
+    ];
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> ScoreOptions = [new(501, "501"), new(301, "301")];
+
+    private static readonly IReadOnlyList<PlayerChoice<X01InModeEnum>> InOptions =
+    [
+        new(X01InModeEnum.Straight, "Straight-In"),
+        new(X01InModeEnum.Double, "Double-In")
+    ];
+
+    private static readonly IReadOnlyList<PlayerChoice<X01OutModeEnum>> OutOptions =
+    [
+        new(X01OutModeEnum.Double, "Double-Out"),
+        new(X01OutModeEnum.Straight, "Straight-Out", "Jeder Dart zählt")
+    ];
+
+    private List<TournamentListItem>? _tournaments;
+    private bool _loading = true;
+    private string? _error;
+    private bool _isGameMaster;
+
+    private string? _name;
+    private TournamentTypeEnum _type = TournamentTypeEnum.League;
+    private int _startingScore = 501;
+    private X01InModeEnum _inMode = X01InModeEnum.Straight;
+    private X01OutModeEnum _outMode = X01OutModeEnum.Double;
+    private int _seedSourceId;
+    private bool _creating;
+    private string? _createError;
+
+    private TournamentKindEnum Kind => _isGameMaster ? TournamentKindEnum.Official : TournamentKindEnum.Private;
+
+    private List<TournamentListItem> FinishedLeagues =>
+        _tournaments?.Where(t => t.Type == TournamentTypeEnum.League && t.Status == TournamentStatusEnum.Finished && t.Kind == Kind).ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isGameMaster = auth.User.IsInRole("GameMaster");
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await TournamentApi.GetTournamentsAsync();
+        _tournaments = result.Value;
+        _error = result.Error;
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        _createError = string.IsNullOrWhiteSpace(_name) ? "Bitte einen Namen eingeben." : null;
+
+        if (_createError is not null)
+        {
+            return;
+        }
+
+        _creating = true;
+
+        var result = _type == TournamentTypeEnum.League
+            ? await TournamentApi.CreateLeagueAsync(new CreateLeagueModel
+            {
+                Name = _name!.Trim(), Kind = Kind, StartingScore = _startingScore, InMode = _inMode, OutMode = _outMode
+            })
+            : await TournamentApi.CreateKnockoutAsync(new CreateKnockoutModel
+            {
+                Name = _name!.Trim(), Kind = Kind, StartingScore = _startingScore, InMode = _inMode, OutMode = _outMode,
+                SeedSourceTournamentId = _seedSourceId == 0 ? null : _seedSourceId, SeedCount = 4
+            });
+
+        _creating = false;
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo(TournamentLinks.Detail(result.Value, _type == TournamentTypeEnum.Knockout));
+        }
+        else
+        {
+            _createError = result.Error;
+        }
+    }
+
+    private static string DetailHref(TournamentListItem t) => TournamentLinks.Detail(t.Id, t.Type == TournamentTypeEnum.Knockout);
+
+    internal static string TypeText(TournamentTypeEnum type) => type == TournamentTypeEnum.League ? "Liga" : "K.-o.";
+
+    internal static string StatusText(TournamentStatusEnum status) => status switch
+    {
+        TournamentStatusEnum.Draft => "In Vorbereitung",
+        TournamentStatusEnum.Registration => "Anmeldung",
+        TournamentStatusEnum.Running => "Läuft",
+        TournamentStatusEnum.Finished => "Beendet",
+        _ => "Abgesagt"
+    };
+}

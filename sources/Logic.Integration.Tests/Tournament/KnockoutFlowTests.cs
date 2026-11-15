@@ -6,6 +6,7 @@ using Shared.Enums.User;
 using Shared.Interfaces.Administration;
 using Shared.Interfaces.Tournament;
 using Shared.Models.Bot;
+using Shared.Models.Shared;
 using Shared.Models.Tournament;
 
 namespace Logic.Integration.Tests.Tournament
@@ -143,7 +144,7 @@ namespace Logic.Integration.Tests.Tournament
                 await _host.RunAsync<IKnockoutService>(s => s.AddParticipantAsync(cupId, new AddTournamentParticipantModel { DartBotId = botId }));
             }
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => _host.RunAsync<IKnockoutService>(s => s.StartKnockoutAsync(cupId, new StartKnockoutModel())));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => _host.RunAsync<IKnockoutService>(s => s.StartKnockoutAsync(cupId, new StartKnockoutModel())));
         }
 
         [Fact]

@@ -47,6 +47,9 @@ namespace Shared.Models.Tournament
         public int? WinnerParticipantId { get; set; }
         public int? SeedSourceTournamentId { get; set; }
         public int? SeedCount { get; set; }
+
+        /// <summary>Darf der angemeldete Benutzer verwalten und Matches leiten?</summary>
+        public bool CanManage { get; set; }
         public List<TournamentParticipantItem> Participants { get; set; } = [];
         public List<TournamentRoundItem> Rounds { get; set; } = [];
     }
@@ -130,5 +133,53 @@ namespace Shared.Models.Tournament
     {
         /// <summary>Satzlänge je Runde, erste Runde zuerst bis zum Finale (je 5, 7, 9 oder 13). Leer = überall 5.</summary>
         public List<int> BestOfLegsPerRound { get; set; } = [];
+    }
+}
+
+namespace Shared.Models.Tournament
+{
+    public class TournamentListItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public TournamentTypeEnum Type { get; set; }
+        public TournamentKindEnum Kind { get; set; }
+        public TournamentStatusEnum Status { get; set; }
+        public int ParticipantCount { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? StartedAt { get; set; }
+        public DateTime? FinishedAt { get; set; }
+        public string? WinnerName { get; set; }
+
+        /// <summary>Darf der angemeldete Benutzer das Turnier verwalten und Matches leiten?</summary>
+        public bool CanManage { get; set; }
+    }
+
+    /// <summary>Wer sich als Teilnehmer eintragen lässt: Spieler (nur für offizielle Turniere) und aktive Bots.</summary>
+    public class TournamentCandidates
+    {
+        public List<TournamentCandidate> Players { get; set; } = [];
+        public List<TournamentCandidate> Bots { get; set; } = [];
+    }
+
+    public class TournamentCandidate
+    {
+        public int Id { get; set; }
+        public string DisplayName { get; set; } = "";
+
+        /// <summary>Elo (Spieler) bzw. Elo des Bots.</summary>
+        public int Rating { get; set; }
+
+        /// <summary>Nur Bots: Entwicklungsstufe.</summary>
+        public int? Level { get; set; }
+    }
+}
+
+namespace Shared.Models.Tournament
+{
+    public class ScheduleRoundModel
+    {
+        /// <summary>Termin in UTC (der Client rechnet aus der Ortszeit um).</summary>
+        public DateTime ScheduledAtUtc { get; set; }
     }
 }

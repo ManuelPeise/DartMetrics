@@ -24,6 +24,7 @@ builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<IProfileApi, ProfileApi>();
 builder.Services.AddScoped<PlayerProfileState>();
 builder.Services.AddScoped<IBotGameApi, BotGameApi>();
+builder.Services.AddScoped<ITournamentApi, TournamentApi>();
 builder.Services.AddScoped<ITrainingApi, TrainingApi>();
 builder.Services.AddScoped<IStatisticsApi, StatisticsApi>();
 

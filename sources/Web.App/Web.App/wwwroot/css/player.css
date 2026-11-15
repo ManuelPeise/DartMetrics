@@ -186,7 +186,7 @@
 
     .pa-bottom-nav ul {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         height: 100%;
         margin: 0;
         padding: 0;
@@ -945,3 +945,60 @@ a.pa-card:hover {
     color: var(--pl-ink-muted);
     font-size: 0.72rem;
 }
+
+/* ---------- Turniere (nur vorhandene --pl-* Variablen) ---------- */
+
+.pa-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--pl-line);
+    border-radius: 12px;
+    margin-top: 1rem;
+}
+
+.pa-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+    .pa-table th,
+    .pa-table td {
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+        border-top: 1px solid var(--pl-line);
+        white-space: nowrap;
+    }
+
+    .pa-table thead th {
+        border-top: 0;
+        color: var(--pl-ink-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .pa-table .is-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .pa-table .is-strong { font-weight: 700; color: var(--pl-brass-strong); }
+
+.pa-round {
+    margin-top: 1rem;
+    border: 1px solid var(--pl-line);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+
+    .pa-round__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+
+    .pa-round__title { margin: 0; font-size: 1rem; }
+
+    .pa-round__schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+    .pa-round .pa-history { margin-top: 0.6rem; }

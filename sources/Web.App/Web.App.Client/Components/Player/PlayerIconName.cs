@@ -1,4 +1,4 @@
-namespace Web.App.Client.Components.Player
+﻿namespace Web.App.Client.Components.Player
 {
     public enum PlayerIconName
     {
@@ -10,6 +10,7 @@ namespace Web.App.Client.Components.Player
         Logout,
         Play,
         Alert,
-        Inbox
+        Inbox,
+        Trophy
     }
 }

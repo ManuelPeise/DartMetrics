@@ -285,14 +285,14 @@ namespace Logic.Tournament.Knockout
 
             if (source.Status != TournamentStatusEnum.Finished)
             {
-                throw new InvalidOperationException("The seed source league is not finished yet.");
+                throw new BusinessRuleException("The seed source league is not finished yet.");
             }
 
             var table = await _leagueService.GetTableAsync(sourceId);
 
             if (table.Count < seedCount)
             {
-                throw new InvalidOperationException($"The seed source league has fewer than {seedCount} participants.");
+                throw new BusinessRuleException($"The seed source league has fewer than {seedCount} participants.");
             }
 
             var seeded = new List<TournamentParticipantEntity>();

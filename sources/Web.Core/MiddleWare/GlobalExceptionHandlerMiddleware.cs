@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Shared;
 
 namespace Web.Core.MiddleWare
 {
@@ -37,6 +38,7 @@ namespace Web.Core.MiddleWare
                 var statusCode = exception switch
                 {
                     DbUpdateConcurrencyException => StatusCodes.Status409Conflict,
+                    BusinessRuleException => StatusCodes.Status409Conflict,
                     ArgumentException => StatusCodes.Status400BadRequest,
                     KeyNotFoundException => StatusCodes.Status404NotFound,
                     UnauthorizedAccessException => StatusCodes.Status403Forbidden,
@@ -57,6 +59,8 @@ namespace Web.Core.MiddleWare
                     Detail = statusCode switch
                     {
                         500 => "An unexpected error occurred.",
+                        // Fachliche Regel: die Meldung sagt, was nicht geht. Nebenläufigkeit: allgemeiner Hinweis.
+                        409 when exception is BusinessRuleException => exception.Message,
                         409 => "The data was changed in the meantime. Please reload and try again.",
                         _ => exception.Message
                     },

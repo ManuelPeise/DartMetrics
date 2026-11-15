@@ -1,4 +1,4 @@
-﻿# Logic.Tournament
+# Logic.Tournament
 
 Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 Teilnehmer) und K.-o./WM (Setzliste der besten 4 aus einer Liga, Freilose für Gesetzte). Menschen und Bots spielen gemeinsam; offizielle Turniere legt und leitet ein GameMaster, private ein Spieler. Plan: Doc „Turniere – Plan“.
 
@@ -34,7 +34,14 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 | `Play/TournamentMatchService` (`ITournamentMatchService`) | Match starten (mindestens ein Mensch; Spielleiter = GameMaster bzw. Besitzer), Profilversion und aktives Zielwahl-Modell der Bots beim Start gespeichert. Jeder Dart über `X01Match`, sofort gespeichert (Leg, Aufnahme, Wurf). Ist danach ein Bot am Wurf, wirft er sofort (`IBotVisitPlayer` mit der Zielwahl aus `ITargetSelectorFactory`, über die Interfaces – kein Verweis auf Logic.Bot). Veralteter `ConcurrencyStamp` → `DbUpdateConcurrencyException` (409). Stand mit Tafel-Daten (Legs, Aufnahmen, Darts, Rest, Average) für Spielleiter und Zuschauer. Matchende: Liga ggf. abschließen, K.o. weiterrücken. |
 | `Play/BotMatchWorker` | Hintergrunddienst: startet Bot-gegen-Bot-Matches erst zum Termin der Runde und spielt je Takt eine Aufnahme pro Match (live mitzuverfolgen). Einstellungen `Tournament:BotMatchesEnabled` (true), `Tournament:BotVisitIntervalSeconds` (5). |
 
-Noch offen: Korrektur (letzten Dart zurücknehmen) mit dem Eingabe-Screen (Phase 5), Elo/XP aus Turnieren (Phase 7). API-Endpunkte und GameMaster-Seiten folgen in Phase 4b.
+## Stand (Phase 4b: API und Seiten)
+
+- `TournamentQueryService` (`ITournamentQueryService`): Turnierliste (offizielle für alle, private nur eigene) mit `CanManage`; Kandidaten (GameMaster: aktive Spieler und Bots, Spieler: er selbst und Bots).
+- API `Service.Api/Controllers/Tournament/TournamentController` (Rollen GameMaster, Player; Rechte je Turnier im Service): Liste, Kandidaten, Liga- und K.-o.-Aktionen, Match starten, Dart eingeben, Matchstand. `AdvanceAsync` und der Bot-Takt sind bewusst keine Endpunkte.
+- Zustandsfehler (Turnier gestartet, Match läuft nicht, Bot am Wurf …) werfen `BusinessRuleException` (`Shared.Models/Shared`); die Middleware antwortet mit 409 und der Meldung.
+- Seiten unter `/player/tournaments` (Web.App.Client): Liste und Anlegen, Detail (Teilnehmer, Start mit Satzlänge, Spielplan/Baum mit Terminen, Tabelle, Match leiten), schlichte Match-Seite mit Eingabe und Live-Ansicht (Nachladen alle 3 s).
+
+Noch offen: eigener Eingabe-Screen mit Tafel und Korrektur (Phase 5), Anmeldung durch Spieler und Live-Verfolgen für Zuschauer im Detail (Phase 6), Elo/XP aus Turnieren und Caller (Phase 7).
 
 ## Regeln
 

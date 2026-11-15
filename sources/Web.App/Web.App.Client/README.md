@@ -13,7 +13,7 @@ Components/Player/    Bausteine des Spieler-Bereichs: PlayerCard, PlayerPageHead
                       DartInputPad + DartThrowInput (Wurfeingabe für Training und Bot-Spiel),
                       PlayerChoiceGroup, PlayerScoreboard, PlayerStatGrid, CheckoutHint
 Pages/                Home, Login, Logout, Register, VerifyEmail, AccessDenied, NotFound
-Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken (Zeitraum, Kennzahlen je Trainingsart, Verlauf), Profil (Elo + Verlauf, Daten, Passwort)
+Pages/Player/         Start, Training (Auswahl), Gegen Bot spielen (Gegnerwahl → Spiel → Ergebnis), Statistiken (Zeitraum, Kennzahlen je Trainingsart, Verlauf), Profil (Elo + Verlauf, Daten, Passwort), Turniere (Liste, Detail mit Teilnehmern/Spielplan/Tabelle, Match-Eingabe)
   Training/           X01, Around the Clock, Checkout, Segment (Einstellung → Spiel → Ergebnis; offenes Training wird beim Öffnen fortgesetzt)
   _Imports.razor      @layout PlayerLayout + [Authorize(Roles = "Player,GameMaster")]
 Routing/AppAreas      Grenze zwischen WASM und Server-Bereich (/admin)
@@ -49,3 +49,10 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
   oder bei Rest ≤ 1 automatisch abgeschickt; für einen Checkout mit 1–2 Darts gibt es „Aufnahme abschicken“.
 - Der Rest während der Eingabe ist nur eine Vorschau (Summe); Bust, Checkout und Double-In wertet der Server.
 - Die Antwort enthält bereits die Bot-Aufnahme(n); sie werden Dart für Dart mit Zielfeld angezeigt.
+
+## Turniere (`/player/tournaments`)
+
+- `Tournaments/PlayerTournaments`: Liste (offizielle + eigene private) und Anlegen; GameMaster legt offizielle, Spieler private Turniere an (Liga oder K.o., 301/501, In/Out, K.o. optional mit Setzliste aus einer beendeten Liga).
+- `Tournaments/PlayerTournamentDetail` (`/player/tournaments/{league|knockout}/{id}`): Teilnehmer hinzufügen/entfernen, Start (Satzlänge bzw. je Runde), Termine je Runde (Ortszeit → UTC), Spielplan bzw. Baum, Liga-Tabelle, „Match leiten“ für Matches mit Menschen (Bot gegen Bot startet der Server zum Termin).
+- `Tournaments/PlayerTournamentMatch`: Spielstand, letzte Aufnahmen, Eingabe je Dart (`DartInputPad`) mit `ConcurrencyStamp`; ohne Eingaberecht wird alle 3 s nachgeladen. Der Eingabe-Screen mit Tafel folgt in Phase 5.
+- API: `ITournamentApi` / `TournamentApi`. Menüpunkt „Turniere“ (Bottom Navigation jetzt 6 Spalten).

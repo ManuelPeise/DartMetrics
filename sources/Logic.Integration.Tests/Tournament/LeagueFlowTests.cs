@@ -6,6 +6,7 @@ using Shared.Enums.User;
 using Shared.Interfaces.Administration;
 using Shared.Interfaces.Tournament;
 using Shared.Models.Bot;
+using Shared.Models.Shared;
 using Shared.Models.Tournament;
 
 namespace Logic.Integration.Tests.Tournament
@@ -72,7 +73,7 @@ namespace Logic.Integration.Tests.Tournament
             Assert.False(await _host.RunAsync<ILeagueService, bool>(s => s.FinishLeagueIfCompleteAsync(leagueId)));
 
             // Nach dem Start keine Änderungen an der Besetzung.
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 Run(s => s.AddParticipantAsync(leagueId, new AddTournamentParticipantModel { DartBotId = bots[0] })));
         }
 

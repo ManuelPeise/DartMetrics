@@ -5,6 +5,7 @@ using Shared.Enums.User;
 using Shared.Interfaces.Administration;
 using Shared.Interfaces.Tournament;
 using Shared.Models.Bot;
+using Shared.Models.Shared;
 using Shared.Models.Tournament;
 
 namespace Logic.Integration.Tests.Tournament
@@ -84,7 +85,7 @@ namespace Logic.Integration.Tests.Tournament
             var match = round.Matches.First(m => bots.Contains(m.HomeParticipantId!.Value) && bots.Contains(m.AwayParticipantId!.Value));
 
             // Spielleiter darf Bot gegen Bot nicht selbst starten.
-            await Assert.ThrowsAsync<InvalidOperationException>(() => Match(s => s.StartMatchAsync(match.Id)));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => Match(s => s.StartMatchAsync(match.Id)));
 
             var when = new DateTime(2026, 12, 1, 19, 0, 0, DateTimeKind.Utc);
             await _host.RunAsync<ILeagueService>(s => s.ScheduleRoundAsync(leagueId, round.Id, when));

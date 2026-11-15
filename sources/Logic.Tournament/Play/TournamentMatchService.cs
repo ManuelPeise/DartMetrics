@@ -48,7 +48,7 @@ namespace Logic.Tournament.Play
 
                 if (IsBot(match.HomeParticipant) && IsBot(match.AwayParticipant))
                 {
-                    throw new InvalidOperationException("Bot-vs-bot matches start automatically at the scheduled time.");
+                    throw new BusinessRuleException("Bot-vs-bot matches start automatically at the scheduled time.");
                 }
 
                 await BeginAsync(match, user.UserId);
@@ -76,7 +76,7 @@ namespace Logic.Tournament.Play
 
                 if (match.Status != TournamentMatchStatusEnum.Running)
                 {
-                    throw new InvalidOperationException("The match is not running.");
+                    throw new BusinessRuleException("The match is not running.");
                 }
 
                 // Zweites Gerät mit veraltetem Stand: lieber 409 als ein Dart am falschen Platz.
@@ -89,7 +89,7 @@ namespace Logic.Tournament.Play
 
                 if (IsBot(SideOf(match, engine.CurrentPlayer)))
                 {
-                    throw new InvalidOperationException("A bot is at the oche.");
+                    throw new BusinessRuleException("A bot is at the oche.");
                 }
 
                 ApplyDart(match, engine, model.Segment, model.Multiplier, null, null);
@@ -183,12 +183,12 @@ namespace Logic.Tournament.Play
         {
             if (match.Round.Tournament.Status != TournamentStatusEnum.Running)
             {
-                throw new InvalidOperationException("The tournament is not running.");
+                throw new BusinessRuleException("The tournament is not running.");
             }
 
             if (match.Status != TournamentMatchStatusEnum.Scheduled || match.HomeParticipant is null || match.AwayParticipant is null)
             {
-                throw new InvalidOperationException("The match cannot be started (already started, or opponents not known yet).");
+                throw new BusinessRuleException("The match cannot be started (already started, or opponents not known yet).");
             }
         }
 

@@ -1,0 +1,175 @@
+@page "/player/tournaments/match/{MatchId:int}"
+@using global::Shared.Enums.Tournament
+@using global::Shared.Models.Tournament
+@implements IDisposable
+@inject ITournamentApi TournamentApi
+
+@* Phase 4b: schlichte Eingabe und Live-Ansicht. Der eigene Eingabe-Screen mit Tafel folgt in Phase 5. *@
+
+<PageTitle>Match – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="@(_state is null ? "Turnier" : $"{_state.TournamentName} · {_state.RoundName}")"
+                  Title="@(_state is null ? "Match" : $"{_state.Home.DisplayName} – {_state.Away.DisplayName}")"
+                  Subtitle="@(_state is null ? null : $"Best of {_state.BestOfLegs} · First to {_state.LegsToWin} · {_state.StartingScore}")">
+    <Actions>
+        @if (_state is not null)
+        {
+            <a class="pl-btn pl-btn--link" href="@TournamentLinks.Detail(_state.TournamentId, _state.TournamentType == TournamentTypeEnum.Knockout)">Zum Turnier</a>
+        }
+    </Actions>
+</PlayerPageHeader>
+
+@if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" OnRetry="LoadAsync" />
+}
+
+@if (_state is null)
+{
+    if (_error is null)
+    {
+        <PlayerLoadingState />
+    }
+}
+else
+{
+    var s = _state;
+    <div class="pa-play">
+        <div class="pa-play__info">
+            <div class="pa-duel">
+                <div class="pa-duel__player @(s.Status == TournamentMatchStatusEnum.Running && s.CurrentPlayer == 1 ? "is-active" : "")">
+                    <p class="pa-duel__name">@s.Home.DisplayName</p>
+                    <p class="pa-duel__score">@s.Home.Remaining</p>
+                    <p class="pa-duel__meta">@SideMeta(s.Home)</p>
+                </div>
+                <div class="pa-duel__legs">
+                    Legs
+                    <strong>@s.Home.LegsWon : @s.Away.LegsWon</strong>
+                    Leg @s.LegNumber
+                </div>
+                <div class="pa-duel__player @(s.Status == TournamentMatchStatusEnum.Running && s.CurrentPlayer == 2 ? "is-active" : "")">
+                    <p class="pa-duel__name">@s.Away.DisplayName</p>
+                    <p class="pa-duel__score">@s.Away.Remaining</p>
+                    <p class="pa-duel__meta">@SideMeta(s.Away)</p>
+                </div>
+            </div>
+
+            @if (s.Status == TournamentMatchStatusEnum.Finished)
+            {
+                <PlayerScoreboard Label="Beendet" Value="@($"{s.Home.LegsWon} : {s.Away.LegsWon}")"
+                                  Status="@($"Sieger {(s.WinnerParticipantId == s.Home.ParticipantId ? s.Home.DisplayName : s.Away.DisplayName)}")" Tone="success" />
+            }
+            else if (s.Status == TournamentMatchStatusEnum.Scheduled)
+            {
+                <PlayerScoreboard Label="Geplant" Value="–" Status="@(s.ScheduledAt is DateTime at ? $"Termin {at.ToLocalTime():g}" : "noch kein Termin")" />
+            }
+
+            @if (LastVisits.Count > 0)
+            {
+                <ul class="pa-history" aria-label="Letzte Aufnahmen">
+                    @foreach (var v in LastVisits)
+                    {
+                        <li class="pa-history__item">
+                            <span>
+                                <strong>@(v.PlayerNumber == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong>
+                                <small>@string.Join(" ", v.Darts.Select(d => new DartThrowInput(d.Segment, d.Multiplier).Label))</small>
+                            </span>
+                            <span class="pa-history__rating">
+                                @(v.IsBust ? "Bust" : (v.ScoreBefore - v.ScoreAfter).ToString())
+                                <small>Rest @v.ScoreAfter</small>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        @if (s.CanEnterDarts)
+        {
+            <div>
+                <p class="pa-section__hint">Eingabe für <strong>@(s.CurrentPlayer == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong></p>
+                <DartInputPad CurrentDarts="CurrentDarts" OnDart="AddDartAsync" CanUndo="false" Disabled="_busy" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+
+    private const int PollSeconds = 3;
+
+    private TournamentMatchState? _state;
+    private string? _error;
+    private bool _busy;
+    private Timer? _timer;
+
+    private IReadOnlyList<DartThrowInput> CurrentDarts =>
+        _state?.CurrentVisit.Select(d => new DartThrowInput(d.Segment, d.Multiplier)).ToList() ?? [];
+
+    /// <summary>Die letzten Aufnahmen des laufenden (bzw. letzten) Legs, neueste zuerst.</summary>
+    private List<TournamentVisitItem> LastVisits =>
+        _state?.Legs.LastOrDefault()?.Visits.OrderByDescending(v => v.VisitNumber).Take(6).ToList() ?? [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+
+        // Zuschauen bzw. Bot am Wurf: regelmäßig nachladen, solange das Match nicht beendet ist.
+        _timer ??= new Timer(async _ => await PollAsync(), null, TimeSpan.FromSeconds(PollSeconds), TimeSpan.FromSeconds(PollSeconds));
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await TournamentApi.GetMatchAsync(MatchId);
+        _state = result.Value ?? _state;
+        _error = result.Error;
+    }
+
+    private async Task PollAsync()
+    {
+        if (_busy || _state is null || _state.Status == TournamentMatchStatusEnum.Finished || _state.CanEnterDarts)
+        {
+            return;
+        }
+
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddDartAsync(DartThrowInput dart)
+    {
+        if (_state is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await TournamentApi.AddDartAsync(MatchId, new AddTournamentDartModel
+        {
+            Segment = dart.Segment,
+            Multiplier = dart.Multiplier,
+            ConcurrencyStamp = _state.ConcurrencyStamp
+        });
+
+        if (result.IsSuccess)
+        {
+            _state = result.Value;
+            _error = null;
+        }
+        else
+        {
+            // z. B. 409 von einem zweiten Gerät: Stand neu laden.
+            var error = result.Error;
+            await LoadAsync();
+            _error = error;
+        }
+
+        _busy = false;
+    }
+
+    private static string SideMeta(TournamentMatchSide side) =>
+        side.ParticipantType == TournamentParticipantTypeEnum.Bot ? $"Bot · Ø {side.Average:0.0}" : $"Ø {side.Average:0.0}";
+
+    public void Dispose() => _timer?.Dispose();
+}

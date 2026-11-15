@@ -1,0 +1,415 @@
+@page "/player/tournaments/{Kind}/{Id:int}"
+@using global::Shared.Enums.Tournament
+@using global::Shared.Models.Shared
+@using global::Shared.Models.Tournament
+@inject ITournamentApi TournamentApi
+@inject NavigationManager Navigation
+
+<PageTitle>@(_tournament?.Name ?? "Turnier") – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="@($"{(IsKnockout ? "K.-o." : "Liga")} · {(_tournament?.Kind == TournamentKindEnum.Private ? "privat" : "offiziell")}")"
+                  Title="@(_tournament?.Name ?? "Turnier")"
+                  Subtitle="@SubtitleText">
+    <Actions>
+        <a class="pl-btn pl-btn--link" href="@TournamentLinks.List">Alle Turniere</a>
+    </Actions>
+</PlayerPageHeader>
+
+@if (_message is not null)
+{
+    <p class="pl-alert @(_messageIsError ? "" : "pl-alert--success")" role="status">@_message</p>
+}
+
+@if (_loading && _tournament is null)
+{
+    <PlayerLoadingState />
+}
+else if (_error is not null || _tournament is null)
+{
+    <PlayerErrorState Text="@(_error ?? "Das Turnier wurde nicht gefunden.")" OnRetry="LoadAsync" />
+}
+else
+{
+    var t = _tournament;
+    var isDraft = t.Status is TournamentStatusEnum.Draft or TournamentStatusEnum.Registration;
+
+    if (t.Status == TournamentStatusEnum.Finished && t.WinnerParticipantId is int winnerId)
+    {
+        <PlayerScoreboard Label="Sieger" Value="@NameOf(winnerId)" Status="@($"beendet am {t.FinishedAt?.ToLocalTime():d}")" Tone="success" />
+    }
+
+    <section class="pa-section" aria-labelledby="participants-title">
+        <h2 class="pa-section__title" id="participants-title">Teilnehmer (@t.Participants.Count)</h2>
+
+        @if (t.Participants.Count == 0)
+        {
+            <p class="pa-section__hint">Noch keine Teilnehmer.</p>
+        }
+        else
+        {
+            <ul class="pa-history">
+                @foreach (var p in t.Participants)
+                {
+                    <li class="pa-history__item">
+                        <span>
+                            <strong>@p.DisplayName</strong>
+                            <small>@(p.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot" : "Spieler")@(p.Seed is int seed ? $" · gesetzt {seed}" : "")</small>
+                        </span>
+                        @if (isDraft && t.CanManage)
+                        {
+                            <button type="button" class="pl-btn pl-btn--link" disabled="@_busy" @onclick="() => RemoveAsync(p.Id)">Entfernen</button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (isDraft && t.CanManage && _candidates is not null)
+        {
+            <div class="pa-setup__actions" style="margin-top: 1rem">
+                <select class="pl-input" aria-label="Teilnehmer wählen" @bind="_candidateKey" style="max-width: 320px">
+                    <option value="">Teilnehmer wählen …</option>
+                    @if (FreePlayers.Count > 0)
+                    {
+                        <optgroup label="Spieler">
+                            @foreach (var c in FreePlayers)
+                            {
+                                <option value="@($"u{c.Id}")">@c.DisplayName (Elo @c.Rating)</option>
+                            }
+                        </optgroup>
+                    }
+                    @if (FreeBots.Count > 0)
+                    {
+                        <optgroup label="Bots">
+                            @foreach (var c in FreeBots)
+                            {
+                                <option value="@($"b{c.Id}")">@c.DisplayName (Level @c.Level, Elo @c.Rating)</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+                <button type="button" class="pl-btn pl-btn--ghost" disabled="@(_busy || string.IsNullOrEmpty(_candidateKey))" @onclick="AddAsync">Hinzufügen</button>
+            </div>
+        }
+    </section>
+
+    if (isDraft && t.CanManage)
+    {
+        <section class="pa-section" aria-labelledby="start-title">
+            <h2 class="pa-section__title" id="start-title">Starten</h2>
+
+            @if (IsKnockout)
+            {
+                <p class="pa-section__hint">
+                    @(t.SeedSourceTournamentId is null ? "Alle Teilnehmer werden zugelost." : "Die besten 4 der Liga werden gesetzt (fehlende ergänzt), die übrigen zugelost.")
+                    Satzlänge je Runde:
+                </p>
+                <div class="pa-setup__actions" style="margin-top: 0.6rem">
+                    @for (var i = 0; i < _roundBestOf.Count; i++)
+                    {
+                        var index = i;
+                        <label class="pl-field" style="min-width: 140px">
+                            <span>@RoundName(index + 1, _roundBestOf.Count)</span>
+                            <select class="pl-input" value="@_roundBestOf[index]" @onchange="e => _roundBestOf[index] = int.Parse(e.Value!.ToString()!)">
+                                @foreach (var b in X01SetRules.AllowedBestOfLegs)
+                                {
+                                    <option value="@b">Best of @b</option>
+                                }
+                            </select>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <PlayerChoiceGroup TValue="int" Label="Satzlänge aller Matches" Options="BestOfOptions" Value="_leagueBestOf" ValueChanged="v => _leagueBestOf = v" />
+            }
+
+            <div class="pl-actions">
+                <button type="button" class="pl-btn pl-btn--primary" disabled="@_busy" @onclick="StartAsync">Turnier starten</button>
+            </div>
+        </section>
+    }
+
+    if (!IsKnockout && _table is { Count: > 0 } && !isDraft)
+    {
+        <section class="pa-section" aria-labelledby="table-title">
+            <h2 class="pa-section__title" id="table-title">Tabelle</h2>
+            <div class="pa-table-wrap">
+                <table class="pa-table">
+                    <thead>
+                        <tr>
+                            <th class="is-num">#</th><th>Teilnehmer</th><th class="is-num">Sp.</th><th class="is-num">S</th><th class="is-num">N</th>
+                            <th class="is-num">Legs</th><th class="is-num">Diff.</th><th class="is-num">Ø</th><th class="is-num">Pkt.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _table)
+                        {
+                            <tr>
+                                <td class="is-num">@row.Position</td>
+                                <td>@row.DisplayName@(row.ParticipantType == TournamentParticipantTypeEnum.Bot ? " (Bot)" : "")</td>
+                                <td class="is-num">@row.Played</td>
+                                <td class="is-num">@row.Won</td>
+                                <td class="is-num">@row.Lost</td>
+                                <td class="is-num">@row.LegsFor:@row.LegsAgainst</td>
+                                <td class="is-num">@row.LegDifference.ToString("+0;-0;0")</td>
+                                <td class="is-num">@row.Average.ToString("0.00")</td>
+                                <td class="is-num is-strong">@row.Points</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    if (t.Rounds.Count > 0)
+    {
+        <section class="pa-section" aria-labelledby="rounds-title">
+            <h2 class="pa-section__title" id="rounds-title">@(IsKnockout ? "Turnierbaum" : "Spielplan")</h2>
+
+            @foreach (var round in t.Rounds)
+            {
+                var canSchedule = t.CanManage && t.Status == TournamentStatusEnum.Running
+                                  && round.Matches.All(m => m.Status is TournamentMatchStatusEnum.Scheduled or TournamentMatchStatusEnum.Bye);
+                <div class="pa-round">
+                    <div class="pa-round__head">
+                        <h3 class="pa-round__title">@round.Name · Best of @round.BestOfLegs</h3>
+                        <div class="pa-round__schedule">
+                            @if (canSchedule)
+                            {
+                                <input type="datetime-local" class="pl-input" aria-label="@($"Termin {round.Name}")"
+                                       value="@LocalInputValue(round)" @onchange="e => _scheduleInputs[round.Id] = e.Value?.ToString()" />
+                                <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="() => ScheduleAsync(round)">Termin setzen</button>
+                            }
+                            else
+                            {
+                                <small>@(round.ScheduledAt is DateTime at ? $"Termin {at.ToLocalTime():g}" : "kein Termin")</small>
+                            }
+                        </div>
+                    </div>
+
+                    <ul class="pa-history">
+                        @foreach (var m in round.Matches)
+                        {
+                            <li class="pa-history__item">
+                                <span>
+                                    <strong>@NameOf(m.HomeParticipantId) – @NameOf(m.AwayParticipantId)</strong>
+                                    <small>@MatchStatusText(m)</small>
+                                </span>
+                                @if (m.Status is TournamentMatchStatusEnum.Running or TournamentMatchStatusEnum.Finished)
+                                {
+                                    <a class="pl-btn pl-btn--link" href="@TournamentLinks.Match(m.Id)">@(m.Status == TournamentMatchStatusEnum.Running && t.CanManage ? "Leiten" : "Ansehen")</a>
+                                }
+                                else if (CanStart(t, m))
+                                {
+                                    <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="() => StartMatchAsync(m.Id)">Match leiten</button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Kind { get; set; } = "league";
+
+    [Parameter] public int Id { get; set; }
+
+    private static readonly IReadOnlyList<PlayerChoice<int>> BestOfOptions =
+        X01SetRules.AllowedBestOfLegs.Select(b => new PlayerChoice<int>(b, $"Best of {b}", $"First to {X01SetRules.LegsToWin(b)}")).ToList();
+
+    private TournamentOverview? _tournament;
+    private List<LeagueTableRow>? _table;
+    private TournamentCandidates? _candidates;
+    private bool _loading = true;
+    private string? _error;
+    private bool _busy;
+    private string? _message;
+    private bool _messageIsError;
+
+    private string? _candidateKey = "";
+    private int _leagueBestOf = 5;
+    private List<int> _roundBestOf = [];
+    private readonly Dictionary<int, string?> _scheduleInputs = [];
+
+    private bool IsKnockout => string.Equals(Kind, "knockout", StringComparison.OrdinalIgnoreCase);
+
+    private string SubtitleText => _tournament is null ? "" :
+        $"{PlayerTournaments.StatusText(_tournament.Status)} · {_tournament.StartingScore} · {(_tournament.OutMode == global::Shared.Enums.X01.X01OutModeEnum.Double ? "Double-Out" : "Straight-Out")}" +
+        (_tournament.InMode == global::Shared.Enums.X01.X01InModeEnum.Double ? " · Double-In" : "");
+
+    private List<TournamentCandidate> FreePlayers =>
+        _candidates?.Players.Where(c => _tournament!.Participants.All(p => p.UserId != c.Id)).ToList() ?? [];
+
+    private List<TournamentCandidate> FreeBots =>
+        _candidates?.Bots.Where(c => _tournament!.Participants.All(p => p.DartBotId != c.Id)).ToList() ?? [];
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await TournamentApi.GetTournamentAsync(Id, IsKnockout);
+        _tournament = result.Value;
+        _error = result.Error;
+
+        if (_tournament is not null)
+        {
+            if (!IsKnockout && _tournament.Status is not (TournamentStatusEnum.Draft or TournamentStatusEnum.Registration))
+            {
+                _table = (await TournamentApi.GetLeagueTableAsync(Id)).Value;
+            }
+
+            if (_tournament.CanManage && _tournament.Status is TournamentStatusEnum.Draft or TournamentStatusEnum.Registration)
+            {
+                _candidates ??= (await TournamentApi.GetCandidatesAsync()).Value;
+                UpdateRoundBestOf();
+            }
+        }
+
+        _loading = false;
+    }
+
+    /// <summary>K.o.: so viele Runden, wie der Baum bei der aktuellen Teilnehmerzahl hat (Setzliste ergänzt ggf. Teilnehmer).</summary>
+    private void UpdateRoundBestOf()
+    {
+        var count = Math.Max(_tournament!.Participants.Count, 4);
+        var rounds = 1;
+        while ((1 << rounds) < count)
+        {
+            rounds++;
+        }
+
+        while (_roundBestOf.Count < rounds)
+        {
+            _roundBestOf.Add(5);
+        }
+
+        if (_roundBestOf.Count > rounds)
+        {
+            _roundBestOf.RemoveRange(rounds, _roundBestOf.Count - rounds);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrEmpty(_candidateKey) || !int.TryParse(_candidateKey[1..], out var id))
+        {
+            return;
+        }
+
+        var model = _candidateKey[0] == 'u' ? new AddTournamentParticipantModel { UserId = id } : new AddTournamentParticipantModel { DartBotId = id };
+        await RunAsync(() => TournamentApi.AddParticipantAsync(Id, IsKnockout, model), null);
+        _candidateKey = "";
+    }
+
+    private Task RemoveAsync(int participantId) =>
+        RunAsync(() => TournamentApi.RemoveParticipantAsync(Id, IsKnockout, participantId), null);
+
+    private Task StartAsync() =>
+        RunAsync(() => IsKnockout
+                ? TournamentApi.StartKnockoutAsync(Id, new StartKnockoutModel { BestOfLegsPerRound = [.. _roundBestOf] })
+                : TournamentApi.StartLeagueAsync(Id, new StartLeagueModel { BestOfLegs = _leagueBestOf }),
+            "Das Turnier läuft. Setze jetzt die Termine der Runden.");
+
+    private async Task ScheduleAsync(TournamentRoundItem round)
+    {
+        var input = _scheduleInputs.GetValueOrDefault(round.Id) ?? LocalInputValue(round);
+
+        if (!DateTime.TryParse(input, out var local))
+        {
+            ShowMessage("Bitte Datum und Uhrzeit wählen.", isError: true);
+            return;
+        }
+
+        var utc = DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime();
+        await RunAsync(() => TournamentApi.ScheduleRoundAsync(Id, IsKnockout, round.Id, utc), $"Termin für {round.Name} gesetzt.");
+    }
+
+    private async Task StartMatchAsync(int matchId)
+    {
+        _busy = true;
+        var result = await TournamentApi.StartMatchAsync(matchId);
+        _busy = false;
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo(TournamentLinks.Match(matchId));
+        }
+        else
+        {
+            ShowMessage(result.Error!, isError: true);
+        }
+    }
+
+    private async Task RunAsync<T>(Func<Task<ApiResult<T>>> action, string? successText)
+    {
+        _busy = true;
+        _message = null;
+
+        var result = await action();
+
+        if (result.IsSuccess)
+        {
+            if (successText is not null)
+            {
+                ShowMessage(successText, isError: false);
+            }
+        }
+        else
+        {
+            ShowMessage(result.Error!, isError: true);
+        }
+
+        await LoadAsync();
+        _busy = false;
+    }
+
+    private void ShowMessage(string text, bool isError)
+    {
+        _message = text;
+        _messageIsError = isError;
+    }
+
+    private bool CanStart(TournamentOverview t, TournamentMatchItem m)
+    {
+        if (!t.CanManage || t.Status != TournamentStatusEnum.Running || m.Status != TournamentMatchStatusEnum.Scheduled
+            || m.HomeParticipantId is null || m.AwayParticipantId is null)
+        {
+            return false;
+        }
+
+        // Bot gegen Bot startet der Server zum Termin.
+        return t.Participants.Any(p => (p.Id == m.HomeParticipantId || p.Id == m.AwayParticipantId) && p.ParticipantType == TournamentParticipantTypeEnum.User);
+    }
+
+    private string NameOf(int? participantId) =>
+        participantId is null ? "offen" : _tournament?.Participants.FirstOrDefault(p => p.Id == participantId)?.DisplayName ?? "?";
+
+    private string MatchStatusText(TournamentMatchItem m) => m.Status switch
+    {
+        TournamentMatchStatusEnum.Bye => $"Freilos für {NameOf(m.WinnerParticipantId)}",
+        TournamentMatchStatusEnum.Running => $"läuft · {m.HomeLegs}:{m.AwayLegs}",
+        TournamentMatchStatusEnum.Finished => $"{m.HomeLegs}:{m.AwayLegs} · Sieger {NameOf(m.WinnerParticipantId)}",
+        _ => "geplant"
+    };
+
+    private static string RoundName(int round, int roundCount) => (roundCount - round) switch
+    {
+        0 => "Finale",
+        1 => "Halbfinale",
+        2 => "Viertelfinale",
+        3 => "Achtelfinale",
+        _ => $"Runde {round}"
+    };
+
+    private static string LocalInputValue(TournamentRoundItem round) =>
+        round.ScheduledAt is DateTime at ? at.ToLocalTime().ToString("yyyy-MM-ddTHH:mm") : "";
+}
