@@ -1,8 +1,9 @@
-@page "/player/tournaments/match/{MatchId:int}"
+﻿@page "/player/tournaments/match/{MatchId:int}"
 @using global::Shared.Enums.Tournament
 @using global::Shared.Models.Tournament
 @implements IDisposable
 @inject ITournamentApi TournamentApi
+@inject IJSRuntime JS
 
 @*
     Eingabe-Screen für Turnier-Matches: links die Tafel (Rechnung wie mit Kreide), rechts oben der Spielstand,
@@ -18,6 +19,7 @@
         @if (_state is not null)
         {
             <a class="pl-btn pl-btn--link" href="@TournamentLinks.Detail(_state.TournamentId, _state.TournamentType == TournamentTypeEnum.Knockout)">Zum Turnier</a>
+            <button type="button" class="pl-btn pl-btn--link" aria-pressed="@(_callerOn ? "true" : "false")" @onclick="ToggleCaller">Caller @(_callerOn ? "an" : "aus")</button>
         }
     </Actions>
 </PlayerPageHeader>
@@ -144,6 +146,7 @@ else
     private bool _busy;
     private int? _shownLeg;
     private Timer? _timer;
+    private bool _callerOn;
 
     private TournamentLegItem? ShownLeg =>
         _state?.Legs.FirstOrDefault(l => l.LegNumber == _shownLeg) ?? CurrentLeg;
@@ -169,7 +172,60 @@ else
         var result = await TournamentApi.GetMatchAsync(MatchId);
         _state = result.Value ?? _state;
         _error = result.Error;
+        await CallLastVisitAsync();
     }
+
+    private void ToggleCaller()
+    {
+        _callerOn = !_callerOn;
+
+        // Beim Einschalten nichts Altes ansagen.
+        _lastCalled = FinishedVisits().LastOrDefault().Key;
+    }
+
+    private (int Leg, int Visit) _lastCalled;
+
+    /// <summary>
+    /// Ansage jeder neu abgeschlossenen Aufnahme (eigene und die Antwort des Bots, in Reihenfolge):
+    /// Summe, „No score“ bei Bust, „Game shot“ beim Checkout.
+    /// </summary>
+    private async Task CallLastVisitAsync()
+    {
+        var finished = FinishedVisits();
+        var fresh = finished.Where(f => f.Key.CompareTo(_lastCalled) > 0).ToList();
+
+        // Nach einer Korrektur kann der Stand zurückgehen: dann nur merken.
+        _lastCalled = finished.LastOrDefault().Key;
+
+        if (!_callerOn)
+        {
+            return;
+        }
+
+        foreach (var (_, visit) in fresh)
+        {
+            var scored = visit.ScoreBefore - visit.ScoreAfter;
+            var text = visit.IsCheckout ? "Game shot!" : visit.IsBust || scored == 0 ? "No score" : scored == 180 ? "One hundred and eighty!" : scored.ToString();
+
+            try
+            {
+                await JS.InvokeVoidAsync("dartCaller.say", text);
+            }
+            catch (JSException)
+            {
+                // Ohne Sprachausgabe im Browser einfach stumm.
+                return;
+            }
+        }
+    }
+
+    private List<((int Leg, int Visit) Key, TournamentVisitItem Visit)> FinishedVisits() =>
+        _state?.Legs
+            .SelectMany(l => l.Visits
+                .Where(v => v.IsBust || v.IsCheckout || v.Darts.Count == 3)
+                .Select(v => ((l.LegNumber, v.VisitNumber), v)))
+            .OrderBy(x => x.Item1)
+            .ToList() ?? [];
 
     private async Task PollAsync()
     {
@@ -207,6 +263,7 @@ else
             _state = result.Value;
             _error = null;
             _shownLeg = null;
+            await CallLastVisitAsync();
         }
         else
         {

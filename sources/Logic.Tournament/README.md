@@ -53,7 +53,13 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 - `TournamentOverview`/`TournamentListItem` mit `MyStatus` (eigene Teilnahme) und Anmeldeschluss.
 - Detailseite: Abschnitt Anmeldung (öffnen mit Frist, anmelden/abmelden, bestätigen); laufende Turniere laden alle 10 s nach (Tabelle, Spielstände, Baum).
 
-Noch offen: Anmeldung durch Spieler und Live-Verfolgen für Zuschauer im Detail (Phase 6), Elo/XP aus Turnieren und Caller (Phase 7).
+## Stand (Phase 7: Wertung, Statistik, Caller)
+
+- Matchende in offiziellen Turnieren: `IDartBotLearningService.ApplyTournamentResultAsync` (Logic.Bot, über das Interface) vergibt genau einmal Elo für beide Seiten (Mensch oder Bot, Werte vor dem Match) und bei Bots XP und ggf. Level-Aufstieg (Profilversion „… (Turnier)“). Gespeichert am Match (`Home/AwayRatingBefore/After`, `Home/AwayXpGained`, `LearningProcessedAt`); gleichzeitige Bot-Wertungen werden wie bei Bot-Spielen zusammengeführt. Private Turniere werden nicht gewertet.
+- Statistik (Logic.Statistics): Abschnitt „Turniere“ (Siege, Average, Elo-Änderung), Elo-Verlauf aus Bot-Spielen und Turnier-Matches.
+- Caller auf dem Eingabe-Screen (umschaltbar): sagt jede abgeschlossene Aufnahme an (Summe, „No score“, „One hundred and eighty!“, „Game shot!“) über die Sprachausgabe des Browsers (`wwwroot/js/caller.js`).
+
+Alle Phasen des Plans „Turniere – Plan“ sind umgesetzt. Mögliche nächste Schritte: Turnier-Elo im Profil-Verlauf, eigene Caller-Aufnahmen, Turniere absagen.
 
 ## Regeln
 

@@ -1,4 +1,5 @@
-﻿using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Tournament;
 using Microsoft.EntityFrameworkCore;
 
 namespace Shared.Interfaces.Bot
@@ -14,6 +15,13 @@ namespace Shared.Interfaces.Bot
         /// (LearningProcessedAt). Andere Spiele werden ignoriert.
         /// </summary>
         Task ApplyGameResultAsync(DartBotGameEntity game, DateTime now);
+
+        /// <summary>
+        /// Wertung eines beendeten Turnier-Matches (nur offizielle Turniere, genau einmal über LearningProcessedAt):
+        /// Elo für beide Seiten (Mensch oder Bot, Werte vor dem Match), bei Bots XP und ggf. Level-Aufstieg.
+        /// Arbeitet auf dem getrackten Match (mit Round.Tournament, Teilnehmern und Legs); gespeichert wird vom Aufrufer.
+        /// </summary>
+        Task ApplyTournamentResultAsync(TournamentMatchEntity match, DateTime now);
 
         /// <summary>
         /// Nach einer DbUpdateConcurrencyException (zwei Spiele gegen denselben Bot enden gleichzeitig):

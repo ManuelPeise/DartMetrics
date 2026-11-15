@@ -69,6 +69,16 @@ namespace Logic.Integration.Tests.Tournament
             Assert.All(reloaded.Legs, l => Assert.NotNull(l.WinnerPlayer));
             Assert.False(reloaded.CanEnterDarts);
 
+            // Offizielles Turnier: Elo für beide, XP für den Bot – genau einmal.
+            var user = userParticipant == match.HomeParticipantId ? reloaded.Home : reloaded.Away;
+            var bot = userParticipant == match.HomeParticipantId ? reloaded.Away : reloaded.Home;
+            Assert.True(user.RatingAfter < user.RatingBefore);
+            Assert.True(bot.RatingAfter > bot.RatingBefore);
+            Assert.True(bot.XpGained > 0);
+            Assert.Null(user.XpGained);
+            var dbRating = await _host.DbAsync(db => db.Users.Where(u => u.Id == playerId).Select(u => u.Rating).SingleAsync());
+            Assert.Equal(user.RatingAfter, dbRating);
+
             var table = await _host.RunAsync<ILeagueService, List<LeagueTableRow>>(s => s.GetTableAsync(leagueId));
             Assert.Equal(1, table.Single(r => r.ParticipantId == userParticipant).Played);
             Assert.Equal(0, table.Single(r => r.ParticipantId == userParticipant).Points);
@@ -147,6 +157,8 @@ namespace Logic.Integration.Tests.Tournament
             Assert.Equal(TournamentMatchStatusEnum.Finished, state.Status);
             Assert.Equal(3, Math.Max(state.Home.LegsWon, state.Away.LegsWon));
             Assert.NotNull(state.WinnerParticipantId);
+            Assert.True(state.Home.XpGained > 0 && state.Away.XpGained > 0);
+            Assert.NotEqual(state.Home.RatingBefore, state.Home.RatingAfter);
         }
 
         // ---------- Hilfen ----------

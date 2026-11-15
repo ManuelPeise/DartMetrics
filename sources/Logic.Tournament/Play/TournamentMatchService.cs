@@ -23,6 +23,7 @@ namespace Logic.Tournament.Play
         private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly ILeagueService _leagueService;
         private readonly IKnockoutService _knockoutService;
+        private readonly IDartBotLearningService _learningService;
 
         public TournamentMatchService(
             IUnitOfWork unitOfWork,
@@ -31,8 +32,10 @@ namespace Logic.Tournament.Play
             IBotVisitPlayer botVisitPlayer,
             ITargetSelectorFactory targetSelectorFactory,
             ILeagueService leagueService,
-            IKnockoutService knockoutService) : base(unitOfWork, messageLog, claimsHelper)
+            IKnockoutService knockoutService,
+            IDartBotLearningService learningService) : base(unitOfWork, messageLog, claimsHelper)
         {
+            _learningService = learningService;
             _botVisitPlayer = botVisitPlayer;
             _targetSelectorFactory = targetSelectorFactory;
             _leagueService = leagueService;
@@ -443,7 +446,23 @@ namespace Logic.Tournament.Play
 
         private async Task SaveAndFinalizeAsync(TournamentMatchEntity match)
         {
-            await UnitOfWork.SaveChangesAsync();
+            // Wertung (Elo, XP, Level) mit dem Matchende in derselben Speicherung.
+            await _learningService.ApplyTournamentResultAsync(match, DateTime.UtcNow);
+
+            try
+            {
+                await UnitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException concurrencyException)
+            {
+                // Bot wurde parallel gewertet (anderes Spiel endete gleichzeitig): einmal mit neuem Stand speichern.
+                if (!await _learningService.MergeConcurrentBotUpdatesAsync(concurrencyException))
+                {
+                    throw;
+                }
+
+                await UnitOfWork.SaveChangesAsync();
+            }
 
             if (match.Status != TournamentMatchStatusEnum.Finished)
             {
@@ -556,7 +575,10 @@ namespace Logic.Tournament.Play
                     LegsWon = engine.LegsWon(player),
                     Remaining = engine.Remaining(player),
                     IsOpened = engine.IsOpened(player),
-                    Average = darts == 0 ? 0 : Math.Round(own.Sum(v => v.ScoreBefore - v.ScoreAfter) * 3.0 / darts, 2)
+                    Average = darts == 0 ? 0 : Math.Round(own.Sum(v => v.ScoreBefore - v.ScoreAfter) * 3.0 / darts, 2),
+                    RatingBefore = player == 1 ? match.HomeRatingBefore : match.AwayRatingBefore,
+                    RatingAfter = player == 1 ? match.HomeRatingAfter : match.AwayRatingAfter,
+                    XpGained = player == 1 ? match.HomeXpGained : match.AwayXpGained
                 };
             }
 

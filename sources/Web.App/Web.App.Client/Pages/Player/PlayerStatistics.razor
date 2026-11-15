@@ -1,4 +1,4 @@
-@page "/player/statistics"
+﻿@page "/player/statistics"
 @using global::Shared.Enums.Statistics
 @using global::Shared.Models.Statistics
 @using StatisticsModel = global::Shared.Models.Statistics.PlayerStatistics
@@ -46,7 +46,7 @@ else
             <PlayerTrendChart Title="X01-Average (pro Aufnahme)" Points="s.X01AverageTrend"
                               EmptyText="Ab zwei beendeten X01-Trainings erscheint hier dein Verlauf." />
             <PlayerTrendChart Title="Elo" Points="s.RatingTrend" Decimals="0"
-                              EmptyText="Ab zwei gewerteten Bot-Spielen erscheint hier dein Verlauf." />
+                              EmptyText="Ab zwei gewerteten Bot-Spielen oder Turnier-Matches erscheint hier dein Verlauf." />
         </div>
     </section>
 
@@ -63,6 +63,14 @@ else
         <section class="pa-section" aria-labelledby="bot-title">
             <h2 class="pa-section__title" id="bot-title">Gegen Bots</h2>
             <PlayerStatGrid Stats="@BotStats(s.BotGames)" />
+        </section>
+    }
+
+    if (s.Tournaments.Matches > 0)
+    {
+        <section class="pa-section" aria-labelledby="tournament-title">
+            <h2 class="pa-section__title" id="tournament-title">Turniere</h2>
+            <PlayerStatGrid Stats="@TournamentStats(s.Tournaments)" />
         </section>
     }
 
@@ -174,6 +182,13 @@ else
         new("Siege", $"{b.Wins} / {b.Games}", Hint: Percent(b.WinRate), Highlight: true),
         new("Average", Number(b.AveragePerVisit), Hint: "pro Aufnahme"),
         new("Elo-Änderung", b.RatingChange is { } change ? Signed(change) : "–")
+    ];
+
+    private static IReadOnlyList<PlayerStat> TournamentStats(TournamentMatchStatistics t) =>
+    [
+        new("Siege", $"{t.Wins} / {t.Matches}", Hint: Percent(t.WinRate), Highlight: true),
+        new("Average", Number(t.AveragePerVisit), Hint: "pro Aufnahme"),
+        new("Elo-Änderung", t.RatingChange is { } change ? Signed(change) : "–", Hint: "offizielle Turniere")
     ];
 
     private static IReadOnlyList<PlayerStat> CheckoutStats(CheckoutStatistics c) =>

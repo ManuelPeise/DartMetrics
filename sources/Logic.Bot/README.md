@@ -1,4 +1,4 @@
-﻿# Logic.Bot
+# Logic.Bot
 
 Lernfähige DartBots: Wurfsimulation, Zielwahl, Spiele gegen Menschen, Lernschritt, Verwaltung.
 
@@ -34,6 +34,10 @@ Enden zwei Spiele gegen denselben Bot gleichzeitig, wirft das zweite Speichern e
 `DartBotGameService.AddUserVisitAsync` ruft dann `DartBotLearningService.MergeConcurrentBotUpdatesAsync` auf:
 die eigenen XP- und Elo-Deltas werden auf den aktuellen Datenbankstand gerechnet, das Level wird nie zurückgestuft, danach wird einmal erneut gespeichert.
 Betrifft der Konflikt andere Entitäten oder scheitert auch der zweite Versuch, liefert die API 409 (`GlobalExceptionHandlerMiddleware`).
+
+## Turniere
+
+`ApplyTournamentResultAsync` wertet beendete Matches offizieller Turniere: Elo für beide Seiten (auch Bot gegen Bot), XP und Level-Aufstieg für Bots mit denselben Regeln wie bei Bot-Spielen (`ApplyLevelUp` gemeinsam genutzt). Aufgerufen von Logic.Tournament über `IDartBotLearningService`.
 
 ## ML (Phase 1: Kandidaten und Rollouts)
 

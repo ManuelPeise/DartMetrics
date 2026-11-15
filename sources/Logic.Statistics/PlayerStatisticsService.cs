@@ -1,4 +1,6 @@
 ﻿using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Tournament;
+using Shared.Enums.Tournament;
 using Data.DartContext.Entities.Training;
 using Logic.Shared;
 using Logic.Shared.Rules;
@@ -77,6 +79,7 @@ namespace Logic.Statistics
             var segment = await LoadSegmentAsync(userId, from);
             var aroundTheClock = await LoadAroundTheClockAsync(userId, from);
             var botPlayers = await LoadBotGamesAsync(userId, from);
+            var tournamentMatches = await LoadTournamentMatchesAsync(userId, from);
             var user = await UnitOfWork.UserUnitOfWork.UserRepository.GetByIdAsync(userId, asNoTracking: true);
 
             var statistics = new PlayerStatistics
@@ -88,12 +91,18 @@ namespace Logic.Statistics
                 Segment = BuildSegment(segment),
                 AroundTheClock = BuildAroundTheClock(aroundTheClock),
                 BotGames = BuildBotGames(botPlayers),
+                Tournaments = BuildTournaments(userId, tournamentMatches),
                 X01AverageTrend = Compress(period, x01
                     .Select(t => (Date: t.TrainingSession.FinishedAt!.Value, Value: AveragePerVisit(t)))
                     .ToList(), useLastValue: false),
+                // Elo aus Bot-Spielen und offiziellen Turnier-Matches, zeitlich gemischt.
                 RatingTrend = Compress(period, botPlayers
                     .Where(p => p.RatingAfter != null)
                     .Select(p => (Date: p.Game.FinishedAt!.Value, Value: (decimal)p.RatingAfter!.Value))
+                    .Concat(tournamentMatches
+                        .Where(m => OwnRatingAfter(userId, m) != null)
+                        .Select(m => (Date: m.FinishedAt!.Value, Value: (decimal)OwnRatingAfter(userId, m)!.Value)))
+                    .OrderBy(p => p.Date)
                     .ToList(), useLastValue: true)
             };
 
@@ -111,7 +120,7 @@ namespace Logic.Statistics
                 CurrentRating = user.Rating
             };
 
-            statistics.HasData = statistics.Summary.TrainingSessions > 0 || statistics.BotGames.Games > 0;
+            statistics.HasData = statistics.Summary.TrainingSessions > 0 || statistics.BotGames.Games > 0 || statistics.Tournaments.Matches > 0;
 
             return statistics;
         }
@@ -175,6 +184,19 @@ namespace Logic.Statistics
                 include: q => q.Include(p => p.Game).Include(p => p.Visits));
 
             return players.OrderBy(p => p.Game.FinishedAt).ToList();
+        }
+
+        private async Task<List<TournamentMatchEntity>> LoadTournamentMatchesAsync(int userId, DateTime? from)
+        {
+            // Nur Vorwärts-Includes (Match -> Teilnehmer, Match -> Legs -> Aufnahmen).
+            var matches = await UnitOfWork.TournamentUnitOfWork.TournamentMatchRepository.GetWhereAsync(
+                m => m.Status == TournamentMatchStatusEnum.Finished && m.FinishedAt != null &&
+                     (m.HomeParticipant!.UserId == userId || m.AwayParticipant!.UserId == userId) &&
+                     (from == null || m.FinishedAt >= from),
+                asNoTracking: true,
+                include: q => q.Include(m => m.HomeParticipant).Include(m => m.AwayParticipant).Include(m => m.Legs).ThenInclude(l => l.Visits));
+
+            return matches.OrderBy(m => m.FinishedAt).ToList();
         }
 
         // ---------- Auswerten ----------
@@ -329,6 +351,31 @@ namespace Logic.Statistics
                 RatingChange = rated.Count == 0 ? null : rated[^1].RatingAfter!.Value - rated[0].RatingBefore!.Value
             };
         }
+
+        private static TournamentMatchStatistics BuildTournaments(int userId, List<TournamentMatchEntity> matches)
+        {
+            var wins = matches.Count(m => m.WinnerParticipantId == OwnParticipant(userId, m)?.Id);
+            var visits = matches.SelectMany(m => m.Legs.SelectMany(l => l.Visits).Where(v => v.PlayerNumber == OwnNumber(userId, m))).ToList();
+            var rated = matches.Where(m => OwnRatingAfter(userId, m) != null).ToList();
+
+            return new TournamentMatchStatistics
+            {
+                Matches = matches.Count,
+                Wins = wins,
+                WinRate = Percent(wins, matches.Count),
+                AveragePerVisit = Ratio(visits.Sum(v => v.ScoreBefore - v.ScoreAfter), visits.Count),
+                RatingChange = rated.Count == 0 ? null : OwnRatingAfter(userId, rated[^1])!.Value - OwnRatingBefore(userId, rated[0])!.Value
+            };
+        }
+
+        private static int OwnNumber(int userId, TournamentMatchEntity m) => m.HomeParticipant?.UserId == userId ? 1 : 2;
+
+        private static TournamentParticipantEntity? OwnParticipant(int userId, TournamentMatchEntity m) =>
+            OwnNumber(userId, m) == 1 ? m.HomeParticipant : m.AwayParticipant;
+
+        private static int? OwnRatingAfter(int userId, TournamentMatchEntity m) => OwnNumber(userId, m) == 1 ? m.HomeRatingAfter : m.AwayRatingAfter;
+
+        private static int? OwnRatingBefore(int userId, TournamentMatchEntity m) => OwnNumber(userId, m) == 1 ? m.HomeRatingBefore : m.AwayRatingBefore;
 
         // ---------- Hilfen ----------
 

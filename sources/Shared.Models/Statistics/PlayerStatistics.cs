@@ -1,4 +1,4 @@
-using Shared.Enums.Statistics;
+﻿using Shared.Enums.Statistics;
 
 namespace Shared.Models.Statistics
 {
@@ -30,6 +30,9 @@ namespace Shared.Models.Statistics
         public AroundTheClockStatistics AroundTheClock { get; set; } = new();
 
         public BotGameStatistics BotGames { get; set; } = new();
+
+        /// <summary>Beendete Turnier-Matches (offizielle und private).</summary>
+        public TournamentMatchStatistics Tournaments { get; set; } = new();
 
         /// <summary>Punkte pro Aufnahme je X01-Session (bzw. Woche bei vielen Sessions), zeitlich aufsteigend.</summary>
         public List<StatisticsTrendPoint> X01AverageTrend { get; set; } = [];
@@ -158,6 +161,21 @@ namespace Shared.Models.Statistics
         public decimal AveragePerVisit { get; set; }
 
         /// <summary>Elo-Änderung im Zeitraum (letzter minus erster Wert), null ohne gewertete Spiele.</summary>
+        public int? RatingChange { get; set; }
+    }
+
+    public class TournamentMatchStatistics
+    {
+        public int Matches { get; set; }
+
+        public int Wins { get; set; }
+
+        public decimal WinRate { get; set; }
+
+        /// <summary>Eigene Punkte pro Aufnahme in Turnier-Matches.</summary>
+        public decimal AveragePerVisit { get; set; }
+
+        /// <summary>Elo-Änderung aus offiziellen Turnieren im Zeitraum, null ohne gewertete Matches.</summary>
         public int? RatingChange { get; set; }
     }
 

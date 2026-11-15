@@ -1001,8 +1001,17 @@ namespace Data.DartContext.Migrations
                     b.Property<int?>("AwayProfileVersionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("AwayRatingAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AwayRatingBefore")
+                        .HasColumnType("int");
+
                     b.Property<int?>("AwayTargetModelId")
                         .HasColumnType("int");
+
+                    b.Property<long?>("AwayXpGained")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -1031,8 +1040,20 @@ namespace Data.DartContext.Migrations
                     b.Property<int?>("HomeProfileVersionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("HomeRatingAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HomeRatingBefore")
+                        .HasColumnType("int");
+
                     b.Property<int?>("HomeTargetModelId")
                         .HasColumnType("int");
+
+                    b.Property<long?>("HomeXpGained")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LearningProcessedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("MatchNumber")
                         .HasColumnType("int");
@@ -1090,6 +1111,8 @@ namespace Data.DartContext.Migrations
                         {
                             t.HasCheckConstraint("CK_TournamentMatch_FinishedAt", "(`Status` = 3 AND `FinishedAt` IS NOT NULL) OR (`Status` <> 3 AND `FinishedAt` IS NULL)");
 
+                            t.HasCheckConstraint("CK_TournamentMatch_Learning", "`LearningProcessedAt` IS NULL OR `Status` = 3");
+
                             t.HasCheckConstraint("CK_TournamentMatch_Legs", "`HomeLegs` >= 0 AND `AwayLegs` >= 0");
 
                             t.HasCheckConstraint("CK_TournamentMatch_NextMatch", "(`NextMatchId` IS NULL AND `NextMatchSlot` IS NULL) OR (`NextMatchId` IS NOT NULL AND `NextMatchSlot` IN (1, 2))");
@@ -1099,6 +1122,8 @@ namespace Data.DartContext.Migrations
                             t.HasCheckConstraint("CK_TournamentMatch_Status", "(`Status` = 1) OR (`Status` IN (2, 3) AND `HomeParticipantId` IS NOT NULL AND `AwayParticipantId` IS NOT NULL AND `StartedAt` IS NOT NULL) OR (`Status` = 4 AND (`HomeParticipantId` IS NULL) <> (`AwayParticipantId` IS NULL))");
 
                             t.HasCheckConstraint("CK_TournamentMatch_Winner", "(`Status` IN (3, 4) AND `WinnerParticipantId` IS NOT NULL) OR (`Status` IN (1, 2) AND `WinnerParticipantId` IS NULL)");
+
+                            t.HasCheckConstraint("CK_TournamentMatch_Xp", "(`HomeXpGained` IS NULL OR `HomeXpGained` >= 0) AND (`AwayXpGained` IS NULL OR `AwayXpGained` >= 0)");
                         });
                 });
 

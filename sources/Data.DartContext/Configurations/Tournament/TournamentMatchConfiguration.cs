@@ -34,6 +34,8 @@ namespace Data.DartContext.Configurations.Tournament
                 table.HasCheckConstraint(
                     "CK_TournamentMatch_FinishedAt",
                     $"(`Status` = {finished} AND `FinishedAt` IS NOT NULL) OR (`Status` <> {finished} AND `FinishedAt` IS NULL)");
+                table.HasCheckConstraint("CK_TournamentMatch_Xp", "(`HomeXpGained` IS NULL OR `HomeXpGained` >= 0) AND (`AwayXpGained` IS NULL OR `AwayXpGained` >= 0)");
+                table.HasCheckConstraint("CK_TournamentMatch_Learning", $"`LearningProcessedAt` IS NULL OR `Status` = {finished}");
                 table.HasCheckConstraint(
                     "CK_TournamentMatch_NextMatch",
                     "(`NextMatchId` IS NULL AND `NextMatchSlot` IS NULL) OR (`NextMatchId` IS NOT NULL AND `NextMatchSlot` IN (1, 2))");

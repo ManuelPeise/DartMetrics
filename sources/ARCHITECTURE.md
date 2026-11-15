@@ -79,7 +79,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IBotVisitPlayer` | `BotVisitPlayer` | [Logic.Bot](Logic.Bot/README.md) | Si | `PlayVisit` |
 | `IDartBotAdministration` | `DartBotAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `CreateBotAsync`, `ActivateBotAsync`, `DeactivateBotAsync`, `GetBotsAsync`, `GetBotAsync` |
 | `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetRatingHistoryAsync`, `GetAvailableBotsAsync` |
-| `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` (XP, Elo Bot + Spieler, Level), `MergeConcurrentBotUpdatesAsync` |
+| `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` (XP, Elo Bot + Spieler, Level), `ApplyTournamentResultAsync` (offizielle Turnier-Matches), `MergeConcurrentBotUpdatesAsync` |
 | `IPlayerStatisticsService` | `PlayerStatisticsService` | [Logic.Statistics](Logic.Statistics/README.md) | S | `GetStatisticsAsync(period)` |
 | `ILeagueService` | `LeagueService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateLeagueAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartLeagueAsync`, `ScheduleRoundAsync`, `GetLeagueAsync`, `GetTableAsync`, `FinishLeagueIfCompleteAsync` |
 | `IKnockoutService` | `KnockoutService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateKnockoutAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartKnockoutAsync`, `ScheduleRoundAsync`, `GetKnockoutAsync`, `AdvanceAsync` |

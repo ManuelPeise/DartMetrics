@@ -69,6 +69,13 @@ namespace Shared.Models.Tournament
 
         /// <summary>3-Dart-Average im Match (Bust und Darts vor Double-In zählen 0).</summary>
         public double Average { get; set; }
+
+        /// <summary>Elo vor/nach dem Match (nur offizielle Turniere, nach Matchende).</summary>
+        public int? RatingBefore { get; set; }
+        public int? RatingAfter { get; set; }
+
+        /// <summary>Nur Bots: XP aus diesem Match.</summary>
+        public long? XpGained { get; set; }
     }
 
     public class TournamentLegItem

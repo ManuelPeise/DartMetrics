@@ -1,4 +1,7 @@
-﻿using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Bot;
+using Data.DartContext.Entities.Tournament;
+using Data.DartContext.Entities.User;
+using Shared.Enums.Tournament;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Shared.Enums.Bot;
@@ -103,16 +106,7 @@ namespace Logic.Bot.Learning
             bot.Rating = ratingAfter;
 
             // 3. Level-Aufstieg
-            var newLevel = LevelForExperience(bot.ExperiencePoints);
-
-            if (newLevel > bot.DevelopmentLevel)
-            {
-                var current = bot.ProfileVersions.MaxBy(p => p.VersionNumber)
-                    ?? throw new InvalidOperationException($"Dart bot {bot.Id} has no profile version.");
-
-                bot.ProfileVersions.Add(CreateLevelUpVersion(current, bot.DevelopmentLevel, newLevel, game));
-                bot.DevelopmentLevel = newLevel;
-            }
+            ApplyLevelUp(bot, game, reasonSuffix: "");
 
             botPlayer.XpGained = xpGained;
             botPlayer.RatingBefore = ratingBefore;
@@ -120,6 +114,99 @@ namespace Logic.Bot.Learning
             botPlayer.LearningProcessedAt = now;
 
             return ratingBefore;
+        }
+
+        public async Task ApplyTournamentResultAsync(TournamentMatchEntity match, DateTime now)
+        {
+            if (match.Status != TournamentMatchStatusEnum.Finished
+                || match.LearningProcessedAt != null
+                || match.Round.Tournament.Kind != TournamentKindEnum.Official
+                || match.HomeParticipant is null || match.AwayParticipant is null)
+            {
+                return;
+            }
+
+            var home = await LoadSideAsync(match.HomeParticipant);
+            var away = await LoadSideAsync(match.AwayParticipant);
+
+            var homeWon = match.WinnerParticipantId == match.HomeParticipantId;
+
+            // Beide Seiten mit den Werten VOR dem Match.
+            var homeBefore = home.Rating;
+            var awayBefore = away.Rating;
+            var homeAfter = NewRating(homeBefore, awayBefore, homeWon ? 1.0 : 0.0);
+            var awayAfter = NewRating(awayBefore, homeBefore, homeWon ? 0.0 : 1.0);
+
+            match.HomeRatingBefore = homeBefore;
+            match.HomeRatingAfter = homeAfter;
+            match.AwayRatingBefore = awayBefore;
+            match.AwayRatingAfter = awayAfter;
+            match.HomeXpGained = ApplySide(home, homeAfter, homeWon, match.HomeLegs);
+            match.AwayXpGained = ApplySide(away, awayAfter, !homeWon, match.AwayLegs);
+            match.LearningProcessedAt = now;
+        }
+
+        private sealed record TournamentSide(UserEntity? User, DartBotEntity? Bot)
+        {
+            public int Rating => Bot?.Rating ?? User?.Rating ?? 0;
+        }
+
+        private async Task<TournamentSide> LoadSideAsync(TournamentParticipantEntity participant)
+        {
+            if (participant.DartBotId is int botId)
+            {
+                var bot = await _unitOfWork.DartBotUnitOfWork.DartBotRepository.GetByIdAsync(botId, include: q => q.Include(b => b.ProfileVersions));
+                return new TournamentSide(null, bot);
+            }
+
+            // Anonymisierter Benutzer (UserId null): mit dem Standard-Elo eines menschlichen Gegners rechnen, nichts speichern.
+            var user = participant.UserId is int userId
+                ? await _unitOfWork.UserUnitOfWork.UserRepository.GetFirstOrDefaultAsync(u => u.Id == userId)
+                : null;
+
+            return user is null
+                ? new TournamentSide(new UserEntity { Rating = _options.Learning.HumanOpponentRating }, null)
+                : new TournamentSide(user, null);
+        }
+
+        /// <returns>XP bei Bots, sonst null.</returns>
+        private long? ApplySide(TournamentSide side, int ratingAfter, bool isWinner, int legsWon)
+        {
+            if (side.Bot is not DartBotEntity bot)
+            {
+                if (side.User is not null && side.User.Id != 0)
+                {
+                    side.User.Rating = ratingAfter;
+                }
+
+                return null;
+            }
+
+            var learning = _options.Learning;
+            var xpGained = (long)learning.XpPerGame + (isWinner ? learning.XpPerWin : 0) + (long)legsWon * learning.XpPerLegWon;
+
+            bot.ExperiencePoints += xpGained;
+            bot.Rating = ratingAfter;
+            ApplyLevelUp(bot, null, reasonSuffix: " (Turnier)");
+
+            return xpGained;
+        }
+
+        /// <summary>Level aus der Gesamt-XP; bei Aufstieg neue Profilversion mit höheren Fähigkeiten.</summary>
+        private void ApplyLevelUp(DartBotEntity bot, DartBotGameEntity? game, string reasonSuffix)
+        {
+            var newLevel = LevelForExperience(bot.ExperiencePoints);
+
+            if (newLevel > bot.DevelopmentLevel)
+            {
+                var current = bot.ProfileVersions.MaxBy(p => p.VersionNumber)
+                    ?? throw new InvalidOperationException($"Dart bot {bot.Id} has no profile version.");
+
+                var version = CreateLevelUpVersion(current, bot.DevelopmentLevel, newLevel, game);
+                version.ReasonText += reasonSuffix;
+                bot.ProfileVersions.Add(version);
+                bot.DevelopmentLevel = newLevel;
+            }
         }
 
         public async Task<bool> MergeConcurrentBotUpdatesAsync(DbUpdateConcurrencyException exception)
@@ -181,7 +268,7 @@ namespace Logic.Bot.Learning
             DartBotProfileVersionEntity current,
             int previousLevel,
             int newLevel,
-            DartBotGameEntity game)
+            DartBotGameEntity? game)
         {
             return new DartBotProfileVersionEntity
             {

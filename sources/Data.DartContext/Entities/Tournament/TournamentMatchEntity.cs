@@ -64,6 +64,22 @@ namespace Data.DartContext.Entities.Tournament
 
         public UserEntity? ConductedByUser { get; set; }
 
+        // Wertung (nur offizielle Turniere, genau einmal nach Matchende)
+        public int? HomeRatingBefore { get; set; }
+
+        public int? HomeRatingAfter { get; set; }
+
+        public int? AwayRatingBefore { get; set; }
+
+        public int? AwayRatingAfter { get; set; }
+
+        /// <summary>Nur Bots: vergebene XP.</summary>
+        public long? HomeXpGained { get; set; }
+
+        public long? AwayXpGained { get; set; }
+
+        public DateTime? LearningProcessedAt { get; set; }
+
         public DateTime? StartedAt { get; set; }
 
         public DateTime? FinishedAt { get; set; }
