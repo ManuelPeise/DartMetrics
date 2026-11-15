@@ -205,6 +205,9 @@ namespace Logic.Tournament
         protected TournamentOverview ToOverview(TournamentEntity tournament) => new()
         {
             CanManage = TournamentAccess.CanManage(ClaimsHelper.GetCurrentUserFromClaims(), tournament),
+            RegistrationDeadline = tournament.RegistrationDeadline,
+            MyStatus = tournament.Participants
+                .FirstOrDefault(p => p.UserId != null && p.UserId == ClaimsHelper.GetCurrentUserFromClaims()?.UserId && p.Status != TournamentParticipantStatusEnum.Withdrawn)?.Status,
             Id = tournament.Id,
             Name = tournament.Name,
             Type = tournament.Type,

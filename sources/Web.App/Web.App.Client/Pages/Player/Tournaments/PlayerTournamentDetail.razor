@@ -4,6 +4,8 @@
 @using global::Shared.Models.Tournament
 @inject ITournamentApi TournamentApi
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IDisposable
 
 <PageTitle>@(_tournament?.Name ?? "Turnier") – DartMetrics</PageTitle>
 
@@ -38,6 +40,46 @@ else
         <PlayerScoreboard Label="Sieger" Value="@NameOf(winnerId)" Status="@($"beendet am {t.FinishedAt?.ToLocalTime():d}")" Tone="success" />
     }
 
+    if (t.Kind == TournamentKindEnum.Official && isDraft)
+    {
+        <section class="pa-section" aria-labelledby="registration-title">
+            <h2 class="pa-section__title" id="registration-title">Anmeldung</h2>
+
+            @if (t.Status == TournamentStatusEnum.Draft)
+            {
+                <p class="pa-section__hint">Die Anmeldung ist noch nicht geöffnet.</p>
+                @if (t.CanManage)
+                {
+                    <div class="pa-setup__actions" style="margin-top: 0.6rem">
+                        <input type="datetime-local" class="pl-input" aria-label="Anmeldeschluss (optional)" style="max-width: 240px" @bind="_deadlineLocal" />
+                        <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="OpenRegistrationAsync">Anmeldung öffnen</button>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="pa-section__hint">
+                    Anmeldung offen@(t.RegistrationDeadline is DateTime d ? $" bis {d.ToLocalTime():g}" : "").
+                    @(t.CanManage ? "Bestätige die Anmeldungen unten; gestartet wird nur mit bestätigten Teilnehmern." : "")
+                </p>
+                @if (!t.CanManage && _isPlayer)
+                {
+                    <div class="pa-setup__actions" style="margin-top: 0.6rem">
+                        @if (t.MyStatus is null)
+                        {
+                            <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || DeadlinePassed(t))" @onclick="RegisterAsync">Anmelden</button>
+                        }
+                        else
+                        {
+                            <span>@(t.MyStatus == TournamentParticipantStatusEnum.Confirmed ? "Du bist dabei." : "Angemeldet – wartet auf Bestätigung.")</span>
+                            <button type="button" class="pl-btn pl-btn--link" disabled="@_busy" @onclick="WithdrawAsync">Abmelden</button>
+                        }
+                    </div>
+                }
+            }
+        </section>
+    }
+
     <section class="pa-section" aria-labelledby="participants-title">
         <h2 class="pa-section__title" id="participants-title">Teilnehmer (@t.Participants.Count)</h2>
 
@@ -53,11 +95,17 @@ else
                     <li class="pa-history__item">
                         <span>
                             <strong>@p.DisplayName</strong>
-                            <small>@(p.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot" : "Spieler")@(p.Seed is int seed ? $" · gesetzt {seed}" : "")</small>
+                            <small>@(p.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot" : "Spieler")@(p.Seed is int seed ? $" · gesetzt {seed}" : "")@(p.Status == TournamentParticipantStatusEnum.Registered ? " · wartet auf Bestätigung" : "")</small>
                         </span>
                         @if (isDraft && t.CanManage)
                         {
-                            <button type="button" class="pl-btn pl-btn--link" disabled="@_busy" @onclick="() => RemoveAsync(p.Id)">Entfernen</button>
+                            <span class="pa-setup__actions">
+                                @if (p.Status == TournamentParticipantStatusEnum.Registered)
+                                {
+                                    <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="() => ConfirmAsync(p.Id)">Bestätigen</button>
+                                }
+                                <button type="button" class="pl-btn pl-btn--link" disabled="@_busy" @onclick="() => RemoveAsync(p.Id)">Entfernen</button>
+                            </span>
                         }
                     </li>
                 }
@@ -122,6 +170,7 @@ else
             }
             else
             {
+                <p class="pa-section__hint">@ConfirmedCount(t) bestätigte Teilnehmer (Liga: 8–16).</p>
                 <PlayerChoiceGroup TValue="int" Label="Satzlänge aller Matches" Options="BestOfOptions" Value="_leagueBestOf" ValueChanged="v => _leagueBestOf = v" />
             }
 
@@ -249,7 +298,46 @@ else
     private List<TournamentCandidate> FreeBots =>
         _candidates?.Bots.Where(c => _tournament!.Participants.All(p => p.DartBotId != c.Id)).ToList() ?? [];
 
-    protected override async Task OnParametersSetAsync() => await LoadAsync();
+    private DateTime? _deadlineLocal;
+    private bool _isPlayer;
+    private Timer? _timer;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isPlayer = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User.IsInRole("Player");
+        await LoadAsync();
+
+        // Laufendes Turnier live: Tabelle, Spielstände und Baum alle 10 s nachladen.
+        _timer ??= new Timer(async _ =>
+        {
+            if (!_busy && _tournament?.Status == TournamentStatusEnum.Running)
+            {
+                await LoadAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private Task OpenRegistrationAsync()
+    {
+        DateTime? deadline = _deadlineLocal is DateTime local
+            ? DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime()
+            : null;
+
+        return RunAsync(() => TournamentApi.OpenRegistrationAsync(Id, deadline), "Die Anmeldung ist geöffnet.");
+    }
+
+    private Task RegisterAsync() => RunAsync(() => TournamentApi.RegisterAsync(Id), "Du bist angemeldet. Der GameMaster bestätigt deine Teilnahme.");
+
+    private Task WithdrawAsync() => RunAsync(() => TournamentApi.WithdrawAsync(Id), "Du bist abgemeldet.");
+
+    private Task ConfirmAsync(int participantId) => RunAsync(() => TournamentApi.ConfirmParticipantAsync(Id, participantId), null);
+
+    private static bool DeadlinePassed(TournamentOverview t) => t.RegistrationDeadline is DateTime d && d < DateTime.UtcNow;
+
+    private static int ConfirmedCount(TournamentOverview t) => t.Participants.Count(p => p.Status == TournamentParticipantStatusEnum.Confirmed);
 
     private async Task LoadAsync()
     {

@@ -14,6 +14,7 @@ namespace Logic.Tournament.DI
             services.AddScoped<IKnockoutService, KnockoutService>();
             services.AddScoped<ITournamentMatchService, TournamentMatchService>();
             services.AddScoped<ITournamentQueryService, TournamentQueryService>();
+            services.AddScoped<ITournamentRegistrationService, TournamentRegistrationService>();
 
             // Bot gegen Bot zur geplanten Zeit (Abschnitt "Tournament", siehe TournamentOptions).
             services.AddHostedService<BotMatchWorker>();

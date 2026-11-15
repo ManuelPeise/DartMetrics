@@ -46,7 +46,8 @@ namespace Logic.Tournament
                         StartedAt = t.StartedAt,
                         FinishedAt = t.FinishedAt,
                         WinnerName = t.Participants.FirstOrDefault(p => p.Id == t.WinnerParticipantId)?.DisplayName,
-                        CanManage = TournamentAccess.CanManage(user, t)
+                        CanManage = TournamentAccess.CanManage(user, t),
+                        MyStatus = t.Participants.FirstOrDefault(p => p.UserId == user.UserId && p.Status != TournamentParticipantStatusEnum.Withdrawn)?.Status
                     })
                     .ToList();
             }

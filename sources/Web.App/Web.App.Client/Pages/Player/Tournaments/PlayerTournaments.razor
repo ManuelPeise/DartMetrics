@@ -37,7 +37,7 @@ else
                     <li class="pa-history__item">
                         <a href="@DetailHref(t)">
                             <strong>@t.Name</strong>
-                            <small>@TypeText(t.Type) · @(t.Kind == TournamentKindEnum.Official ? "offiziell" : "privat") · @t.ParticipantCount Teilnehmer@(t.WinnerName is null ? "" : $" · Sieger {t.WinnerName}")</small>
+                            <small>@TypeText(t.Type) · @(t.Kind == TournamentKindEnum.Official ? "offiziell" : "privat") · @t.ParticipantCount Teilnehmer@(t.WinnerName is null ? "" : $" · Sieger {t.WinnerName}")@(t.MyStatus is null ? "" : t.MyStatus == TournamentParticipantStatusEnum.Confirmed ? " · du bist dabei" : " · angemeldet")</small>
                         </a>
                         <span class="pa-history__rating">@StatusText(t.Status)</span>
                     </li>
@@ -185,7 +185,7 @@ else
     internal static string StatusText(TournamentStatusEnum status) => status switch
     {
         TournamentStatusEnum.Draft => "In Vorbereitung",
-        TournamentStatusEnum.Registration => "Anmeldung",
+        TournamentStatusEnum.Registration => "Anmeldung offen",
         TournamentStatusEnum.Running => "Läuft",
         TournamentStatusEnum.Finished => "Beendet",
         _ => "Abgesagt"

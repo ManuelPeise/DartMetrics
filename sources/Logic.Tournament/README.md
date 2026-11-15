@@ -47,6 +47,12 @@ Turniere der DartMetrics: Liga (jeder gegen jeden, Hin- und Rückrunde, 8–16 T
 - Matchstand mit `CanUndo` und Finish-Wegen (`CheckoutSuggestions`) für den Spieler am Wurf.
 - Seite `/player/tournaments/match/{id}`: links die Tafel (Rest je Aufnahme, ältere durchgestrichen, Bust und Checkout markiert, Legs umschaltbar) in der Handschrift Caveat, rechts oben Spielstand mit Finish-Weg, rechts unten Eingabe je Dart mit Korrektur.
 
+## Stand (Phase 6: Anmeldung und Live)
+
+- `TournamentRegistrationService` (`ITournamentRegistrationService`): GameMaster öffnet die Anmeldung offizieller Turniere (Status Registration, optional Frist), Spieler melden sich an (Status Registered) oder ab, GameMaster bestätigt (Confirmed) oder entfernt. Start nur mit bestätigten Teilnehmern.
+- `TournamentOverview`/`TournamentListItem` mit `MyStatus` (eigene Teilnahme) und Anmeldeschluss.
+- Detailseite: Abschnitt Anmeldung (öffnen mit Frist, anmelden/abmelden, bestätigen); laufende Turniere laden alle 10 s nach (Tabelle, Spielstände, Baum).
+
 Noch offen: Anmeldung durch Spieler und Live-Verfolgen für Zuschauer im Detail (Phase 6), Elo/XP aus Turnieren und Caller (Phase 7).
 
 ## Regeln

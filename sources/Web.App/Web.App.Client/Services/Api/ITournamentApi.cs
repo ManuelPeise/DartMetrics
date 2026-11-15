@@ -8,6 +8,11 @@ namespace Web.App.Client.Services.Api
         Task<ApiResult<List<TournamentListItem>>> GetTournamentsAsync(CancellationToken cancellationToken = default);
         Task<ApiResult<TournamentCandidates>> GetCandidatesAsync(CancellationToken cancellationToken = default);
 
+        Task<ApiResult<bool>> OpenRegistrationAsync(int tournamentId, DateTime? deadlineUtc, CancellationToken cancellationToken = default);
+        Task<ApiResult<int>> RegisterAsync(int tournamentId, CancellationToken cancellationToken = default);
+        Task<ApiResult<bool>> WithdrawAsync(int tournamentId, CancellationToken cancellationToken = default);
+        Task<ApiResult<bool>> ConfirmParticipantAsync(int tournamentId, int participantId, CancellationToken cancellationToken = default);
+
         Task<ApiResult<int>> CreateLeagueAsync(CreateLeagueModel model, CancellationToken cancellationToken = default);
         Task<ApiResult<int>> CreateKnockoutAsync(CreateKnockoutModel model, CancellationToken cancellationToken = default);
 

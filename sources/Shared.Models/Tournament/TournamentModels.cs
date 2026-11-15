@@ -50,6 +50,12 @@ namespace Shared.Models.Tournament
 
         /// <summary>Darf der angemeldete Benutzer verwalten und Matches leiten?</summary>
         public bool CanManage { get; set; }
+
+        /// <summary>Anmeldeschluss (offizielle Turniere, Status Registration).</summary>
+        public DateTime? RegistrationDeadline { get; set; }
+
+        /// <summary>Eigener Teilnehmer-Status des angemeldeten Benutzers (null = nicht dabei).</summary>
+        public TournamentParticipantStatusEnum? MyStatus { get; set; }
         public List<TournamentParticipantItem> Participants { get; set; } = [];
         public List<TournamentRoundItem> Rounds { get; set; } = [];
     }
@@ -153,6 +159,9 @@ namespace Shared.Models.Tournament
 
         /// <summary>Darf der angemeldete Benutzer das Turnier verwalten und Matches leiten?</summary>
         public bool CanManage { get; set; }
+
+        /// <summary>Eigener Teilnehmer-Status (null = nicht dabei).</summary>
+        public TournamentParticipantStatusEnum? MyStatus { get; set; }
     }
 
     /// <summary>Wer sich als Teilnehmer eintragen lässt: Spieler (nur für offizielle Turniere) und aktive Bots.</summary>
@@ -181,5 +190,14 @@ namespace Shared.Models.Tournament
     {
         /// <summary>Termin in UTC (der Client rechnet aus der Ortszeit um).</summary>
         public DateTime ScheduledAtUtc { get; set; }
+    }
+}
+
+namespace Shared.Models.Tournament
+{
+    public class OpenRegistrationModel
+    {
+        /// <summary>Anmeldeschluss in UTC, optional.</summary>
+        public DateTime? DeadlineUtc { get; set; }
     }
 }

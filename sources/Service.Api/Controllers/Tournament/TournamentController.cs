@@ -17,9 +17,12 @@ namespace Service.Api.Controllers.Tournament
         private readonly ILeagueService _leagues;
         private readonly IKnockoutService _knockouts;
         private readonly ITournamentMatchService _matches;
+        private readonly ITournamentRegistrationService _registration;
 
-        public TournamentController(ITournamentQueryService query, ILeagueService leagues, IKnockoutService knockouts, ITournamentMatchService matches)
+        public TournamentController(ITournamentQueryService query, ILeagueService leagues, IKnockoutService knockouts, ITournamentMatchService matches,
+            ITournamentRegistrationService registration)
         {
+            _registration = registration;
             _query = query;
             _leagues = leagues;
             _knockouts = knockouts;
@@ -33,6 +36,32 @@ namespace Service.Api.Controllers.Tournament
 
         [HttpGet(Name = "GetTournamentCandidates")]
         public async Task<IActionResult> GetTournamentCandidates() => Ok(await _query.GetCandidatesAsync());
+
+        // ---------- Anmeldung (offizielle Turniere) ----------
+
+        [HttpPost(Name = "OpenTournamentRegistration")]
+        public async Task<IActionResult> OpenTournamentRegistration([FromQuery] int tournamentId, [FromBody] OpenRegistrationModel model)
+        {
+            await _registration.OpenRegistrationAsync(tournamentId, model.DeadlineUtc);
+            return Ok();
+        }
+
+        [HttpPost(Name = "RegisterForTournament")]
+        public async Task<IActionResult> RegisterForTournament([FromQuery] int tournamentId) => Ok(await _registration.RegisterAsync(tournamentId));
+
+        [HttpPost(Name = "WithdrawFromTournament")]
+        public async Task<IActionResult> WithdrawFromTournament([FromQuery] int tournamentId)
+        {
+            await _registration.WithdrawAsync(tournamentId);
+            return Ok();
+        }
+
+        [HttpPost(Name = "ConfirmTournamentParticipant")]
+        public async Task<IActionResult> ConfirmTournamentParticipant([FromQuery] int tournamentId, [FromQuery] int participantId)
+        {
+            await _registration.ConfirmParticipantAsync(tournamentId, participantId);
+            return Ok();
+        }
 
         // ---------- Liga ----------
 

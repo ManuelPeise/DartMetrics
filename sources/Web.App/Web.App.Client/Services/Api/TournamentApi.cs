@@ -21,6 +21,19 @@ namespace Web.App.Client.Services.Api
         public Task<ApiResult<TournamentCandidates>> GetCandidatesAsync(CancellationToken ct = default) =>
             ApiResponse.ReadAsync<TournamentCandidates>(_api.GetAsync(Controller + "GetTournamentCandidates", ct), ct);
 
+        public Task<ApiResult<bool>> OpenRegistrationAsync(int tournamentId, DateTime? deadlineUtc, CancellationToken ct = default) =>
+            ApiResponse.ExecuteAsync(_api.PostAsJsonAsync($"{Controller}OpenTournamentRegistration?tournamentId={tournamentId}",
+                new OpenRegistrationModel { DeadlineUtc = deadlineUtc }, ct), ct);
+
+        public Task<ApiResult<int>> RegisterAsync(int tournamentId, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<int>(_api.PostAsJsonAsync<object?>($"{Controller}RegisterForTournament?tournamentId={tournamentId}", null, ct), ct);
+
+        public Task<ApiResult<bool>> WithdrawAsync(int tournamentId, CancellationToken ct = default) =>
+            ApiResponse.ExecuteAsync(_api.PostAsJsonAsync<object?>($"{Controller}WithdrawFromTournament?tournamentId={tournamentId}", null, ct), ct);
+
+        public Task<ApiResult<bool>> ConfirmParticipantAsync(int tournamentId, int participantId, CancellationToken ct = default) =>
+            ApiResponse.ExecuteAsync(_api.PostAsJsonAsync<object?>($"{Controller}ConfirmTournamentParticipant?tournamentId={tournamentId}&participantId={participantId}", null, ct), ct);
+
         public Task<ApiResult<int>> CreateLeagueAsync(CreateLeagueModel model, CancellationToken ct = default) =>
             ApiResponse.ReadAsync<int>(_api.PostAsJsonAsync(Controller + "CreateLeague", model, ct), ct);
 

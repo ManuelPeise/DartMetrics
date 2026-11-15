@@ -84,6 +84,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `ILeagueService` | `LeagueService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateLeagueAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartLeagueAsync`, `ScheduleRoundAsync`, `GetLeagueAsync`, `GetTableAsync`, `FinishLeagueIfCompleteAsync` |
 | `IKnockoutService` | `KnockoutService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateKnockoutAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartKnockoutAsync`, `ScheduleRoundAsync`, `GetKnockoutAsync`, `AdvanceAsync` |
 | `ITournamentQueryService` | `TournamentQueryService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `GetTournamentsAsync`, `GetCandidatesAsync` |
+| `ITournamentRegistrationService` | `TournamentRegistrationService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `OpenRegistrationAsync`, `RegisterAsync`, `WithdrawAsync`, `ConfirmParticipantAsync` |
 | `ITournamentMatchService` | `TournamentMatchService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `StartMatchAsync`, `AddDartAsync`, `UndoLastDartAsync`, `GetMatchStateAsync`, `PlayDueBotMatchesAsync` (Hintergrunddienst `BotMatchWorker`) |
 | `ILogService` | `LogService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetLogMessages`, `DeleteMessage`, `DeleteMessages` |
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
@@ -133,7 +134,7 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 | `Profile` | `IUserProfileService` | angemeldet |
 | `SegmentTraining`, `CheckoutTraining`, `X01TrainingGame`, `AroundTheClockTraining` | Trainings-Services | angemeldet |
 | `DartBotGame` | `IDartBotGameService` | Player |
-| `Tournament` | `ITournamentQueryService`, `ILeagueService`, `IKnockoutService`, `ITournamentMatchService` | GameMaster, Player (Rechte je Turnier im Service) |
+| `Tournament` | `ITournamentQueryService`, `ITournamentRegistrationService`, `ILeagueService`, `IKnockoutService`, `ITournamentMatchService` | GameMaster, Player (Rechte je Turnier im Service) |
 | `PlayerStatistics` | `IPlayerStatisticsService` | Player |
 | `DartBotAdministration` | `IDartBotAdministration` | Admin |
 | `UserAdministration` | `IUserAdministration` | Admin |
