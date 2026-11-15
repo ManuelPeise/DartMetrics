@@ -339,7 +339,7 @@ namespace Data.DartContext.Migrations
                         {
                             t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerNumber", "`PlayerNumber` IN (1, 2)");
 
-                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerType", "(`PlayerType` = 2 AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) OR (`PlayerType` = 1 AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL AND `RatingBefore` IS NULL AND `RatingAfter` IS NULL AND `LearningProcessedAt` IS NULL)");
+                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerType", "(`PlayerType` = 2 AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) OR (`PlayerType` = 1 AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL)");
 
                             t.HasCheckConstraint("CK_DartBotGamePlayer_XpGained", "`XpGained` IS NULL OR `XpGained` >= 0");
                         });

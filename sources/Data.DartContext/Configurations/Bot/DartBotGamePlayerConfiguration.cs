@@ -1,4 +1,4 @@
-using Data.DartContext.Entities.Bot;
+﻿using Data.DartContext.Entities.Bot;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Enums.Bot;
@@ -18,13 +18,13 @@ namespace Data.DartContext.Configurations.Bot
 
                 // Bot: Bot + Profilversion gesetzt, kein User. TargetModelId darf NULL sein
                 // (noch kein trainiertes Modell -> regelbasierte Zielwahl).
-                // User: keine Bot-Felder; UserId darf NULL sein (anonymisiert).
+                // User: keine Bot-Felder (Profil, Modelle, XP); UserId darf NULL sein (anonymisiert).
+                // Elo-Felder (RatingBefore/After, LearningProcessedAt) sind seit dem Spieler-Elo auch für User erlaubt.
                 table.HasCheckConstraint(
                     "CK_DartBotGamePlayer_PlayerType",
                     $"(`PlayerType` = {bot} AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) " +
                     $"OR (`PlayerType` = {user} AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL " +
-                    "AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL " +
-                    "AND `RatingBefore` IS NULL AND `RatingAfter` IS NULL AND `LearningProcessedAt` IS NULL)");
+                    "AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL)");
 
                 table.HasCheckConstraint("CK_DartBotGamePlayer_XpGained", "`XpGained` IS NULL OR `XpGained` >= 0");
             });
