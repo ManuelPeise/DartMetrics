@@ -56,9 +56,14 @@ services:
     ports:
       - "8080:8080"
 
+    # ML-Daten (Datensätze, Modelle) vom Host: Tools.BotTrainer schreibt nach ./ml_data, die API liest nur.
+    volumes:
+      - ./ml_data:/data/ml:ro
+
     environment:
       ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
       ASPNETCORE_HTTP_PORTS: "8080"
+      MlData__Path: /data/ml
 
       # Container network: host "mysql", not localhost
       ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"

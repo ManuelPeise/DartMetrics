@@ -21,6 +21,8 @@ Technische Gesamtübersicht. Was die Anwendung fachlich kann: [README.md](README
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML-Grundlagen (Kandidaten, Rollouts) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen | [README](Logic.Administration/README.md) |
+| **Werkzeuge** | | |
+| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen (später Training, Vergleich) | [README](Tools.BotTrainer/README.md) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
 | `Logic.Integration.Tests` | Integrationstests gegen MySQL 8.4 (Testcontainers) | [README](Logic.Integration.Tests/README.md) |

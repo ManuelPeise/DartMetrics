@@ -17,6 +17,9 @@
     <Project Path="Logic.Statistics/Logic.Statistics.csproj" />
     <Project Path="Logic.Training/Logic.Training.csproj" Id="e095f72b-64d7-4b95-a682-ce110d1c1ca3" />
   </Folder>
+  <Folder Name="/07 Tools/">
+    <Project Path="Tools.BotTrainer/Tools.BotTrainer.csproj" />
+  </Folder>
   <Folder Name="/06 Tests/">
     <Project Path="Logic.Bot.Tests/Logic.Bot.Tests.csproj" />
     <Project Path="Logic.Integration.Tests/Logic.Integration.Tests.csproj" />
