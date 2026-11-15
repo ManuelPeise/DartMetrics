@@ -606,7 +606,7 @@ namespace Logic.Tournament.Play
                 CanUndo = canEnter && match.Status == TournamentMatchStatusEnum.Running
                           && match.Legs.SelectMany(l => l.Visits).Any(v => !IsBot(SideOf(match, v.PlayerNumber))),
                 CheckoutSuggestions = match.Status == TournamentMatchStatusEnum.Running && engine.IsOpened(engine.CurrentPlayer)
-                    ? Rules.GetCheckoutSuggestions(engine.Remaining(engine.CurrentPlayer), X01Match.DartsPerVisit - engine.CurrentVisit.Count, tournament.OutMode)
+                    ? CheckoutAdvisor.GetBestRoutes(engine.Remaining(engine.CurrentPlayer), X01Match.DartsPerVisit - engine.CurrentVisit.Count, tournament.OutMode)
                     : new List<CheckoutSuggestion>(),
                 WinnerParticipantId = match.WinnerParticipantId,
                 ConcurrencyStamp = match.ConcurrencyStamp,

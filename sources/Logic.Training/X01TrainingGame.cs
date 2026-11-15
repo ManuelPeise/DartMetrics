@@ -66,8 +66,9 @@ namespace Logic.Training
                     NumberOfLegs = training.NumberOfLegs,
                     IsOpened = isOpened,
                     Busts = visits.Count(v => v.IsBust),
-                    CheckoutSuggestions = isVisitOpen && isOpened
-                        ? _rules.GetCheckoutSuggestions(remaining, 3 - lastThrows.Count, training.OutMode)
+                    // Laufende Aufnahme: verbleibende Darts; sonst die nächste Aufnahme mit 3 Darts.
+                    CheckoutSuggestions = isOpened
+                        ? CheckoutAdvisor.GetBestRoutes(remaining, isVisitOpen ? 3 - lastThrows.Count : 3, training.OutMode)
                         : new List<CheckoutSuggestion>()
                 };
             }
@@ -249,8 +250,10 @@ namespace Logic.Training
                     NumberOfLegs = training.NumberOfLegs,
                     IsSetFinished = isSetFinished,
                     IsOpened = isOpened,
-                    CheckoutSuggestions = isOpened && !isBust && !isCheckout && remainingDarts > 0
-                        ? _rules.GetCheckoutSuggestions(visit.ScoreAfter, remainingDarts, training.OutMode)
+                    // Nach jedem Dart neu: mit den restlichen Darts dieser Aufnahme, nach Aufnahme-Ende oder Bust
+                    // schon für die nächste Aufnahme (3 Darts). Nach einem Checkout beginnt ein neues Leg -> nichts.
+                    CheckoutSuggestions = isOpened && !isCheckout
+                        ? CheckoutAdvisor.GetBestRoutes(visit.ScoreAfter, isBust || remainingDarts == 0 ? 3 : remainingDarts, training.OutMode)
                         : []
                 };
             }

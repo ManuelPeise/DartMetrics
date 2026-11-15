@@ -228,7 +228,9 @@
             _attemptNumber++;
             _throwNumber = 1;
             _clearDartsOnNext = true;
-            _suggestions = null;
+            // Nach Bust/Fehlversuch zeigt der Hinweis schon den Weg für den nächsten Versuch; nach Checkout steht "Rest 0".
+            if (value.IsCheckout)
+                _suggestions = null;
         }
         else
         {

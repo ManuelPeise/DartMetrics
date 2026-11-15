@@ -97,6 +97,10 @@
                         <p class="pa-duel__name">Du</p>
                         <p class="pa-duel__score">@DisplayUserRemaining</p>
                         <p class="pa-duel__meta">@(_state.IsUserOpened ? $"Ø {UserAverage}" : "noch nicht eröffnet")</p>
+                        @if (IsUserActive)
+                        {
+                            <CheckoutHint Suggestions="UserCheckout" />
+                        }
                     </div>
                     <div class="pa-duel__legs">
                         Legs
@@ -228,6 +232,15 @@
     /// <summary>Vorschau des Rests während der Eingabe (reine Summe; gewertet wird auf dem Server).</summary>
     private int DisplayUserRemaining =>
         _state is null ? 0 : _state.IsUserOpened ? _state.UserRemaining - _darts.Sum(d => d.Score) : _state.UserRemaining;
+
+    /// <summary>
+    /// Checkout-Empfehlung für den Menschen, nach jedem eingegebenen Dart neu berechnet (im Browser, ohne Server):
+    /// Vorschau-Rest mit den restlichen Darts der Aufnahme. Bei Double-In erst nach dem Eröffnen.
+    /// </summary>
+    private List<CheckoutSuggestion>? UserCheckout =>
+        _state is null || !_state.IsUserOpened || _darts.Count >= DartsPerVisit
+            ? null
+            : CheckoutAdvisor.GetBestRoutes(DisplayUserRemaining, DartsPerVisit - _darts.Count, _state.OutMode);
 
     private string UserAverage => _userDarts == 0 ? "–" : $"{_userScored * 3.0 / _userDarts:0.0}";
 

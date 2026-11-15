@@ -1,5 +1,6 @@
 ﻿using Data.DartContext.Entities.Training;
 using Logic.Shared.Rules;
+using Shared.Models.Shared;
 using Shared.Enums.Training;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
@@ -94,7 +95,7 @@ namespace Logic.Training
                     CurrentVisitDarts = ToDarts(openThrows.Select(t => (t.Segment, t.Multiplier))),
                     RemainingScore = remaining,
                     SuccessfulAttempts = training.Attempts.Count(a => IsSuccessful(a, training.TargetScore)),
-                    CheckoutSuggestions = _rules.GetCheckoutSuggestions(remaining, DartsPerAttempt - openThrows.Count)
+                    CheckoutSuggestions = CheckoutAdvisor.GetBestRoutes(remaining, DartsPerAttempt - openThrows.Count)
                 };
             }
             catch (Exception exception)
@@ -174,9 +175,10 @@ namespace Logic.Training
                     IsAttemptFinished = isAttemptFinished,
                     TotalAttempts = training.Attempts.Count,
                     SuccessfulAttempts = training.Attempts.Count(a => IsSuccessful(a, training.TargetScore)),
+                    // Versuch vorbei: Empfehlung schon für den nächsten Versuch (Zielwert, 3 Darts).
                     CheckoutSuggestions = isAttemptFinished
-                        ? []
-                        : _rules.GetCheckoutSuggestions(remaining, remainingDarts)
+                        ? CheckoutAdvisor.GetBestRoutes(training.TargetScore, DartsPerAttempt)
+                        : CheckoutAdvisor.GetBestRoutes(remaining, remainingDarts)
                 };
             }
             catch (Exception exception)
