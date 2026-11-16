@@ -16,15 +16,14 @@ namespace Data.DartContext.Configurations.Bot
             {
                 table.HasCheckConstraint("CK_DartBotGamePlayer_PlayerNumber", "`PlayerNumber` IN (1, 2)");
 
-                // Bot: Bot + Profilversion gesetzt, kein User. TargetModelId darf NULL sein
-                // (noch kein trainiertes Modell -> regelbasierte Zielwahl).
-                // User: keine Bot-Felder (Profil, Modelle, XP); UserId darf NULL sein (anonymisiert).
+                // Bot: Bot + Profilversion gesetzt, kein User.
+                // User: keine Bot-Felder (Profil, XP); UserId darf NULL sein (anonymisiert).
                 // Elo-Felder (RatingBefore/After, LearningProcessedAt) sind seit dem Spieler-Elo auch für User erlaubt.
                 table.HasCheckConstraint(
                     "CK_DartBotGamePlayer_PlayerType",
                     $"(`PlayerType` = {bot} AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) " +
                     $"OR (`PlayerType` = {user} AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL " +
-                    "AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL)");
+                    "AND `XpGained` IS NULL)");
 
                 table.HasCheckConstraint("CK_DartBotGamePlayer_XpGained", "`XpGained` IS NULL OR `XpGained` >= 0");
             });
@@ -61,16 +60,6 @@ namespace Data.DartContext.Configurations.Bot
                 .HasForeignKey(x => new { x.DartBotId, x.ProfileVersionId })
                 .HasPrincipalKey(x => new { x.DartBotId, x.Id })
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.TargetModel)
-                .WithMany()
-                .HasForeignKey(x => x.TargetModelId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.ThrowModel)
-                .WithMany()
-                .HasForeignKey(x => x.ThrowModelId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.UseUtcDateTimes();

@@ -12,7 +12,7 @@ API-Controller. Enthalten keine Logik, nur den Aufruf des passenden Services.
 | Bot | `DartBotGameController` (Spiele gegen Bots, Bot-Auswahl, Elo-Verlauf) | Player |
 | Statistics | `PlayerStatisticsController` (eigene Statistik, `period`) | Player |
 | Tournament | `TournamentController` (Übersicht, Anmeldung, Liga, K.o., Match-Eingabe) | GameMaster, Player (Rechte je Turnier im Service) |
-| Administration | `DartBotAdministrationController`, `DartBotModelAdministrationController` (ML-Modelle anzeigen/aktivieren), `UserAdministrationController`, `MessageLogController`, `DashboardController` | `[Authorize(Roles = Admin)]` |
+| Administration | `DartBotAdministrationController`, `UserAdministrationController`, `MessageLogController`, `DashboardController` | `[Authorize(Roles = Admin)]` |
 | Health | `HealthController` | anonym |
 
 ## Regeln

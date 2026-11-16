@@ -17,7 +17,7 @@ Requirements: .NET SDK 10, Docker.
 ```bash
 cd sources
 cp .env.example .env                 # set the placeholders
-./deploy/deploy.ps1 -SkipModel       # or ./deploy/deploy.sh --skip-model
+./deploy/deploy.ps1                 # or ./deploy/deploy.sh
 dotnet build DartMetrics.slnx
 dotnet test DartMetrics.slnx         # integration tests need Docker (Testcontainers)
 ```

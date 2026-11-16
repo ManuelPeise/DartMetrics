@@ -19,6 +19,10 @@ namespace Data.DartContext.Configurations.Bot
                 table.HasCheckConstraint("CK_DartBotProfileVersion_TacticalIntelligence", Skill(nameof(DartBotProfileVersionEntity.TacticalIntelligence)));
                 table.HasCheckConstraint("CK_DartBotProfileVersion_PressureResistance", Skill(nameof(DartBotProfileVersionEntity.PressureResistance)));
                 table.HasCheckConstraint("CK_DartBotProfileVersion_RiskTaking", Skill(nameof(DartBotProfileVersionEntity.RiskTaking)));
+                table.HasCheckConstraint("CK_DartBotProfileVersion_Nervousness", Skill(nameof(DartBotProfileVersionEntity.Nervousness)));
+                table.HasCheckConstraint("CK_DartBotProfileVersion_BadDartRate", Skill(nameof(DartBotProfileVersionEntity.BadDartRate)));
+                table.HasCheckConstraint("CK_DartBotProfileVersion_SigmaMm", "`SigmaMm` IS NULL OR `SigmaMm` > 0");
+                table.HasCheckConstraint("CK_DartBotProfileVersion_VerticalRatio", "`VerticalRatio` > 0");
 
                 // Lernen aus einem Spiel braucht das auslösende Spiel.
                 table.HasCheckConstraint(
@@ -47,11 +51,6 @@ namespace Data.DartContext.Configurations.Bot
             builder.HasOne(x => x.TriggeringGame)
                 .WithMany()
                 .HasForeignKey(x => x.TriggeringGameId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.Model)
-                .WithMany()
-                .HasForeignKey(x => x.ModelId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.UseUtcDateTimes();

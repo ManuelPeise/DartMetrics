@@ -1,4 +1,5 @@
 ﻿using Data.DartContext.Entities.Bot;
+using Logic.Shared.Bot;
 using Logic.Shared;
 using Logic.Shared.Rules;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,6 @@ namespace Logic.Bot.Games
         private readonly IClaimsHelper _claimsHelper;
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly IDartBotLearningService _learningService;
-        private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
@@ -38,13 +38,11 @@ namespace Logic.Bot.Games
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
-            IDartBotLearningService learningService,
-            ITargetSelectorFactory targetSelectorFactory) : base(unitOfWork, messageLog)
+            IDartBotLearningService learningService) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
             _learningService = learningService;
-            _targetSelectorFactory = targetSelectorFactory;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -78,8 +76,6 @@ namespace Logic.Bot.Games
 
                 var user = await UnitOfWork.UserUnitOfWork.UserRepository.GetByIdAsync(currentUser.UserId, asNoTracking: true);
 
-                var activeModels = await botUnitOfWork.DartBotActiveModelRepository.GetAllAsync(asNoTracking: true);
-
                 var now = DateTime.UtcNow;
 
                 var userPlayer = new DartBotGamePlayerEntity
@@ -96,9 +92,6 @@ namespace Logic.Bot.Games
                     PlayerType = DartBotPlayerTypeEnum.Bot,
                     DartBot = bot,
                     ProfileVersion = profileVersion,
-                    // Kein aktives Modell -> regelbasierte Zielwahl; das Spiel behält die Modelle vom Start.
-                    TargetModelId = activeModels.FirstOrDefault(m => m.ModelType == DartBotModelTypeEnum.TargetSelection)?.ModelId,
-                    ThrowModelId = activeModels.FirstOrDefault(m => m.ModelType == DartBotModelTypeEnum.ThrowPrediction)?.ModelId,
                     DisplayName = bot.Name
                 };
 
@@ -387,16 +380,10 @@ namespace Logic.Bot.Games
             var result = _botVisitPlayer.PlayVisit(new BotVisitContext(
                 scoreBefore,
                 opponentScoreBefore,
-                new BotSkillProfile(
-                    profile.ThrowPrecision,
-                    profile.ThrowConsistency,
-                    profile.TacticalIntelligence,
-                    profile.PressureResistance,
-                    profile.RiskTaking),
+                profile.ToSkillProfile(),
                 game.InMode,
                 game.OutMode,
-                IsOpened(game, leg, botPlayer)),
-                _targetSelectorFactory.For(botPlayer.TargetModel));
+                IsOpened(game, leg, botPlayer)));
 
             var visit = NewVisit(game, leg, botPlayer, scoreBefore, opponentScoreBefore);
             visit.ScoreAfter = result.ScoreAfter;
@@ -621,7 +608,6 @@ namespace Logic.Bot.Games
                 asNoTracking: false,
                 include: q => q
                     .Include(g => g.Players).ThenInclude(p => p.ProfileVersion)
-                    .Include(g => g.Players).ThenInclude(p => p.TargetModel)
                     .Include(g => g.Legs).ThenInclude(l => l.Visits).ThenInclude(v => v.Throws)
                     .AsSplitQuery());
 

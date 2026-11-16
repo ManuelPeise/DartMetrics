@@ -34,5 +34,14 @@ namespace Shared.Models.Bot
         public float RiskTaking { get; set; }
 
         public DartBotPlayingStyleEnum? PlayingStyle { get; set; }
+
+        /// <summary>V2: Basis-Ø, Potenzial und Stufe (null bei V1-Profilen).</summary>
+        public float? BaseAverage { get; set; }
+
+        public float? PotentialAverage { get; set; }
+
+        public string? StageName { get; set; }
+
+        public float Nervousness { get; set; }
     }
 }

@@ -14,7 +14,6 @@ Setup, Betrieb und Entwicklung. Für Spieler und Admins: **[Benutzerhandbuch](..
 
 - **.NET 10**, ASP.NET Core Web API, **Blazor** (WebAssembly für Spieler, Interactive Server für die Administration, statische Seiten für Impressum/Datenschutz), Backend-for-Frontend mit Cookie-Anmeldung; JWT nur zwischen Web-App und API.
 - **MySQL 8.4** mit Entity Framework Core (Oracle-Provider), Migrationen beim Start.
-- **ML.NET** (FastTree) für die Zielwahl der DartBots, trainiert mit `Tools.BotTrainer`.
 - **Docker Compose** für Web-App, API, Datenbank, Mailpit (Entwicklung) und den ML-Trainer.
 - Tests: xUnit, Testcontainers (MySQL), GitHub Actions.
 
@@ -26,7 +25,7 @@ Setup, Betrieb und Entwicklung. Für Spieler und Admins: **[Benutzerhandbuch](..
 
 ## Schnellstart
 
-Am einfachsten mit dem Deployment-Skript (prüft alles, legt Zertifikat und Schriften an, baut und startet, trainiert ein Bot-Modell):
+Am einfachsten mit dem Deployment-Skript (prüft alles, legt Zertifikat und Schriften an, baut und startet):
 
 ```
 cd sources                            # alle Befehle im Ordner sources
@@ -56,15 +55,11 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 
 | Skript (`.ps1` Windows / `.sh` Linux, Pi) | Zweck |
 | --- | --- |
-| `deploy/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App und trainiert ein ML-Modell, falls keins aktiv ist. `-Production` / `--production` ohne offene DB/API-Ports und ohne Mailpit. |
+| `deploy/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App |
 | `deploy/update-containers` | Code-Update: Datenbank-Backup, API, Web-App und Trainer-Worker neu bauen und ersetzen. |
-| `deploy/train-model` | DartBot-Zielwahl-Modell in Docker erzeugen → trainieren → mit dem Regelwerk vergleichen → aktivieren (nur wenn nicht schlechter). Ohne `-Force` / `--force` nur, wenn noch keins aktiv ist. |
 | `deploy/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
 | `deploy/download-fonts` | Schriften einmalig lokal ablegen. |
 
-Ohne aktives Modell spielen die Bots regelbasiert; das funktioniert, ist aber schwächer. Das Training dauert mit Standardwerten grob 10–30 Minuten auf einem PC, auf einem Raspberry Pi deutlich länger (kleinere Werte: `-Situations 300 -Rollouts 30 -Legs 500`).
-
-Einzelne Trainer-Befehle: `docker compose --profile tools run --rm bottrainer <generate|train|compare|activate|deactivate> …` (siehe `Tools.BotTrainer/README.md`).
 
 ## Eigene Instanz betreiben
 

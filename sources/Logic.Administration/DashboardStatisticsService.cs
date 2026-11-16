@@ -21,14 +21,11 @@ namespace Logic.Administration
             try
             {
                 var since = DateTime.UtcNow.AddDays(-RecentDays);
-                var bots = UnitOfWork.DartBotUnitOfWork;
                 var trainings = UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository;
 
                 // Nacheinander: ein DbContext erlaubt keine parallelen Abfragen.
                 return new DashboardStatistics
                 {
-                    ModelCount = await bots.DartBotModelRepository.CountAsync(),
-                    ActiveModelCount = await bots.DartBotActiveModelRepository.CountAsync(),
                     TrainingSessionCount = await trainings.CountAsync(),
                     TrainingSessionsLast7Days = await trainings.CountAsync(t => t.StartedAt >= since)
                 };

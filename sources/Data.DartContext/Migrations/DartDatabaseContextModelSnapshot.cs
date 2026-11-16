@@ -19,50 +19,6 @@ namespace Data.DartContext.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotActiveModelEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ActivatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ActivatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("ModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ModelType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ModelType")
-                        .IsUnique();
-
-                    b.HasIndex("ModelType", "ModelId");
-
-                    b.ToTable("DartBotActiveModels", (string)null);
-                });
-
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -99,6 +55,9 @@ namespace Data.DartContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<float?>("PotentialAverage")
+                        .HasColumnType("float");
 
                     b.Property<int>("Rating")
                         .ValueGeneratedOnAdd()
@@ -263,6 +222,9 @@ namespace Data.DartContext.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<float?>("AverageInGame")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -276,6 +238,9 @@ namespace Data.DartContext.Migrations
 
                     b.Property<int?>("DartBotId")
                         .HasColumnType("int");
+
+                    b.Property<float?>("DayForm")
+                        .HasColumnType("float");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -300,12 +265,6 @@ namespace Data.DartContext.Migrations
                     b.Property<int?>("RatingBefore")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TargetModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ThrowModelId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -321,10 +280,6 @@ namespace Data.DartContext.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TargetModelId");
-
-                    b.HasIndex("ThrowModelId");
-
                     b.HasIndex("UserId");
 
                     b.HasIndex("DartBotGameId", "DartBotId")
@@ -339,7 +294,7 @@ namespace Data.DartContext.Migrations
                         {
                             t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerNumber", "`PlayerNumber` IN (1, 2)");
 
-                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerType", "(`PlayerType` = 2 AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) OR (`PlayerType` = 1 AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL AND `TargetModelId` IS NULL AND `ThrowModelId` IS NULL AND `XpGained` IS NULL)");
+                            t.HasCheckConstraint("CK_DartBotGamePlayer_PlayerType", "(`PlayerType` = 2 AND `DartBotId` IS NOT NULL AND `ProfileVersionId` IS NOT NULL AND `UserId` IS NULL) OR (`PlayerType` = 1 AND `DartBotId` IS NULL AND `ProfileVersionId` IS NULL AND `XpGained` IS NULL)");
 
                             t.HasCheckConstraint("CK_DartBotGamePlayer_XpGained", "`XpGained` IS NULL OR `XpGained` >= 0");
                         });
@@ -516,165 +471,23 @@ namespace Data.DartContext.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("FeatureSchemaVersion")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Format")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MlNetVersion")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<int>("ModelType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("char(64)")
-                        .IsFixedLength();
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<int>("TrainingId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("VersionNumber")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StorageKey")
-                        .IsUnique();
-
-                    b.HasIndex("TrainingId")
-                        .IsUnique();
-
-                    b.HasIndex("ModelType", "VersionNumber")
-                        .IsUnique();
-
-                    b.ToTable("DartBotModels", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DartBotModel_SizeBytes", "`SizeBytes` >= 0");
-
-                            t.HasCheckConstraint("CK_DartBotModel_VersionNumber", "`VersionNumber` >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("CodeVersion")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("FeatureSchemaVersion")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("HyperparametersJson")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("MetricsJson")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("MlNetVersion")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<int>("ModelType")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RandomSeed")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TrainerName")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<long>("TrainingDataCount")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.HasIndex("ModelType", "Status");
-
-                    b.ToTable("DartBotModelTrainings", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DartBotModelTraining_FinishedAt", "`Status` NOT IN (3, 4) OR `FinishedAt` IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_DartBotModelTraining_TrainingDataCount", "`TrainingDataCount` >= 0");
-                        });
-                });
-
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<float>("BadDartRate")
+                        .HasColumnType("float");
+
+                    b.Property<float?>("BaseAverage")
+                        .HasColumnType("float");
+
+                    b.Property<float>("BiasXMm")
+                        .HasColumnType("float");
+
+                    b.Property<float>("BiasYMm")
+                        .HasColumnType("float");
 
                     b.Property<int>("ChangeReason")
                         .HasColumnType("int");
@@ -690,8 +503,8 @@ namespace Data.DartContext.Migrations
                     b.Property<int>("DartBotId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ModelId")
-                        .HasColumnType("int");
+                    b.Property<float>("Nervousness")
+                        .HasColumnType("float");
 
                     b.Property<int?>("PlayingStyle")
                         .HasColumnType("int");
@@ -707,6 +520,9 @@ namespace Data.DartContext.Migrations
                         .HasColumnType("varchar(1000)");
 
                     b.Property<float>("RiskTaking")
+                        .HasColumnType("float");
+
+                    b.Property<float?>("SigmaMm")
                         .HasColumnType("float");
 
                     b.Property<float>("TacticalIntelligence")
@@ -731,9 +547,10 @@ namespace Data.DartContext.Migrations
                     b.Property<int>("VersionNumber")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<float>("VerticalRatio")
+                        .HasColumnType("float");
 
-                    b.HasIndex("ModelId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PreviousVersionId");
 
@@ -744,11 +561,17 @@ namespace Data.DartContext.Migrations
 
                     b.ToTable("DartBotProfileVersions", null, t =>
                         {
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_BadDartRate", "`BadDartRate` BETWEEN 0 AND 1");
+
                             t.HasCheckConstraint("CK_DartBotProfileVersion_GameLearning", "`ChangeReason` <> 2 OR `TriggeringGameId` IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_Nervousness", "`Nervousness` BETWEEN 0 AND 1");
 
                             t.HasCheckConstraint("CK_DartBotProfileVersion_PressureResistance", "`PressureResistance` BETWEEN 0 AND 1");
 
                             t.HasCheckConstraint("CK_DartBotProfileVersion_RiskTaking", "`RiskTaking` BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_SigmaMm", "`SigmaMm` IS NULL OR `SigmaMm` > 0");
 
                             t.HasCheckConstraint("CK_DartBotProfileVersion_TacticalIntelligence", "`TacticalIntelligence` BETWEEN 0 AND 1");
 
@@ -757,188 +580,8 @@ namespace Data.DartContext.Migrations
                             t.HasCheckConstraint("CK_DartBotProfileVersion_ThrowPrecision", "`ThrowPrecision` BETWEEN 0 AND 1");
 
                             t.HasCheckConstraint("CK_DartBotProfileVersion_VersionNumber", "`VersionNumber` >= 1");
-                        });
-                });
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("FeatureSchemaVersion")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Format")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("FromGameId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("GeneratorParametersJson")
-                        .HasColumnType("longtext");
-
-                    b.Property<int?>("GeneratorTargetModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("GeneratorThrowModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RandomSeed")
-                        .HasColumnType("int");
-
-                    b.Property<long>("RowCount")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("char(64)")
-                        .IsFixedLength();
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("SourceType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<int?>("ToGameId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GeneratorTargetModelId");
-
-                    b.HasIndex("GeneratorThrowModelId");
-
-                    b.HasIndex("StorageKey")
-                        .IsUnique();
-
-                    b.ToTable("DartBotTrainingDatasets", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DartBotTrainingDataset_GameRange", "`FromGameId` IS NULL OR `ToGameId` IS NULL OR `FromGameId` <= `ToGameId`");
-
-                            t.HasCheckConstraint("CK_DartBotTrainingDataset_RowCount", "`RowCount` >= 0");
-
-                            t.HasCheckConstraint("CK_DartBotTrainingDataset_SizeBytes", "`SizeBytes` >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingJobEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<bool>("CancelRequested")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("CompareLegs")
-                        .HasColumnType("int");
-
-                    b.Property<bool?>("ComparisonPassed")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int?>("DatasetId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
-
-                    b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("HeartbeatAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("ModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Phase")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PolicyModelId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Preset")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProgressPercent")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ProgressText")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<string>("RequestedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("RolloutsPerCandidate")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Seed")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Situations")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.HasIndex("ModelId");
-
-                    b.HasIndex("PolicyModelId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("DartBotTrainingJobs", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DartBotTrainingJob_Progress", "`ProgressPercent` BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_DartBotProfileVersion_VerticalRatio", "`VerticalRatio` > 0");
                         });
                 });
 
@@ -1105,9 +748,6 @@ namespace Data.DartContext.Migrations
                     b.Property<int?>("AwayRatingBefore")
                         .HasColumnType("int");
 
-                    b.Property<int?>("AwayTargetModelId")
-                        .HasColumnType("int");
-
                     b.Property<long?>("AwayXpGained")
                         .HasColumnType("bigint");
 
@@ -1142,9 +782,6 @@ namespace Data.DartContext.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("HomeRatingBefore")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("HomeTargetModelId")
                         .HasColumnType("int");
 
                     b.Property<long?>("HomeXpGained")
@@ -1187,15 +824,11 @@ namespace Data.DartContext.Migrations
 
                     b.HasIndex("AwayProfileVersionId");
 
-                    b.HasIndex("AwayTargetModelId");
-
                     b.HasIndex("ConductedByUserId");
 
                     b.HasIndex("HomeParticipantId");
 
                     b.HasIndex("HomeProfileVersionId");
-
-                    b.HasIndex("HomeTargetModelId");
 
                     b.HasIndex("WinnerParticipantId");
 
@@ -2339,18 +1972,6 @@ namespace Data.DartContext.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotActiveModelEntity", b =>
-                {
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
-                        .WithMany()
-                        .HasForeignKey("ModelType", "ModelId")
-                        .HasPrincipalKey("ModelType", "Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Model");
-                });
-
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotGameEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Bot.DartBotGamePlayerEntity", "WinnerPlayer")
@@ -2402,16 +2023,6 @@ namespace Data.DartContext.Migrations
                         .HasForeignKey("DartBotId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "TargetModel")
-                        .WithMany()
-                        .HasForeignKey("TargetModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "ThrowModel")
-                        .WithMany()
-                        .HasForeignKey("ThrowModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Data.DartContext.Entities.User.UserEntity", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -2428,10 +2039,6 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Game");
 
                     b.Navigation("ProfileVersion");
-
-                    b.Navigation("TargetModel");
-
-                    b.Navigation("ThrowModel");
 
                     b.Navigation("User");
                 });
@@ -2468,28 +2075,6 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelEntity", b =>
-                {
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", "Training")
-                        .WithOne("ResultingModel")
-                        .HasForeignKey("Data.DartContext.Entities.Bot.DartBotModelEntity", "TrainingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Training");
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
-                {
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", "Dataset")
-                        .WithMany("Trainings")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Dataset");
-                });
-
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Bot.DartBotEntity", "DartBot")
@@ -2497,11 +2082,6 @@ namespace Data.DartContext.Migrations
                         .HasForeignKey("DartBotId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "PreviousVersion")
                         .WithMany()
@@ -2515,52 +2095,9 @@ namespace Data.DartContext.Migrations
 
                     b.Navigation("DartBot");
 
-                    b.Navigation("Model");
-
                     b.Navigation("PreviousVersion");
 
                     b.Navigation("TriggeringGame");
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
-                {
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "GeneratorTargetModel")
-                        .WithMany()
-                        .HasForeignKey("GeneratorTargetModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "GeneratorThrowModel")
-                        .WithMany()
-                        .HasForeignKey("GeneratorThrowModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("GeneratorTargetModel");
-
-                    b.Navigation("GeneratorThrowModel");
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingJobEntity", b =>
-                {
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", "Dataset")
-                        .WithMany()
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "PolicyModel")
-                        .WithMany()
-                        .HasForeignKey("PolicyModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Dataset");
-
-                    b.Navigation("Model");
-
-                    b.Navigation("PolicyModel");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>
@@ -2599,11 +2136,6 @@ namespace Data.DartContext.Migrations
                         .HasForeignKey("AwayProfileVersionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "AwayTargetModel")
-                        .WithMany()
-                        .HasForeignKey("AwayTargetModelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Data.DartContext.Entities.User.UserEntity", "ConductedByUser")
                         .WithMany()
                         .HasForeignKey("ConductedByUserId")
@@ -2617,11 +2149,6 @@ namespace Data.DartContext.Migrations
                     b.HasOne("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", "HomeProfileVersion")
                         .WithMany()
                         .HasForeignKey("HomeProfileVersionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "HomeTargetModel")
-                        .WithMany()
-                        .HasForeignKey("HomeTargetModelId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Data.DartContext.Entities.Tournament.TournamentMatchEntity", "NextMatch")
@@ -2644,15 +2171,11 @@ namespace Data.DartContext.Migrations
 
                     b.Navigation("AwayProfileVersion");
 
-                    b.Navigation("AwayTargetModel");
-
                     b.Navigation("ConductedByUser");
 
                     b.Navigation("HomeParticipant");
 
                     b.Navigation("HomeProfileVersion");
-
-                    b.Navigation("HomeTargetModel");
 
                     b.Navigation("NextMatch");
 
@@ -2932,19 +2455,9 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Throws");
                 });
 
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotModelTrainingEntity", b =>
-                {
-                    b.Navigation("ResultingModel");
-                });
-
             modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotProfileVersionEntity", b =>
                 {
                     b.Navigation("GamePlayers");
-                });
-
-            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", b =>
-                {
-                    b.Navigation("Trainings");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>

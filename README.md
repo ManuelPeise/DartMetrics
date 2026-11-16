@@ -36,7 +36,7 @@ DartMetrics records steel and soft-tip darts **dart by dart**, turns them into s
 **DartBots**
 - Opponents from level 0 (beginner) to 20 (pro) with Elo rating and experience points
 - Realistic throws: scatter around the target, form swings, pressure on the checkout
-- Rule-based target selection, optionally improved by a trained **ML.NET** model (hybrid: the model only overrides when it is clearly better)
+- Target selection that follows standard checkout routes and is computed exactly for each bot's own throwing profile (no machine learning needed)
 - Bots learn from games against humans and level up
 
 **Tournaments**
@@ -65,7 +65,7 @@ cp .env.example .env          # set passwords, JWT_KEY, CERT_PASSWORD, LEGAL_* (
 ./deploy/deploy.sh            # Linux / Raspberry Pi
 ```
 
-The deploy script checks your configuration, creates an HTTPS certificate and the fonts if missing, builds and starts all containers and trains a bot model (~10–30 min on a PC; skip with `-SkipModel` / `--skip-model`).
+The deploy script checks your configuration, creates an HTTPS certificate and the fonts if missing, builds and starts all containers.
 
 Then open **https://localhost:7254** and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from your `.env` (you will be asked to change the password).
 
@@ -78,18 +78,18 @@ Prefer plain Docker Compose? `docker compose up -d` in `sources/` works too – 
 | [User guide](docs/user-guide.md) | Accounts, dart input, training, bots, tournaments, statistics, administration *(German)* |
 | [Technical documentation](sources/README.md) | Setup, deployment scripts, production on a Raspberry Pi, running your own instance *(German)* |
 | [Architecture](sources/ARCHITECTURE.md) | Projects, dependencies, runtime, services, API *(German)* |
-| [Bot trainer](sources/Tools.BotTrainer/README.md) | Generating data, training, comparing and activating ML models *(German)* |
+| [Bot trainer](sources/Tools.BotTrainer/README.md) | Developer tool: bot benchmark and calibration *(German)* |
 | [Contributing](CONTRIBUTING.md) | How to report bugs, propose features and open pull requests |
 | [Security](SECURITY.md) | How to report vulnerabilities privately |
 
 ## Tech stack
 
-.NET 10 · ASP.NET Core Web API · Blazor (WebAssembly + Interactive Server) with a backend-for-frontend · Entity Framework Core · MySQL 8.4 · ML.NET (FastTree) · Docker Compose · xUnit + Testcontainers · GitHub Actions
+.NET 10 · ASP.NET Core Web API · Blazor (WebAssembly + Interactive Server) with a backend-for-frontend · Entity Framework Core · MySQL 8.4 · Docker Compose · xUnit + Testcontainers · GitHub Actions
 
 ## Roadmap
 
 - [x] Training modes, bot games, tournaments, statistics, admin area
-- [x] ML.NET target selection for bots, training pipeline in Docker
+- [x] ~~ML.NET target selection~~ replaced by exact checkout planning (bot V2 in progress)
 - [x] Security & privacy hardening (rate limiting, data retention, self-hosted assets)
 - [ ] **V1 beta** – testing on self-hosted instances *(current)*
 - [ ] UI polish from beta feedback, end-to-end UI tests

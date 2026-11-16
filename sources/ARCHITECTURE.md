@@ -18,13 +18,13 @@ Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bed
 | `Logic.Authentication` | Login, Registrierung, JWT | [README](Logic.Authentication/README.md) |
 | `Logic.Profile` | Benutzerprofil | [README](Logic.Profile/README.md) |
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
-| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell, Modellverwaltung für Admins) | [README](Logic.Bot/README.md) |
+| `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, Zielwahl-Tabelle (`Policy`) | [README](Logic.Bot/README.md) |
 | `Logic.Statistics` | Leistungs-Statistik (nur lesend): Legs aus X01-Training, Bot-Spielen und Turnieren, Kategorien Overall/Training/Official, `StatisticsCalculator` | [README](Logic.Statistics/README.md) |
 | `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart, Liga (Spielplan, Tabelle), K.-o. (Baum, Setzliste, Weiterrücken) | [README](Logic.Tournament/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen, Löschfristen (`DataRetentionWorker`) | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
-| `Tools.BotTrainer` | Konsole für ML: Datensätze erzeugen, trainieren, vergleichen, Modell aktivieren (lokal oder als Container `bottrainer`) | [README](Tools.BotTrainer/README.md) |
-| `deploy/` | Skripte: Deployment, Updates, Modell-Training, Backups, Schriften | [README](README.md#deployment-und-skripte) |
+| `Tools.BotTrainer` | Entwickler-Konsole ohne Datenbank: Prüfstand und Kalibrierung der Bots | [README](Tools.BotTrainer/README.md) |
+| `deploy/` | Skripte: Deployment, Updates, Backups, Schriften | [README](README.md#deployment-und-skripte) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
 | `Logic.Statistics.Tests` | Unit-Tests des Statistik-Rechenkerns (ohne Datenbank) | [README](Logic.Statistics.Tests/README.md) |
@@ -56,7 +56,7 @@ Browser ──► Web.App (Blazor, BFF, Cookie)  ──JWT──►  Web.Core / 
                 ├─ /impressum, /datenschutz: static SSR   └─ BotMatchWorker, DataRetentionWorker (Hintergrund)
                 └─ sonst:  WebAssembly (Web.App.Client) ──/bff/api/**──► Proxy in Web.App
 
-Docker: mysql, api, web (+ mailpit in der Entwicklung, bottrainer als Werkzeug mit Profil "tools").
+Docker: mysql, api, web (+ mailpit in der Entwicklung).
 Produktion (docker-compose.yml allein): nur die Web-App ist von außen erreichbar (7254/5123).
 ```
 
@@ -98,7 +98,6 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IUserAdministration` | `UserAdministration` | [Logic.Administration](Logic.Administration/README.md) | S | `GetUsersAsync`, `ChangeRoleAsync`, `ActivateUserAsync`, `DeactivateUserAsync`, `DeleteUserAsync` |
 | `IDashboardStatisticsService` | `DashboardStatisticsService` | [Logic.Administration](Logic.Administration/README.md) | S | `GetStatisticsAsync` (Zählwerte fürs Admin-Dashboard) |
 | `IDartBotModelAdministration` | `DartBotModelAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `GetModelsAsync`, `ActivateModelAsync`, `DeactivateTargetModelAsync` |
-| `ITargetSelectorFactory` | `TargetSelectorFactory` | [Logic.Bot](Logic.Bot/README.md) | Si | Zielwahl je Spiel: Regelwerk oder Hybrid mit geladenem ML-Modell |
 | `IHostedService` | `BotMatchWorker` | [Logic.Tournament](Logic.Tournament/README.md) | Si | Bot-gegen-Bot-Matches zum Termin, eine Aufnahme je Takt |
 | `IHostedService` | `DataRetentionWorker` | [Logic.Administration](Logic.Administration/README.md) | Si | Löschfristen: unbestätigte Konten (7 Tage), Logs (90 Tage) |
 
@@ -159,7 +158,7 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 
 ## Weitere Dokumente
 
-- Deployment: `docker-compose.yml` (Produktion) + `docker-compose.override.yml` (Entwicklung), Dockerfiles in `Web.Core`, `Web.App`, `Tools.BotTrainer`, Skripte in `deploy/` (siehe [README](README.md#deployment-und-skripte)).
+- Deployment: `docker-compose.yml` (Produktion) + `docker-compose.override.yml` (Entwicklung), Dockerfiles in `Web.Core`, `Web.App`, Skripte in `deploy/` (siehe [README](README.md#deployment-und-skripte)).
 - Sicherheit: Rate Limiting im BFF, Cookies `__Host-` + HttpOnly, JWT nur serverseitig, Passwörter BCrypt, Meldungen nach [SECURITY.md](../SECURITY.md).
 - Lizenzen von Bildern, Schriften und Paketen: [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 

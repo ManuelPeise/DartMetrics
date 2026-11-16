@@ -45,14 +45,9 @@ services:
       mysql:
         condition: service_healthy
 
-    # ML-Daten (Datensätze, Modelle) vom Host: Tools.BotTrainer schreibt nach ./ml_data, die API liest nur.
-    volumes:
-      - ./ml_data:/data/ml:ro
-
     environment:
       ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
-      DartBot__Ml__Path: /data/ml
 
       # Container network: host "mysql", not localhost
       ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
@@ -141,59 +136,6 @@ services:
       # Gleiche Löschfristen wie in der API, damit die Datenschutzerklärung stimmt
       Legal__UnverifiedAccountDays: ${RETENTION_UNVERIFIED_DAYS:-7}
       Legal__LogMessageDays: ${RETENTION_LOG_DAYS:-90}
-
-  # Werkzeug: DartBot-Zielwahl-Modell erzeugen, trainieren, vergleichen, aktivieren (Tools.BotTrainer).
-  # Startet NICHT mit "docker compose up" (Profil "tools"), sondern nur gezielt:
-  #   docker compose --profile tools run --rm bottrainer generate --situations 1000
-  # Komplett automatisch: deploy/train-model.ps1 / .sh
-  bottrainer:
-    build:
-      context: .
-      dockerfile: Tools.BotTrainer/Dockerfile
-    image: dartmetrics-bottrainer:dev
-    profiles: ["tools"]
-
-    depends_on:
-      mysql:
-        condition: service_healthy
-
-    # Gleicher Ordner wie bei der API (dort schreibgeschützt): Datensätze und Modelle bleiben auf dem Host.
-    volumes:
-      - ./ml_data:/data/ml
-
-    environment:
-      # SslMode=Disabled: nur im internen Docker-Netz. Unter Volllast lief sonst der TLS-Handshake in einen Timeout,
-      # dessen Callback den Prozess beendet hat (MySql.Data, StartSSLAsync).
-      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD};SslMode=Disabled"
-      MlData__Path: /data/ml
-      BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
-
-  # Dauerbetrieb: arbeitet die Trainingsaufträge aus dem Admin-Bereich ab (/admin/models).
-  # Gleiches Image wie bottrainer; ohne Auftrag prüft er nur alle 10 s die Datenbank.
-  bottrainer-worker:
-    image: dartmetrics-bottrainer:dev
-    command: ["worker"]
-    restart: unless-stopped
-    # Training belegt die CPU; die API soll daneben spielbar bleiben (auf dem Raspberry Pi ggf. kleiner wählen).
-    cpus: ${BOTTRAINER_CPUS:-2}
-    stop_grace_period: 30s
-
-    # Die API spielt die Migrationen ein; erst danach gibt es die Tabelle DartBotTrainingJobs.
-    depends_on:
-      mysql:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-
-    volumes:
-      - ./ml_data:/data/ml
-
-    environment:
-      # SslMode=Disabled: nur im internen Docker-Netz. Unter Volllast lief sonst der TLS-Handshake in einen Timeout,
-      # dessen Callback den Prozess beendet hat (MySql.Data, StartSSLAsync).
-      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD};SslMode=Disabled"
-      MlData__Path: /data/ml
-      BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
 
 volumes:
   mysql_data:

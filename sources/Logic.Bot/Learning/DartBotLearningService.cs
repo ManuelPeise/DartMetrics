@@ -203,6 +203,7 @@ namespace Logic.Bot.Learning
                     ?? throw new InvalidOperationException($"Dart bot {bot.Id} has no profile version.");
 
                 var version = CreateLevelUpVersion(current, bot.DevelopmentLevel, newLevel, game);
+                GrowAverage(version, bot.PotentialAverage, newLevel - bot.DevelopmentLevel);
                 version.ReasonText += reasonSuffix;
                 bot.ProfileVersions.Add(version);
                 bot.DevelopmentLevel = newLevel;
@@ -279,11 +280,40 @@ namespace Logic.Bot.Learning
                 PressureResistance = SkillForLevel(_options.StartProfile.PressureResistance, newLevel),
                 RiskTaking = current.RiskTaking,
                 PlayingStyle = current.PlayingStyle,
+                // Wurf-Steckbrief V2 bleibt (Lernen wirkt bis zur Kalibrierung über ThrowPrecision).
+                BaseAverage = current.BaseAverage,
+                SigmaMm = current.SigmaMm,
+                VerticalRatio = current.VerticalRatio,
+                BiasXMm = current.BiasXMm,
+                BiasYMm = current.BiasYMm,
+                BadDartRate = current.BadDartRate,
+                Nervousness = current.Nervousness,
                 ChangeReason = DartBotProfileChangeReasonEnum.LevelUp,
                 ReasonText = $"Level {previousLevel} -> {newLevel}",
                 PreviousVersion = current,
                 TriggeringGame = game
             };
+        }
+
+        /// <summary>Anteil des Abstands zum Potenzial, den ein Level-Aufstieg schließt (schnell am Anfang, dann langsamer).</summary>
+        public const float GrowthPerLevel = 0.15f;
+
+        /// <summary>
+        /// V2: Basis-Ø wächst je Aufstieg Richtung Potenzial, die Streuung folgt der Kalibrierung. Nie Abstieg.
+        /// </summary>
+        public static void GrowAverage(DartBotProfileVersionEntity version, float? potential, int levelsGained)
+        {
+            if (version.BaseAverage is not { } average || potential is not { } target || target <= average || levelsGained <= 0)
+            {
+                return;
+            }
+
+            var remaining = 1f - MathF.Pow(1f - GrowthPerLevel, levelsGained);
+            var grown = average + (target - average) * remaining;
+
+            version.BaseAverage = MathF.Round(grown, 1);
+            version.SigmaMm = MathF.Min(version.SigmaMm ?? float.MaxValue, Simulation.AverageCalibration.SigmaForAverage(grown));
+            version.ReasonText += $", Ø {average:0.#} → {grown:0.#}";
         }
 
         /// <summary>Gleichmäßig vom Startwert (Level 0) bis SkillAtMaxLevel (MaxLevel).</summary>

@@ -1,25 +1,22 @@
 ﻿<#
 .SYNOPSIS
-    Komplettes Deployment von DartMetrics in Docker: Prüfungen, Build, Start, Health-Check, optional ML-Modell.
+    Komplettes Deployment von DartMetrics in Docker: Prüfungen, Build, Start, Health-Check.
 
 .DESCRIPTION
     Für die Erstinstallation und für einen vollständigen Neuaufbau. Für reine Code-Updates reicht
     deploy/update-containers.ps1 (mit Datenbank-Backup).
       1. Voraussetzungen: Docker, .env (ohne Platzhalter), HTTPS-Zertifikat, lokale Schriften
-      2. Images bauen: api, web, bottrainer
+      2. Images bauen: api, web
       3. Container starten und warten, bis API und Web-App laufen
-      4. Falls noch kein ML-Zielwahl-Modell aktiv ist: deploy/train-model.ps1 (abschaltbar mit -SkipModel)
 
 .EXAMPLE
     .\deploy\deploy.ps1                   # Entwicklung (lädt docker-compose.override.yml)
     .\deploy\deploy.ps1 -Production       # nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
-    .\deploy\deploy.ps1 -SkipModel        # ohne ML-Training (Bots spielen regelbasiert)
     .\deploy\deploy.ps1 -NoCache          # Images ohne Build-Cache
 #>
 [CmdletBinding()]
 param(
     [switch] $Production,
-    [switch] $SkipModel,
     [switch] $NoCache,
     [int]    $TimeoutSeconds = 180
 )
@@ -85,10 +82,10 @@ if (-not (Get-ChildItem $fonts -Filter *.woff2 -ErrorAction SilentlyContinue)) {
 Write-Host '    Schriften ok'
 
 # ---------- 2. Build ----------
-Step 'Images bauen (api, web, bottrainer)'
-$buildArgs = @('compose', '--profile', 'tools', 'build', '--pull')
+Step 'Images bauen (api, web)'
+$buildArgs = @('compose', 'build', '--pull')
 if ($NoCache) { $buildArgs += '--no-cache' }
-docker @buildArgs api web bottrainer
+docker @buildArgs api web
 if ($LASTEXITCODE -ne 0) { Fail 'Build fehlgeschlagen.' }
 
 # ---------- 3. Start ----------
@@ -108,13 +105,6 @@ do {
 if ($api -ne 'healthy' -or $web -ne 'running') {
     docker compose logs --tail 40 api web
     Fail 'API oder Web-App laufen nicht. Logs oben prüfen.'
-}
-
-# ---------- 4. ML-Modell ----------
-if (-not $SkipModel) {
-    Step 'ML-Zielwahl-Modell'
-    & (Join-Path $PSScriptRoot 'train-model.ps1')
-    if ($LASTEXITCODE -eq 4) { Write-Host '    Kein Modell aktiviert - die Bots spielen regelbasiert.' -ForegroundColor Yellow }
 }
 
 # ---------- Fertig ----------

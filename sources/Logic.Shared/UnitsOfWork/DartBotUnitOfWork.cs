@@ -10,7 +10,6 @@ namespace Logic.Shared.UnitsOfWork
     {
         private readonly DartDatabaseContext _context;
 
-        public IRepositoryBase<DartBotActiveModelEntity> DartBotActiveModelRepository { get; }
 
         public IRepositoryBase<DartBotEntity> DartBotRepository { get; }
 
@@ -24,31 +23,22 @@ namespace Logic.Shared.UnitsOfWork
 
         public IRepositoryBase<DartBotGameVisitEntity> DartBotGameVisitRepository { get; }
 
-        public IRepositoryBase<DartBotModelEntity> DartBotModelRepository { get; }
 
-        public IRepositoryBase<DartBotModelTrainingEntity> DartBotModelTrainingRepository { get; }
         public IRepositoryBase<DartBotProfileVersionEntity> DartBotProfileVersionRepository { get; }
 
-        public IRepositoryBase<DartBotTrainingDatasetEntity> DartBotTrainingDatasetRepository { get; }
 
-        public IRepositoryBase<DartBotTrainingJobEntity> DartBotTrainingJobRepository { get; }
 
         public DartBotUnitOfWork(DartDatabaseContext context)
         {
             _context = context;
             
-            DartBotActiveModelRepository = new RepositoryBase<DartBotActiveModelEntity>(_context);
             DartBotRepository = new RepositoryBase<DartBotEntity>(_context);
             DartBotGameRepository = new RepositoryBase<DartBotGameEntity>(_context);
             DartBotGameLegRepository = new RepositoryBase<DartBotGameLegEntity>(_context);
             DartBotGamePlayerRepository = new RepositoryBase<DartBotGamePlayerEntity>(_context);
             DartBotGameThrowRepository = new RepositoryBase<DartBotGameThrowEntity>(_context);
             DartBotGameVisitRepository = new RepositoryBase<DartBotGameVisitEntity>(_context);
-            DartBotModelRepository = new RepositoryBase<DartBotModelEntity>(_context);
-            DartBotModelTrainingRepository = new RepositoryBase<DartBotModelTrainingEntity>(_context);
             DartBotProfileVersionRepository = new RepositoryBase<DartBotProfileVersionEntity>(_context);
-            DartBotTrainingDatasetRepository = new RepositoryBase<DartBotTrainingDatasetEntity>(_context);
-            DartBotTrainingJobRepository = new RepositoryBase<DartBotTrainingJobEntity>(_context);
         }
     }
 }

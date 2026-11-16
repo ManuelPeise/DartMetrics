@@ -10,7 +10,10 @@ namespace Shared.Models.Bot
 
         public DartBotPlayingStyleEnum? PlayingStyle { get; set; }
 
-        /// <summary>Startlevel (0 bis MaxLevel). Fähigkeiten, XP und Wertung werden passend gesetzt.</summary>
-        public int StartLevel { get; set; }
+        /// <summary>Stufe als Vorlage für den Basis-Ø (Standard: Hobby).</summary>
+        public DartBotStageEnum? Stage { get; set; }
+
+        /// <summary>Basis-Ø direkt (15–115); hat Vorrang vor der Stufe.</summary>
+        public float? BaseAverage { get; set; }
     }
 }

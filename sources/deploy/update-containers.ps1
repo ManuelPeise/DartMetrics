@@ -3,13 +3,13 @@
     Baut die DartMetrics-Container neu und startet sie aktualisiert.
 
 .DESCRIPTION
-    - baut API (Web.Core), Web-App und BotTrainer aus dem aktuellen Quellcode neu
+    - baut API (Web.Core) und Web-App aus dem aktuellen Quellcode neu
     - holt neue Versionen der fertigen Images (MySQL, Mailpit), wenn -Pull angegeben ist
     - ersetzt die laufenden Container; die Daten (Volume mysql_data) bleiben erhalten
     - wartet, bis die API "healthy" ist, und zeigt Status + letzte Log-Zeilen
 
 .EXAMPLE
-    .\deploy\update-containers.ps1                 # API, Web-App und Trainer-Worker neu bauen + neu starten
+    .\deploy\update-containers.ps1                 # API und Web-App neu bauen + neu starten
     .\deploy\update-containers.ps1 -All            # alle Dienste aktualisieren
     .\deploy\update-containers.ps1 -All -Pull      # zusätzlich neue MySQL/Mailpit-Images holen
     .\deploy\update-containers.ps1 -NoCache        # API ohne Build-Cache bauen
@@ -52,7 +52,7 @@ if (-not (Test-Path (Join-Path $root '.env'))) { throw '.env fehlt im Lösungsor
 
 # [string[]] erzwingt ein Array: sonst wird ein einzelnes 'api' zum String, und @services
 # splattet ihn zeichenweise ('a', 'p', 'i') -> "no such service: a".
-[string[]] $services = if ($All) { @() } else { @('api', 'web', 'bottrainer-worker') }   # leer = alle Dienste
+[string[]] $services = if ($All) { @() } else { @('api', 'web') }   # leer = alle Dienste
 
 if ($Test) {
     Invoke-Step 'Tests ausführen' { dotnet test DartMetrics.slnx --nologo }
@@ -88,12 +88,11 @@ if ($Pull) {
     Invoke-Step 'Neue Basis-Images holen' { docker compose pull --ignore-buildable @services }
 }
 
-# --profile tools: bottrainer hat dasselbe Image wie bottrainer-worker (sonst liefe der Worker mit altem Code).
-$buildArgs = @('compose', '--profile', 'tools', 'build')
+$buildArgs = @('compose', 'build')
 if ($NoCache) { $buildArgs += '--no-cache' }
 $buildArgs += '--pull'
-$buildArgs += @('api', 'web', 'bottrainer')
-Invoke-Step 'Images bauen (api, web, bottrainer)' { docker @buildArgs }
+$buildArgs += @('api', 'web')
+Invoke-Step 'Images bauen (api, web)' { docker @buildArgs }
 
 Invoke-Step 'Container ersetzen' { docker compose up -d --force-recreate --remove-orphans @services }
 

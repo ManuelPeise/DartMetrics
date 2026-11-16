@@ -30,7 +30,7 @@
         <AdminTable Items="_bots" IsLoading="@(_loading && _bots is null)" ErrorText="@_loadError" OnRetry="LoadAsync">
             <HeaderTemplate>
                 <th>Bot</th>
-                <th>Level</th>
+                <th>Stufe</th>
                 <th>Elo</th>
                 <th>XP</th>
                 <th>Fähigkeiten</th>
@@ -42,15 +42,21 @@
                     <strong>@bot.Name</strong>
                     <small>@bot.Alias · Profil v@(bot.ProfileVersionNumber)@(bot.PlayingStyle is null ? "" : " · " + StyleText(bot.PlayingStyle.Value))</small>
                 </td>
-                <td data-label="Level" class="adm-num">@bot.DevelopmentLevel</td>
+                <td data-label="Stufe" class="adm-cell-title">
+                    <strong>@(bot.StageName ?? $"Level {bot.DevelopmentLevel}")</strong>
+                    @if (bot.BaseAverage is not null)
+                    {
+                        <small>Ø @bot.BaseAverage.Value.ToString("0.#", German)@(bot.PotentialAverage is null ? "" : " → " + bot.PotentialAverage.Value.ToString("0", German))</small>
+                    }
+                </td>
                 <td data-label="Elo" class="adm-num">@bot.Rating</td>
                 <td data-label="XP" class="adm-num">@bot.ExperiencePoints.ToString("N0", German)</td>
                 <td data-label="Skills">
                     <div class="adm-skill-bars">
-                        <AdminSkillBar Label="Präzision" Value="bot.ThrowPrecision" />
-                        <AdminSkillBar Label="Konstanz" Value="bot.ThrowConsistency" />
-                        <AdminSkillBar Label="Taktik" Value="bot.TacticalIntelligence" />
+                        <AdminSkillBar Label="Form" Value="bot.ThrowConsistency" />
+                        <AdminSkillBar Label="Wege" Value="bot.TacticalIntelligence" />
                         <AdminSkillBar Label="Druck" Value="bot.PressureResistance" />
+                        <AdminSkillBar Label="Nerven" Value="1f - bot.Nervousness" />
                         <AdminSkillBar Label="Risiko" Value="bot.RiskTaking" />
                     </div>
                 </td>
@@ -82,7 +88,7 @@
         </AdminTable>
     </AdminCard>
 
-    <AdminCard Title="Neuer Bot" Subtitle="Startet auf dem gewählten Level; Fähigkeiten, XP und Wertung passen sich an">
+    <AdminCard Title="Neuer Bot" Subtitle="Stufe oder Durchschnitt wählen; Streuung, Form und Nerven werden passend und mit etwas Zufall erzeugt">
         <form class="adm-form" @onsubmit="CreateAsync" @onsubmit:preventDefault>
             <AdminInput Id="bot-name" Label="Name" @bind-Value="_name" MaxLength="100"
                         Placeholder="z. B. Robo Taylor" Error="@_nameError" Disabled="_creating" />
@@ -91,10 +97,13 @@
                         Placeholder="z. B. robo-taylor" Hint="Muss eindeutig sein." Error="@_aliasError" Disabled="_creating" />
 
             <AdminSelect Id="bot-style" Label="Spielstil" Options="StyleOptions" @bind-Value="_style"
-                         Hint="Optional, nur zur Beschreibung." Disabled="_creating" />
+                         Hint="Aggressiv: mehr Risiko (z. B. Bull-Wege), Defensiv: sichere Wege." Disabled="_creating" />
 
-            <AdminSelect Id="bot-level" Label="Startlevel" Options="LevelOptions" @bind-Value="_startLevel"
-                         Hint="0 = Anfänger, 20 = Maximum. Der Bot lernt von dort aus weiter." Disabled="_creating" />
+            <AdminSelect Id="bot-stage" Label="Stufe" Options="StageOptions" @bind-Value="_stage"
+                         Hint="Vorlage für den Durchschnitt. Der Bot kann sich durch Spiele verbessern." Disabled="_creating" />
+
+            <AdminInput Id="bot-average" Label="Durchschnitt (optional)" @bind-Value="_average" MaxLength="5"
+                        Placeholder="z. B. 62" Hint="15–115; überschreibt die Stufe." Error="@_averageError" Disabled="_creating" />
 
             <div class="adm-form-actions">
                 <AdminButton Type="submit" IsLoading="_creating" Icon="AdminIconName.Bot">Bot anlegen</AdminButton>
@@ -123,11 +132,17 @@
     private string? _name;
     private string? _alias;
     private string? _style = "";
-    private string? _startLevel = "0";
+    private string? _stage = nameof(DartBotStageEnum.Hobby);
+    private string? _average;
+    private string? _averageError;
 
-    // Entspricht DartBot:MaxLevel (Standard 20); die API prüft den Bereich.
-    private static readonly IReadOnlyList<AdminSelectOption> LevelOptions =
-        Enumerable.Range(0, 21).Select(l => new AdminSelectOption(l.ToString(), $"Level {l}")).ToList();
+    private float? ParsedAverage =>
+        float.TryParse(_average?.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+
+    private static readonly IReadOnlyList<AdminSelectOption> StageOptions =
+        DartBotStages.All.Select(s => new AdminSelectOption(s.Stage.ToString(), $"{s.Name} (Ø ~{s.Average:0})")).ToList();
     private string? _nameError;
     private string? _aliasError;
     private bool _creating;
@@ -211,8 +226,11 @@
         _message = null;
         _nameError = string.IsNullOrWhiteSpace(_name) ? "Bitte einen Namen eingeben." : null;
         _aliasError = string.IsNullOrWhiteSpace(_alias) ? "Bitte einen Alias eingeben." : null;
+        _averageError = !string.IsNullOrWhiteSpace(_average) && ParsedAverage is not (>= 15f and <= 115f)
+            ? "Bitte einen Durchschnitt zwischen 15 und 115 eingeben."
+            : null;
 
-        if (_nameError is not null || _aliasError is not null)
+        if (_nameError is not null || _aliasError is not null || _averageError is not null)
         {
             return;
         }
@@ -226,7 +244,8 @@
                 Name = _name!.Trim(),
                 Alias = _alias!.Trim(),
                 PlayingStyle = Enum.TryParse<DartBotPlayingStyleEnum>(_style, out var style) ? style : null,
-                StartLevel = int.TryParse(_startLevel, out var level) ? level : 0
+                Stage = Enum.TryParse<DartBotStageEnum>(_stage, out var stage) ? stage : null,
+                BaseAverage = ParsedAverage
             };
 
             using var response = await Api.PostAsync("DartBotAdministration/CreateDartBot", model);
@@ -236,7 +255,8 @@
                 ShowMessage($"{model.Name} wurde angelegt.", isError: false);
                 _name = _alias = null;
                 _style = "";
-                _startLevel = "0";
+                _stage = nameof(DartBotStageEnum.Hobby);
+                _average = null;
                 await LoadAsync();
             }
             else

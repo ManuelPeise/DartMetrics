@@ -7,7 +7,7 @@ namespace Data.DartContext.Entities.Tournament
     /// <summary>
     /// Ein Match (ein Satz, best of N Legs) zwischen Heim (Spieler 1) und Gast (Spieler 2).
     /// Im K.-o.-Baum können die Seiten noch leer sein, bis die Vorrunde gespielt ist.
-    /// Bei Bots werden Profilversion und Zielwahl-Modell beim Start gespeichert.
+    /// Bei Bots werden Profilversion beim Start gespeichert.
     /// </summary>
     public class TournamentMatchEntity : AEntityBase, IConcurrencyStamped
     {
@@ -31,17 +31,9 @@ namespace Data.DartContext.Entities.Tournament
 
         public DartBotProfileVersionEntity? HomeProfileVersion { get; set; }
 
-        public int? HomeTargetModelId { get; set; }
-
-        public DartBotModelEntity? HomeTargetModel { get; set; }
-
         public int? AwayProfileVersionId { get; set; }
 
         public DartBotProfileVersionEntity? AwayProfileVersion { get; set; }
-
-        public int? AwayTargetModelId { get; set; }
-
-        public DartBotModelEntity? AwayTargetModel { get; set; }
 
         public int HomeLegs { get; set; }
 

@@ -59,8 +59,6 @@ namespace Data.DartContext.Configurations.Tournament
 
             builder.HasOne(x => x.HomeProfileVersion).WithMany().HasForeignKey(x => x.HomeProfileVersionId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.AwayProfileVersion).WithMany().HasForeignKey(x => x.AwayProfileVersionId).OnDelete(DeleteBehavior.Restrict);
-            builder.HasOne(x => x.HomeTargetModel).WithMany().HasForeignKey(x => x.HomeTargetModelId).OnDelete(DeleteBehavior.Restrict);
-            builder.HasOne(x => x.AwayTargetModel).WithMany().HasForeignKey(x => x.AwayTargetModelId).OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.NextMatch).WithMany().HasForeignKey(x => x.NextMatchId).OnDelete(DeleteBehavior.Restrict);
 

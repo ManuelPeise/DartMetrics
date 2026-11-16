@@ -57,7 +57,8 @@ namespace Logic.Bot.Play
                     context.Profile,
                     context.InMode,
                     context.OutMode,
-                    isOpened));
+                    isOpened,
+                    context.ScoreBefore));
 
                 var isFinishingDart = isOpened && target.Score == remaining &&
                                       _rules.IsFinishingDart(target.Segment, target.Multiplier, context.OutMode);

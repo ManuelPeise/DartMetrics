@@ -20,8 +20,7 @@ namespace Web.App.Components.Layout.Admin
             new("Verwaltung",
             [
                 new("Benutzerverwaltung", Root + "/users", AdminIconName.Users, ShowInBottomNav: true),
-                new("DartBot-Verwaltung", Root + "/bots", AdminIconName.Bot, ShowInBottomNav: true),
-                new("ML-Modellverwaltung", Root + "/models", AdminIconName.Model)
+                new("DartBot-Verwaltung", Root + "/bots", AdminIconName.Bot, ShowInBottomNav: true)
                 // V1: "Statistiken" (/admin/statistics) ist noch ein Platzhalter und deshalb ausgeblendet.
             ]),
             new("System",

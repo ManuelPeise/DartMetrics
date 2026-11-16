@@ -33,7 +33,7 @@ Restored at build time; their licenses are shipped with the packages.
 
 | Package | License |
 | --- | --- |
-| .NET / ASP.NET Core / Entity Framework Core / ML.NET | MIT |
+| .NET / ASP.NET Core / Entity Framework Core | MIT |
 | MySql.EntityFrameworkCore, MySql.Data | GPL-2.0 with Universal FOSS Exception |
 | BCrypt.Net-Next | MIT |
 | System.IdentityModel.Tokens.Jwt, Microsoft.IdentityModel.Tokens | MIT |

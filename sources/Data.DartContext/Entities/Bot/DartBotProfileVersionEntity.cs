@@ -29,6 +29,28 @@ namespace Data.DartContext.Entities.Bot
 
         public DartBotPlayingStyleEnum? PlayingStyle { get; set; }
 
+        // ---- Wurf-Steckbrief V2 (null = Verhalten V1, aus ThrowPrecision abgeleitet) ----
+
+        /// <summary>Basis-Durchschnitt (3 Darts) an einem normalen Tag; daraus wurde die Streuung kalibriert.</summary>
+        public float? BaseAverage { get; set; }
+
+        /// <summary>Streuung waagerecht (Standardabweichung, mm).</summary>
+        public float? SigmaMm { get; set; }
+
+        /// <summary>Senkrechte Streuung relativ zur waagerechten (Menschen streuen nach oben/unten stärker).</summary>
+        public float VerticalRatio { get; set; } = 1f;
+
+        /// <summary>Systematische Abweichung in mm (x nach rechts, y nach oben).</summary>
+        public float BiasXMm { get; set; }
+
+        public float BiasYMm { get; set; }
+
+        /// <summary>Anteil schlechter Darts (dreifache Streuung).</summary>
+        public float BadDartRate { get; set; }
+
+        /// <summary>Wie stark eigene Fehler nachwirken (0 = cool, 1 = sehr nervös).</summary>
+        public float Nervousness { get; set; }
+
         // Herkunft
         public DartBotProfileChangeReasonEnum ChangeReason { get; set; }
 
@@ -42,10 +64,6 @@ namespace Data.DartContext.Entities.Bot
         public int? TriggeringGameId { get; set; }
 
         public DartBotGameEntity? TriggeringGame { get; set; }
-
-        public int? ModelId { get; set; }
-
-        public DartBotModelEntity? Model { get; set; }
 
         public ICollection<DartBotGamePlayerEntity> GamePlayers { get; set; } = [];
     }

@@ -21,23 +21,6 @@ namespace Shared.Models.Options
 
         /// <summary>XP, Level-Aufstieg und Elo nach einem Spiel gegen einen Menschen.</summary>
         public DartBotLearningOptions Learning { get; set; } = new();
-
-        /// <summary>Zielwahl mit Modell (Abschnitt "DartBot:Ml").</summary>
-        public DartBotMlOptions Ml { get; set; } = new();
-    }
-
-    public class DartBotMlOptions
-    {
-        /// <summary>Aus: Bots spielen immer regelbasiert, auch wenn ein Modell aktiv ist.</summary>
-        public bool Enabled { get; set; } = true;
-
-        /// <summary>Ordner der ML-Daten; StorageKeys der Modelle sind relativ dazu (Container: /data/ml).</summary>
-        [Required]
-        public string Path { get; set; } = "ml_data";
-
-        /// <summary>So viele Darts muss das Modell besser sein, damit es das Regel-Ziel ersetzt (Vergleich: 0,3 am besten).</summary>
-        [Range(0.0, 10.0)]
-        public float Margin { get; set; } = 0.3f;
     }
 
     public class DartBotLearningOptions

@@ -104,12 +104,12 @@
                     </div>
                     <div class="pa-duel__legs">
                         Legs
-                        <strong>@_state.UserLegsWon : @_state.BotLegsWon</strong>
-                        Leg @_state.CurrentLegNumber
+                        <strong>@(_shown?.UserLegs ?? _state.UserLegsWon) : @(_shown?.BotLegs ?? _state.BotLegsWon)</strong>
+                        Leg @(_shown?.LegNumber ?? _state.CurrentLegNumber)
                     </div>
                     <div class="pa-duel__player @(_animating ? "is-active" : "")">
                         <p class="pa-duel__name">@_state.BotName</p>
-                        <p class="pa-duel__score">@_state.BotRemaining</p>
+                        <p class="pa-duel__score">@(_shown?.BotRemaining ?? _state.BotRemaining)</p>
                         <p class="pa-duel__meta">@(_state.IsBotOpened ? "Bot" : "noch nicht eröffnet")</p>
                     </div>
                 </div>
@@ -231,7 +231,16 @@
 
     /// <summary>Vorschau des Rests während der Eingabe (reine Summe; gewertet wird auf dem Server).</summary>
     private int DisplayUserRemaining =>
-        _state is null ? 0 : _state.IsUserOpened ? _state.UserRemaining - _darts.Sum(d => d.Score) : _state.UserRemaining;
+        _shown is not null ? _shown.UserRemaining
+        : _state is null ? 0 : _state.IsUserOpened ? _state.UserRemaining - _darts.Sum(d => d.Score) : _state.UserRemaining;
+
+    /// <summary>
+    /// Anzeige während der Bot-Animation: Der Server liefert den Stand nach der Bot-Aufnahme (ggf. schon im nächsten Leg).
+    /// Bis die Darts gezeigt sind, gilt der Stand davor; der Bot-Rest zählt Dart für Dart herunter.
+    /// </summary>
+    private sealed record ShownScore(int UserLegs, int BotLegs, int LegNumber, int UserRemaining, int BotRemaining);
+
+    private ShownScore? _shown;
 
     /// <summary>
     /// Checkout-Empfehlung für den Menschen, nach jedem eingegebenen Dart neu berechnet (im Browser, ohne Server):
@@ -330,7 +339,7 @@
 
         if (botVisit is not null)
         {
-            await AnimateBotVisitAsync(botVisit);
+            await AnimateBotVisitAsync(botVisit, new ShownScore(state.UserLegsWon, state.BotLegsWon, state.CurrentLegNumber, state.UserRemaining, botVisit.ScoreBefore));
         }
     }
 
@@ -396,15 +405,35 @@
             _userScored += userVisit.ScoreBefore - userVisit.ScoreAfter;
         }
 
-        _status = LegMessage(previous, state, userVisit);
-        _tone = state.UserLegsWon > previous.UserLegsWon ? "success" : state.BotLegsWon > previous.BotLegsWon ? "danger" : null;
-
         var botVisits = FindNewVisits(previous, state, isBot: true);
+        var legChanged = state.CurrentLegNumber != previous.CurrentLegNumber;
+        var userCheckedOut = state.UserLegsWon > previous.UserLegsWon;
+
+        // Leg-Ergebnis erst nach der Bot-Animation zeigen, sonst steht „Bot gewinnt“ vor dem ersten Bot-Dart.
+        if (botVisits.Count == 0 || userCheckedOut)
+        {
+            ShowLegMessage(previous, state, userVisit);
+        }
+
         _state = state;
 
         foreach (var visit in botVisits)
         {
-            await AnimateBotVisitAsync(visit);
+            // Aufnahme aus dem alten Leg (Bot checkt): Stand des alten Legs zeigen, Legs erst danach hochzählen.
+            var inOldLeg = legChanged && !userCheckedOut && state.PreviousLegVisits.Contains(visit);
+
+            var shown = inOldLeg
+                ? new ShownScore(previous.UserLegsWon, previous.BotLegsWon, previous.CurrentLegNumber,
+                    userVisit?.ScoreAfter ?? previous.UserRemaining, visit.ScoreBefore)
+                : new ShownScore(state.UserLegsWon, state.BotLegsWon, state.CurrentLegNumber, state.UserRemaining, visit.ScoreBefore);
+
+            await AnimateBotVisitAsync(visit, shown);
+        }
+
+        if (botVisits.Count > 0 && !userCheckedOut)
+        {
+            ShowLegMessage(previous, state, userVisit);
+            StateHasChanged();
         }
 
         if (state.Status != DartBotGameStatusEnum.Running)
@@ -428,21 +457,36 @@
         return visits.Where(v => v.IsBot == isBot).ToList();
     }
 
-    private async Task AnimateBotVisitAsync(DartBotVisitSummary visit)
+    private void ShowLegMessage(DartBotGameState previous, DartBotGameState state, DartBotVisitSummary? userVisit)
+    {
+        _status = LegMessage(previous, state, userVisit);
+        _tone = state.UserLegsWon > previous.UserLegsWon ? "success" : state.BotLegsWon > previous.BotLegsWon ? "danger" : null;
+    }
+
+    private async Task AnimateBotVisitAsync(DartBotVisitSummary visit, ShownScore shown)
     {
         _animating = true;
         _botDarts.Clear();
         _botVisitResult = null;
+        _shown = shown;
+        StateHasChanged();
+
+        var remaining = visit.ScoreBefore;
 
         foreach (var dart in visit.Throws.OrderBy(t => t.ThrowNumber))
         {
             await Task.Delay(BotDartDelayMs);
             _botDarts.Add(dart);
+
+            // Vor dem Eröffnen (Double-In) zählt nichts; Bust: Stand bleibt bis zum Ende stehen und springt dann zurück.
+            remaining = Math.Max(0, remaining - (visit.IsBust ? 0 : dart.Score));
+            _shown = _shown with { BotRemaining = visit.IsBust ? visit.ScoreBefore : Math.Max(remaining, visit.ScoreAfter) };
             StateHasChanged();
         }
 
         _botVisitResult = visit.IsCheckout ? "Checkout!" : visit.IsBust ? "Bust" : $"= {visit.ScoreBefore - visit.ScoreAfter}";
         _animating = false;
+        _shown = null;
         StateHasChanged();
     }
 

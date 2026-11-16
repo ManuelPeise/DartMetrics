@@ -1,9 +1,9 @@
 ﻿using Logic.Bot.Administration;
 using Logic.Bot.Games;
 using Logic.Bot.Learning;
-using Logic.Bot.Ml;
 using Logic.Bot.Models;
 using Logic.Bot.Play;
+using Logic.Bot.Policy;
 using Logic.Bot.Simulation;
 using Logic.Bot.Tactics;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,14 +18,13 @@ namespace Logic.Bot.DI
         {
             services.AddSingleton<IRandomSource, DefaultRandomSource>();
             services.AddSingleton<IThrowSimulator, ThrowSimulator>();
-            services.AddSingleton<ITargetSelector, RuleBasedTargetSelector>();
+            // Wegebuch im Checkout-Bereich, sonst exakte Tabelle je Wurfprofil (Tabellen werden je Profil zwischengespeichert).
+            services.AddSingleton<PolicyTableCache>();
+            services.AddSingleton<ITargetSelector, ProTargetSelector>();
             services.AddSingleton<IBotVisitPlayer, BotVisitPlayer>();
-            services.AddSingleton<ITargetSelectorFactory, TargetSelectorFactory>();
 
             // Services mit Datenbank.
             services.AddScoped<IDartBotAdministration, DartBotAdministration>();
-            services.AddScoped<IDartBotModelAdministration, DartBotModelAdministration>();
-            services.AddScoped<IDartBotTrainingJobAdministration, DartBotTrainingJobAdministration>();
             services.AddScoped<IDartBotGameService, DartBotGameService>();
             services.AddScoped<IDartBotLearningService, DartBotLearningService>();
         }

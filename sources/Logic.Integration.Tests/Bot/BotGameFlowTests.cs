@@ -111,6 +111,10 @@ namespace Logic.Integration.Tests.Bot
             var botId = await CreateBotAsync();
             var userId = await _host.SignInNewPlayerAsync();
 
+            // Startwertung hängt von der Stufe ab (Hobby: 900), daher gegen den Stand vor dem Spiel prüfen.
+            var botRatingBefore = await _host.DbAsync(async db =>
+                (await db.Set<Data.DartContext.Entities.Bot.DartBotEntity>().SingleAsync(b => b.Id == botId)).Rating);
+
             var started = await StartGameAsync(botId);
             await _host.RunAsync<IDartBotGameService>(s => s.AbortGameAsync(started.GameId));
 
@@ -118,7 +122,7 @@ namespace Logic.Integration.Tests.Bot
                 ((await db.Set<Data.DartContext.Entities.Bot.DartBotEntity>().SingleAsync(b => b.Id == botId)).Rating,
                  (await db.Users.SingleAsync(u => u.Id == userId)).Rating));
 
-            Assert.Equal(1000, botRating);
+            Assert.Equal(botRatingBefore, botRating);
             Assert.Equal(1000, userRating);
         }
 
@@ -139,34 +143,33 @@ namespace Logic.Integration.Tests.Bot
         }
 
         [Fact]
-        public async Task CreateBot_WithStartLevel_SetsLevelXpRatingAndProfile()
+        public async Task CreateBot_WithStage_SetsAverageSigmaAndPotential()
         {
             var adminId = await _host.CreateUserAsync("Admin", "User");
             _host.Claims.SignIn(adminId, UserRoleEnum.Admin);
 
             var botId = await _host.RunAsync<IDartBotAdministration, int>(a => a.CreateBotAsync(new CreateDartBotModel
             {
-                Name = "Startlevel Bot",
+                Name = "Profi Bot",
                 Alias = Guid.NewGuid().ToString("N")[..6],
-                StartLevel = 10
+                Stage = DartBotStageEnum.Pro
             }));
 
             var bot = await _host.DbAsync(db => db.Set<Data.DartContext.Entities.Bot.DartBotEntity>()
                 .Include(b => b.ProfileVersions)
                 .SingleAsync(b => b.Id == botId));
 
-            Assert.Equal(10, bot.DevelopmentLevel);
-            Assert.True(bot.ExperiencePoints > 0);
-            Assert.True(bot.Rating > 1000);
-
             var profile = Assert.Single(bot.ProfileVersions);
+            Assert.Equal(95f, profile.BaseAverage);
+            Assert.NotNull(profile.SigmaMm);
+            Assert.InRange(profile.SigmaMm!.Value, 4f, 7f);
+            Assert.True(bot.PotentialAverage > profile.BaseAverage);
+            Assert.True(bot.Rating > 1000);
             Assert.Equal(DartBotProfileChangeReasonEnum.Initial, profile.ChangeReason);
-            Assert.Equal("Startprofil Level 10", profile.ReasonText);
-            Assert.True(profile.ThrowPrecision > 0.15f);
         }
 
         [Fact]
-        public async Task CreateBot_WithInvalidStartLevel_Throws()
+        public async Task CreateBot_WithInvalidAverage_Throws()
         {
             var adminId = await _host.CreateUserAsync("Admin", "User");
             _host.Claims.SignIn(adminId, UserRoleEnum.Admin);
@@ -174,9 +177,9 @@ namespace Logic.Integration.Tests.Bot
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 _host.RunAsync<IDartBotAdministration, int>(a => a.CreateBotAsync(new CreateDartBotModel
                 {
-                    Name = "Zu hoch",
+                    Name = "Zu stark",
                     Alias = Guid.NewGuid().ToString("N")[..6],
-                    StartLevel = 99
+                    BaseAverage = 200
                 })));
         }
 

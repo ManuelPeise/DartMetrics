@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
-# Komplettes Deployment von DartMetrics in Docker (z. B. Raspberry Pi): Prüfungen, Build, Start, Health-Check, ML-Modell.
+# Komplettes Deployment von DartMetrics in Docker (z. B. Raspberry Pi): Prüfungen, Build, Start, Health-Check.
 # Für reine Code-Updates reicht deploy/update-containers.sh (mit Datenbank-Backup).
 #
 #   ./deploy/deploy.sh                 Entwicklung (lädt docker-compose.override.yml)
 #   ./deploy/deploy.sh --production    nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
-#   ./deploy/deploy.sh --skip-model    ohne ML-Training (Bots spielen regelbasiert)
 #   ./deploy/deploy.sh --no-cache      Images ohne Build-Cache
 set -euo pipefail
 
-PRODUCTION=0; SKIP_MODEL=0; NO_CACHE=""; TIMEOUT=180
+PRODUCTION=0; NO_CACHE=""; TIMEOUT=180
 for arg in "$@"; do
   case "$arg" in
     --production) PRODUCTION=1 ;;
-    --skip-model) SKIP_MODEL=1 ;;
     --no-cache) NO_CACHE="--no-cache" ;;
     *) echo "Unbekannte Option: $arg" >&2; exit 2 ;;
   esac
@@ -67,8 +65,8 @@ fi
 echo "    Schriften ok"
 
 # ---------- 2. Build ----------
-step "Images bauen (api, web, bottrainer)"
-docker compose --profile tools build --pull $NO_CACHE api web bottrainer
+step "Images bauen (api, web)"
+docker compose build --pull $NO_CACHE api web
 
 # ---------- 3. Start ----------
 step "Container starten"
@@ -87,17 +85,6 @@ while :; do
     fail "API oder Web-App laufen nicht. Logs oben prüfen."
   fi
 done
-
-# ---------- 4. ML-Modell ----------
-if [ "$SKIP_MODEL" -eq 0 ]; then
-  step "ML-Zielwahl-Modell"
-  set +e
-  ./deploy/train-model.sh
-  code=$?
-  set -e
-  [ "$code" -eq 4 ] && echo "    Kein Modell aktiviert - die Bots spielen regelbasiert."
-  [ "$code" -eq 0 ] || [ "$code" -eq 4 ] || fail "Modell-Training fehlgeschlagen (Exit-Code $code)."
-fi
 
 # ---------- Fertig ----------
 step "Status"

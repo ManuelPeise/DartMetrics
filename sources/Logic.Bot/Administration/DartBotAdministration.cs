@@ -1,5 +1,5 @@
 using Data.DartContext.Entities.Bot;
-using Logic.Bot.Learning;
+
 using Logic.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -60,37 +60,31 @@ namespace Logic.Bot.Administration
                     throw new ArgumentException($"A bot with alias '{alias}' already exists.");
                 }
 
-                if (model.StartLevel < 0 || model.StartLevel > _options.MaxLevel)
+                if (model.BaseAverage is { } requested && (requested < DartBotStages.MinAverage || requested > DartBotStages.MaxAverage))
                 {
-                    throw new ArgumentException($"Start level must be between 0 and {_options.MaxLevel}.");
+                    throw new ArgumentException($"Base average must be between {DartBotStages.MinAverage} and {DartBotStages.MaxAverage}.");
                 }
 
-                var start = _options.StartProfile;
-                var level = model.StartLevel;
+                if (model.Stage is { } stage && !Enum.IsDefined(stage))
+                {
+                    throw new ArgumentException($"Unknown stage '{stage}'.");
+                }
+
+                var baseAverage = model.BaseAverage ?? DartBotStages.AverageOf(model.Stage ?? DartBotStageEnum.Hobby);
+                var random = Random.Shared;
+                var profile = BotProfileFactory.Create(baseAverage, model.PlayingStyle, random);
 
                 var bot = new DartBotEntity
                 {
                     Name = name,
                     Alias = alias,
                     IsActive = true,
-                    ExperiencePoints = DartBotLevelCurve.XpForLevel(_options, level),
-                    DevelopmentLevel = level,
-                    Rating = DartBotLevelCurve.RatingForStartLevel(_options, level),
-                    ProfileVersions =
-                    [
-                        new DartBotProfileVersionEntity
-                        {
-                            VersionNumber = 1,
-                            ThrowPrecision = DartBotLevelCurve.SkillForLevel(_options, start.ThrowPrecision, level),
-                            ThrowConsistency = DartBotLevelCurve.SkillForLevel(_options, start.ThrowConsistency, level),
-                            TacticalIntelligence = DartBotLevelCurve.SkillForLevel(_options, start.TacticalIntelligence, level),
-                            PressureResistance = DartBotLevelCurve.SkillForLevel(_options, start.PressureResistance, level),
-                            RiskTaking = start.RiskTaking,
-                            PlayingStyle = model.PlayingStyle,
-                            ChangeReason = DartBotProfileChangeReasonEnum.Initial,
-                            ReasonText = $"Startprofil Level {level}"
-                        }
-                    ]
+                    ExperiencePoints = 0,
+                    DevelopmentLevel = 0,
+                    // Startwertung nach Spielstärke: Ø 50 ≈ Grundwert, je Punkt Ø 10 Elo.
+                    Rating = Math.Max(100, _options.InitialRating + (int)Math.Round((profile.BaseAverage!.Value - 50f) * 10f)),
+                    PotentialAverage = BotProfileFactory.Potential(profile.BaseAverage.Value, random),
+                    ProfileVersions = [profile]
                 };
 
                 await UnitOfWork.DartBotUnitOfWork.DartBotRepository.AddAsync(bot);
@@ -218,7 +212,11 @@ namespace Logic.Bot.Administration
                 TacticalIntelligence = profile.TacticalIntelligence,
                 PressureResistance = profile.PressureResistance,
                 RiskTaking = profile.RiskTaking,
-                PlayingStyle = profile.PlayingStyle
+                PlayingStyle = profile.PlayingStyle,
+                BaseAverage = profile.BaseAverage,
+                PotentialAverage = bot.PotentialAverage,
+                StageName = profile.BaseAverage is { } average ? DartBotStages.NameOf(DartBotStages.StageFor(average)) : null,
+                Nervousness = profile.Nervousness
             };
         }
     }

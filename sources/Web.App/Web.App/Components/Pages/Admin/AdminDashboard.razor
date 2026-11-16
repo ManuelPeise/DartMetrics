@@ -42,12 +42,6 @@
                    BadgeText="@(_botsError ? "Nicht erreichbar" : null)"
                    Status="@(_botsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
 
-    <AdminStatCard Label="ML-Modelle" Icon="AdminIconName.Model" IsLoading="_statisticsLoading"
-                   Value="@_statistics?.ModelCount.ToString()"
-                   Description="@ModelsDescription"
-                   BadgeText="@(_statisticsError ? "Nicht erreichbar" : null)"
-                   Status="@(_statisticsError ? AdminStatus.Danger : AdminStatus.Neutral)" />
-
     <AdminStatCard Label="Trainingssessions" Icon="AdminIconName.Training" IsLoading="_statisticsLoading"
                    Value="@_statistics?.TrainingSessionCount.ToString()"
                    Description="@TrainingsDescription"
@@ -91,13 +85,6 @@
                     <AdminStatusBadge Text="@(_usersError ? "Nicht erreichbar" : "Verbunden")"
                                       Status="@(_usersError ? AdminStatus.Danger : AdminStatus.Success)" />
                 }
-            </li>
-            <li>
-                <span class="adm-status-list__name">
-                    <AdminIcon Name="AdminIconName.Model" />
-                    <span>ML-Modelle<small>Aktive Modelle je Typ</small></span>
-                </span>
-                <AdminStatusBadge Text="@ModelsStatusText" Status="@ModelsStatus" />
             </li>
             <li>
                 <span class="adm-status-list__name">
@@ -218,23 +205,9 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private string ModelsDescription => _statistics is null
-        ? "Verfügbare Modelle"
-        : $"{_statistics.ActiveModelCount} aktiv";
-
     private string TrainingsDescription => _statistics is null
         ? "Erfasste Trainings"
         : $"{_statistics.TrainingSessionsLast7Days} in den letzten 7 Tagen";
-
-    private string ModelsStatusText => _statisticsLoading ? "Wird geprüft"
-        : _statisticsError ? "Nicht erreichbar"
-        : _statistics!.ActiveModelCount > 0 ? $"{_statistics.ActiveModelCount} aktiv"
-        : "Regelbasiert (kein Modell aktiv)";
-
-    private AdminStatus ModelsStatus => _statisticsLoading ? AdminStatus.Neutral
-        : _statisticsError ? AdminStatus.Danger
-        : _statistics!.ActiveModelCount > 0 ? AdminStatus.Success
-        : AdminStatus.Neutral;
 
     private async Task LoadLogsAsync()
     {

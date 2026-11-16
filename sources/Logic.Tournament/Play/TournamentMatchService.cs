@@ -1,4 +1,5 @@
 using Data.DartContext.Entities.Tournament;
+using Logic.Shared.Bot;
 using Logic.Shared.Rules;
 using Logic.Tournament.Match;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,6 @@ namespace Logic.Tournament.Play
         private static readonly X01Rules Rules = new();
 
         private readonly IBotVisitPlayer _botVisitPlayer;
-        private readonly ITargetSelectorFactory _targetSelectorFactory;
         private readonly ILeagueService _leagueService;
         private readonly IKnockoutService _knockoutService;
         private readonly IDartBotLearningService _learningService;
@@ -30,14 +30,12 @@ namespace Logic.Tournament.Play
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
-            ITargetSelectorFactory targetSelectorFactory,
             ILeagueService leagueService,
             IKnockoutService knockoutService,
             IDartBotLearningService learningService) : base(unitOfWork, messageLog, claimsHelper)
         {
             _learningService = learningService;
             _botVisitPlayer = botVisitPlayer;
-            _targetSelectorFactory = targetSelectorFactory;
             _leagueService = leagueService;
             _knockoutService = knockoutService;
         }
@@ -261,23 +259,17 @@ namespace Logic.Tournament.Play
             }
         }
 
-        /// <summary>Status Running, Startzeit, Spielleiter, Bot-Profil und aktives Zielwahl-Modell je Seite.</summary>
+        /// <summary>Status Running, Startzeit, Spielleiter und Bot-Profil je Seite.</summary>
         private async Task BeginAsync(TournamentMatchEntity match, int? conductorUserId)
         {
-            var activeModel = await UnitOfWork.DartBotUnitOfWork.DartBotActiveModelRepository.GetFirstOrDefaultAsync(
-                a => a.ModelType == DartBotModelTypeEnum.TargetSelection,
-                asNoTracking: true);
-
             if (IsBot(match.HomeParticipant))
             {
                 match.HomeProfileVersionId = await LatestProfileVersionIdAsync(match.HomeParticipant!.DartBotId!.Value);
-                match.HomeTargetModelId = activeModel?.ModelId;
             }
 
             if (IsBot(match.AwayParticipant))
             {
                 match.AwayProfileVersionId = await LatestProfileVersionIdAsync(match.AwayParticipant!.DartBotId!.Value);
-                match.AwayTargetModelId = activeModel?.ModelId;
             }
 
             match.Status = TournamentMatchStatusEnum.Running;
@@ -309,16 +301,6 @@ namespace Logic.Tournament.Play
             {
                 match.AwayProfileVersion = await bots.DartBotProfileVersionRepository.GetByIdAsync(ap);
             }
-
-            if (match.HomeTargetModelId is int hm && match.HomeTargetModel is null)
-            {
-                match.HomeTargetModel = await bots.DartBotModelRepository.GetByIdAsync(hm);
-            }
-
-            if (match.AwayTargetModelId is int am && match.AwayTargetModel is null)
-            {
-                match.AwayTargetModel = await bots.DartBotModelRepository.GetByIdAsync(am);
-            }
         }
 
         /// <summary>Bots werfen, bis ein Mensch dran ist oder das Match endet (Mensch gegen Bot: genau die Bot-Aufnahme).</summary>
@@ -342,17 +324,15 @@ namespace Logic.Tournament.Play
             var opponent = player == 1 ? 2 : 1;
             var profile = (player == 1 ? match.HomeProfileVersion : match.AwayProfileVersion)
                 ?? throw new InvalidOperationException("Bot profile version is not loaded.");
-            var model = player == 1 ? match.HomeTargetModel : match.AwayTargetModel;
 
             var result = _botVisitPlayer.PlayVisit(
                 new BotVisitContext(
                     engine.Remaining(player),
                     engine.Remaining(opponent),
-                    new BotSkillProfile(profile.ThrowPrecision, profile.ThrowConsistency, profile.TacticalIntelligence, profile.PressureResistance, profile.RiskTaking),
+                    profile.ToSkillProfile(),
                     match.Round.Tournament.InMode,
                     match.Round.Tournament.OutMode,
-                    engine.IsOpened(player)),
-                _targetSelectorFactory.For(model));
+                    engine.IsOpened(player)));
 
             foreach (var dart in result.Throws)
             {
@@ -494,8 +474,6 @@ namespace Logic.Tournament.Play
                     .Include(m => m.AwayParticipant)
                     .Include(m => m.HomeProfileVersion)
                     .Include(m => m.AwayProfileVersion)
-                    .Include(m => m.HomeTargetModel)
-                    .Include(m => m.AwayTargetModel)
                     .Include(m => m.Legs).ThenInclude(l => l.Visits).ThenInclude(v => v.Throws))
                 ?? throw new ArgumentException($"Tournament match {matchId} not found.");
         }

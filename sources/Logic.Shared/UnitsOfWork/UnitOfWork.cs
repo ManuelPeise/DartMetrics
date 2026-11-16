@@ -42,7 +42,7 @@ namespace Logic.Shared.UnitsOfWork
         {
             foreach (var entry in _dartDatabaseContext.ChangeTracker.Entries())
             {
-                if (entry.Entity is DartBotProfileVersionEntity or DartBotModelEntity
+                if (entry.Entity is DartBotProfileVersionEntity
                     && entry.State is EntityState.Modified or EntityState.Deleted)
                 {
                     throw new InvalidOperationException(

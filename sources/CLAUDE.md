@@ -121,11 +121,10 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 ## DartBot – feste Entscheidungen
 
 - Profil = unveränderliche Versionen; aktuell ist die höchste `VersionNumber`.
-- Gemeinsame ML-Modelle für alle Bots; Profilwerte sind Eingabemerkmale.
-- Modell lernt aus allen Spielen; **Profil, XP, Level und Elo ändern sich nur in abgeschlossenen Spielen gegen Menschen**.
+- **Profil, XP, Level und Elo ändern sich nur in abgeschlossenen Spielen gegen Menschen**.
 - Spieler-Elo: `UserEntity.Rating` (Start 1000, gleiche Skala wie Bots). Bot und Mensch rechnen mit den Werten vor dem Spiel; die Änderung steht in `DartBotGamePlayerEntity.RatingBefore/After`. „Passender Gegner“ = Elo-Abstand ≤ 100 (`EloMatch`).
 - Lernschritt genau einmal (`LearningProcessedAt`), in derselben Transaktion wie die letzte Aufnahme.
-- Ohne aktives Modell wählt der Bot Ziele regelbasiert (`RuleBasedTargetSelector`).
+- Zielwahl: Standard-Checkout-Wege (Wegebuch) und exakte Tabelle je Wurfprofil (`Logic.Bot/Policy`); kein ML.NET.
 - Einstellungen: Abschnitt `"DartBot"` (`DartBotOptions`).
 - Ausführlicher Plan: Claude-Doc „DartBot – Finaler Architektur- und Datenmodellplan“.
 

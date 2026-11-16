@@ -19,7 +19,7 @@ Blazor-Host (Server). Liefert die WebAssembly-App aus, betreibt das BFF und den 
 Components/
   App.razor                 Render-Modus je Pfad, Stylesheets
   Layout/Admin/             AdminLayout, AdminSidebar, AdminHeader, AdminBottomNav, AdminNavigation (Menü-Definition)
-  Pages/Admin/              Dashboard, Benutzer, Bots, ML-Modelle, Logs, Passwort; Statistiken/Einstellungen sind
+  Pages/Admin/              Dashboard, Benutzer, Bots, Logs, Passwort; Statistiken/Einstellungen sind
                             Platzhalter und für V1 aus der Navigation ausgeblendet
     _Imports.razor          @layout AdminLayout + [Authorize(Roles = "Admin")] für alle Admin-Seiten
   Pages/Legal/              Impressum, Datenschutz (static SSR, PublicLayout)

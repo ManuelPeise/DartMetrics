@@ -7,12 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ML.NET für die Zielwahl mit Modell (Laden und Vorhersage); FastTree wird zum Laden des Modells gebraucht. -->
-    <PackageReference Include="Microsoft.ML" />
-    <PackageReference Include="Microsoft.ML.FastTree" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Logic.Shared\Logic.Shared.csproj" />
     <ProjectReference Include="..\Shared.Interfaces\Shared.Interfaces.csproj" />
     <ProjectReference Include="..\Shared.Models\Shared.Models.csproj" />
