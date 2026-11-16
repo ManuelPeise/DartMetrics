@@ -138,6 +138,48 @@ namespace Logic.Integration.Tests.Bot
             Assert.Equal(state.UserRatingAfter!.Value, entry.RatingAfter);
         }
 
+        [Fact]
+        public async Task CreateBot_WithStartLevel_SetsLevelXpRatingAndProfile()
+        {
+            var adminId = await _host.CreateUserAsync("Admin", "User");
+            _host.Claims.SignIn(adminId, UserRoleEnum.Admin);
+
+            var botId = await _host.RunAsync<IDartBotAdministration, int>(a => a.CreateBotAsync(new CreateDartBotModel
+            {
+                Name = "Startlevel Bot",
+                Alias = Guid.NewGuid().ToString("N")[..6],
+                StartLevel = 10
+            }));
+
+            var bot = await _host.DbAsync(db => db.Set<Data.DartContext.Entities.Bot.DartBotEntity>()
+                .Include(b => b.ProfileVersions)
+                .SingleAsync(b => b.Id == botId));
+
+            Assert.Equal(10, bot.DevelopmentLevel);
+            Assert.True(bot.ExperiencePoints > 0);
+            Assert.True(bot.Rating > 1000);
+
+            var profile = Assert.Single(bot.ProfileVersions);
+            Assert.Equal(DartBotProfileChangeReasonEnum.Initial, profile.ChangeReason);
+            Assert.Equal("Startprofil Level 10", profile.ReasonText);
+            Assert.True(profile.ThrowPrecision > 0.15f);
+        }
+
+        [Fact]
+        public async Task CreateBot_WithInvalidStartLevel_Throws()
+        {
+            var adminId = await _host.CreateUserAsync("Admin", "User");
+            _host.Claims.SignIn(adminId, UserRoleEnum.Admin);
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _host.RunAsync<IDartBotAdministration, int>(a => a.CreateBotAsync(new CreateDartBotModel
+                {
+                    Name = "Zu hoch",
+                    Alias = Guid.NewGuid().ToString("N")[..6],
+                    StartLevel = 99
+                })));
+        }
+
         // ---------- Hilfen ----------
 
         private async Task<int> CreateBotAsync()

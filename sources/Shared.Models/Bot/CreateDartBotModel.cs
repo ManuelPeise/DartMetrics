@@ -9,5 +9,8 @@ namespace Shared.Models.Bot
         public string Alias { get; set; } = null!;
 
         public DartBotPlayingStyleEnum? PlayingStyle { get; set; }
+
+        /// <summary>Startlevel (0 bis MaxLevel). Fähigkeiten, XP und Wertung werden passend gesetzt.</summary>
+        public int StartLevel { get; set; }
     }
 }

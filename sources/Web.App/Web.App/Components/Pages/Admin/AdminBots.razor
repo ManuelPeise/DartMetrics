@@ -82,7 +82,7 @@
         </AdminTable>
     </AdminCard>
 
-    <AdminCard Title="Neuer Bot" Subtitle="Startet auf Level 0 mit den Startwerten aus der Konfiguration">
+    <AdminCard Title="Neuer Bot" Subtitle="Startet auf dem gewählten Level; Fähigkeiten, XP und Wertung passen sich an">
         <form class="adm-form" @onsubmit="CreateAsync" @onsubmit:preventDefault>
             <AdminInput Id="bot-name" Label="Name" @bind-Value="_name" MaxLength="100"
                         Placeholder="z. B. Robo Taylor" Error="@_nameError" Disabled="_creating" />
@@ -92,6 +92,9 @@
 
             <AdminSelect Id="bot-style" Label="Spielstil" Options="StyleOptions" @bind-Value="_style"
                          Hint="Optional, nur zur Beschreibung." Disabled="_creating" />
+
+            <AdminSelect Id="bot-level" Label="Startlevel" Options="LevelOptions" @bind-Value="_startLevel"
+                         Hint="0 = Anfänger, 20 = Maximum. Der Bot lernt von dort aus weiter." Disabled="_creating" />
 
             <div class="adm-form-actions">
                 <AdminButton Type="submit" IsLoading="_creating" Icon="AdminIconName.Bot">Bot anlegen</AdminButton>
@@ -120,6 +123,11 @@
     private string? _name;
     private string? _alias;
     private string? _style = "";
+    private string? _startLevel = "0";
+
+    // Entspricht DartBot:MaxLevel (Standard 20); die API prüft den Bereich.
+    private static readonly IReadOnlyList<AdminSelectOption> LevelOptions =
+        Enumerable.Range(0, 21).Select(l => new AdminSelectOption(l.ToString(), $"Level {l}")).ToList();
     private string? _nameError;
     private string? _aliasError;
     private bool _creating;
@@ -217,7 +225,8 @@
             {
                 Name = _name!.Trim(),
                 Alias = _alias!.Trim(),
-                PlayingStyle = Enum.TryParse<DartBotPlayingStyleEnum>(_style, out var style) ? style : null
+                PlayingStyle = Enum.TryParse<DartBotPlayingStyleEnum>(_style, out var style) ? style : null,
+                StartLevel = int.TryParse(_startLevel, out var level) ? level : 0
             };
 
             using var response = await Api.PostAsync("DartBotAdministration/CreateDartBot", model);
@@ -227,6 +236,7 @@
                 ShowMessage($"{model.Name} wurde angelegt.", isError: false);
                 _name = _alias = null;
                 _style = "";
+                _startLevel = "0";
                 await LoadAsync();
             }
             else

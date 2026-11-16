@@ -262,7 +262,7 @@ namespace Logic.Bot.Learning
 
         /// <summary>Benötigte Gesamt-XP für ein Level.</summary>
         public long XpForLevel(int level) =>
-            (long)Math.Round(_options.Learning.LevelXpBase * Math.Pow(level, _options.Learning.LevelXpExponent));
+            DartBotLevelCurve.XpForLevel(_options, level);
 
         private DartBotProfileVersionEntity CreateLevelUpVersion(
             DartBotProfileVersionEntity current,
@@ -287,12 +287,7 @@ namespace Logic.Bot.Learning
         }
 
         /// <summary>Gleichmäßig vom Startwert (Level 0) bis SkillAtMaxLevel (MaxLevel).</summary>
-        private float SkillForLevel(float startValue, int level)
-        {
-            var target = Math.Max(startValue, _options.Learning.SkillAtMaxLevel);
-            var progress = Math.Clamp(level / (float)_options.MaxLevel, 0f, 1f);
-
-            return Math.Clamp(startValue + (target - startValue) * progress, 0f, 1f);
-        }
+        private float SkillForLevel(float startValue, int level) =>
+            DartBotLevelCurve.SkillForLevel(_options, startValue, level);
     }
 }

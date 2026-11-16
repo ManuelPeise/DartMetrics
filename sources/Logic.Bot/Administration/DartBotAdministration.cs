@@ -1,4 +1,5 @@
 using Data.DartContext.Entities.Bot;
+using Logic.Bot.Learning;
 using Logic.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -66,22 +67,22 @@ namespace Logic.Bot.Administration
                     Name = name,
                     Alias = alias,
                     IsActive = true,
-                    ExperiencePoints = 0,
-                    DevelopmentLevel = 0,
-                    Rating = _options.InitialRating,
+                    ExperiencePoints = DartBotLevelCurve.XpForLevel(_options, level),
+                    DevelopmentLevel = level,
+                    Rating = DartBotLevelCurve.RatingForStartLevel(_options, level),
                     ProfileVersions =
                     [
                         new DartBotProfileVersionEntity
                         {
                             VersionNumber = 1,
-                            ThrowPrecision = start.ThrowPrecision,
-                            ThrowConsistency = start.ThrowConsistency,
-                            TacticalIntelligence = start.TacticalIntelligence,
-                            PressureResistance = start.PressureResistance,
+                            ThrowPrecision = DartBotLevelCurve.SkillForLevel(_options, start.ThrowPrecision, level),
+                            ThrowConsistency = DartBotLevelCurve.SkillForLevel(_options, start.ThrowConsistency, level),
+                            TacticalIntelligence = DartBotLevelCurve.SkillForLevel(_options, start.TacticalIntelligence, level),
+                            PressureResistance = DartBotLevelCurve.SkillForLevel(_options, start.PressureResistance, level),
                             RiskTaking = start.RiskTaking,
                             PlayingStyle = model.PlayingStyle,
                             ChangeReason = DartBotProfileChangeReasonEnum.Initial,
-                            ReasonText = "Startprofil Level 0"
+                            ReasonText = $"Startprofil Level {level}"
                         }
                     ]
                 };
