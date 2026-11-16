@@ -37,14 +37,13 @@ namespace Tools.BotTrainer
             }
 
             var seed = arguments.Int("seed", 1);
-            var hyperparameters = new
-            {
-                NumberOfTrees = arguments.Int("trees", 200),
-                NumberOfLeaves = arguments.Int("leaves", 64),
-                MinimumExampleCountPerLeaf = arguments.Int("min-leaf", 20),
-                LearningRate = 0.1,
-                TestFraction = 0.2
-            };
+            var tune = arguments.Flag("tune");
+            var requested = new TreeConfig(
+                arguments.Int("trees", 200),
+                arguments.Int("leaves", 64),
+                arguments.Int("min-leaf", 20),
+                arguments.Float("learning-rate", 0.1f));
+            const double testFraction = 0.2;
 
             await using var scope = provider.CreateAsyncScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -94,7 +93,7 @@ namespace Tools.BotTrainer
                 MlNetVersion = mlNetVersion,
                 CodeVersion = Environment.GetEnvironmentVariable("BOTTRAINER_COMMIT"),
                 FeatureSchemaVersion = TargetCandidateFeatures.FeatureSchemaVersion,
-                HyperparametersJson = JsonSerializer.Serialize(hyperparameters)
+                HyperparametersJson = JsonSerializer.Serialize(new { Requested = requested, Tune = tune, TestFraction = testFraction })
             };
 
             await bots.DartBotModelTrainingRepository.AddAsync(training);
@@ -108,35 +107,55 @@ namespace Tools.BotTrainer
                 var ml = new MLContext(seed);
 
                 var data = ml.Data.LoadFromTextFile<TargetCandidateRow>(datasetPath, separatorChar: ',', hasHeader: true);
-                var split = ml.Data.TrainTestSplit(data, testFraction: hyperparameters.TestFraction,
+                var split = ml.Data.TrainTestSplit(data, testFraction: testFraction,
                     samplingKeyColumnName: nameof(TargetCandidateRow.SituationId), seed: seed);
 
-                var pipeline = ml.Transforms.Categorical.OneHotEncoding(
-                        [
-                            new InputOutputColumnPair("SegmentOneHot", nameof(TargetCandidateRow.CandidateSegment)),
-                            new InputOutputColumnPair("MultiplierOneHot", nameof(TargetCandidateRow.CandidateMultiplier))
-                        ])
-                    .Append(ml.Transforms.Concatenate("Features",
-                        [.. TargetCandidateRow.NumericFeatures, "SegmentOneHot", "MultiplierOneHot"]))
-                    .Append(ml.Regression.Trainers.FastTree(new FastTreeRegressionTrainer.Options
+                // Abstimmen: Varianten auf einem Teil der Trainingsdaten fitten und auf einem Validierungsanteil vergleichen;
+                // der Testanteil bleibt für die Kennzahlen unberührt.
+                var chosen = requested;
+                var tuning = new List<object>();
+
+                if (tune)
+                {
+                    var inner = ml.Data.TrainTestSplit(split.TrainSet, testFraction: 0.15,
+                        samplingKeyColumnName: nameof(TargetCandidateRow.SituationId), seed: seed + 1);
+                    var bestRegret = double.MaxValue;
+                    var index = 0;
+
+                    foreach (var config in TuningGrid)
                     {
-                        LabelColumnName = Label,
-                        FeatureColumnName = "Features",
-                        NumberOfTrees = hyperparameters.NumberOfTrees,
-                        NumberOfLeaves = hyperparameters.NumberOfLeaves,
-                        MinimumExampleCountPerLeaf = hyperparameters.MinimumExampleCountPerLeaf,
-                        LearningRate = hyperparameters.LearningRate
-                    }));
+                        index++;
+                        var variantWatch = Stopwatch.StartNew();
+                        var variant = Pipeline(ml, config).Fit(inner.TrainSet);
+                        var accuracy = TopChoiceAccuracy(ml, variant.Transform(inner.TestSet));
+
+                        Console.WriteLine($"  Variante {index}/{TuningGrid.Length}: {config} → Regret {accuracy.MeanRegret:0.000}, Treffer {accuracy.HitRate:P1} ({variantWatch.Elapsed:mm\\:ss})");
+                        tuning.Add(new { Config = config, MeanRegret = Math.Round(accuracy.MeanRegret, 4), HitRate = Math.Round(accuracy.HitRate, 4) });
+
+                        if (accuracy.MeanRegret < bestRegret)
+                        {
+                            bestRegret = accuracy.MeanRegret;
+                            chosen = config;
+                        }
+
+                        if (hooks is not null)
+                        {
+                            await hooks.ReportOrCancelAsync($"Training: Variante {index}/{TuningGrid.Length} geprüft", index * 80 / TuningGrid.Length);
+                        }
+                    }
+
+                    Console.WriteLine($"Gewählt: {chosen}");
+                }
 
                 Console.WriteLine("Trainiere …");
-                var model = pipeline.Fit(split.TrainSet);
+                var model = Pipeline(ml, chosen).Fit(split.TrainSet);
 
                 var metrics = ml.Regression.Evaluate(model.Transform(split.TestSet), labelColumnName: Label);
                 var trainCount = CountRows(ml, split.TrainSet);
                 var topChoice = TopChoiceAccuracy(ml, model.Transform(split.TestSet));
 
                 Console.WriteLine($"Fertig nach {stopwatch.Elapsed:hh\\:mm\\:ss}: RMSE {metrics.RootMeanSquaredError:0.000}, MAE {metrics.MeanAbsoluteError:0.000}, R² {metrics.RSquared:0.0000}");
-                Console.WriteLine($"Zielwahl auf Testsituationen: bestes Ziel getroffen {topChoice.HitRate:P1}, mittlerer Verlust {topChoice.MeanRegret:0.000} Darts");
+                Console.WriteLine($"Zielwahl auf Testsituationen: bestes Ziel getroffen {topChoice.HitRate:P1} (im Rauschen {topChoice.HitRateWithinNoise:P1}), mittlerer Verlust {topChoice.MeanRegret:0.000} Darts");
 
                 var storageKey = $"models/target-selection-v{TargetCandidateFeatures.FeatureSchemaVersion}-{DateTime.UtcNow:yyyyMMdd-HHmmss}-training{training.Id}.zip";
                 var modelPath = store.PathOf(storageKey);
@@ -162,6 +181,7 @@ namespace Tools.BotTrainer
                 training.Status = DartBotModelTrainingStatusEnum.Completed;
                 training.FinishedAt = DateTime.UtcNow;
                 training.TrainingDataCount = trainCount;
+                training.HyperparametersJson = JsonSerializer.Serialize(new { Chosen = chosen, Requested = requested, Tune = tune, TestFraction = testFraction });
                 training.MetricsJson = JsonSerializer.Serialize(new
                 {
                     metrics.RootMeanSquaredError,
@@ -169,7 +189,10 @@ namespace Tools.BotTrainer
                     metrics.RSquared,
                     TopChoiceHitRate = Math.Round(topChoice.HitRate, 4),
                     TopChoiceMeanRegret = Math.Round(topChoice.MeanRegret, 4),
-                    TestFraction = hyperparameters.TestFraction,
+                    TopChoiceHitRateWithinNoise = Math.Round(topChoice.HitRateWithinNoise, 4),
+                    Hyperparameters = chosen,
+                    Tuning = tuning,
+                    TestFraction = testFraction,
                     DurationSeconds = Math.Round(stopwatch.Elapsed.TotalSeconds, 1)
                 });
 
@@ -184,6 +207,14 @@ namespace Tools.BotTrainer
                 }
                 return 0;
             }
+            catch (OperationCanceledException)
+            {
+                training.Status = DartBotModelTrainingStatusEnum.Failed;
+                training.FinishedAt = DateTime.UtcNow;
+                training.ErrorMessage = "Abgebrochen.";
+                await unitOfWork.SaveChangesAsync();
+                throw;
+            }
             catch (Exception exception)
             {
                 training.Status = DartBotModelTrainingStatusEnum.Failed;
@@ -196,37 +227,82 @@ namespace Tools.BotTrainer
             }
         }
 
+        /// <summary>Raster beim Abstimmen (--tune): Baumzahl, Blätter, Mindestbeispiele je Blatt, Lernrate.</summary>
+        private static readonly TreeConfig[] TuningGrid =
+        [
+            new(200, 64, 20, 0.1f),
+            new(400, 64, 20, 0.05f),
+            new(400, 128, 10, 0.05f),
+            new(300, 32, 50, 0.1f),
+            new(600, 128, 20, 0.03f)
+        ];
+
+        public sealed record TreeConfig(int NumberOfTrees, int NumberOfLeaves, int MinimumExampleCountPerLeaf, float LearningRate)
+        {
+            public override string ToString() =>
+                $"{NumberOfTrees} Bäume, {NumberOfLeaves} Blätter, min. {MinimumExampleCountPerLeaf} je Blatt, Lernrate {LearningRate.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+
+        private static IEstimator<ITransformer> Pipeline(MLContext ml, TreeConfig config) =>
+            ml.Transforms.Categorical.OneHotEncoding(
+                    [
+                        new InputOutputColumnPair("SegmentOneHot", nameof(TargetCandidateRow.CandidateSegment)),
+                        new InputOutputColumnPair("MultiplierOneHot", nameof(TargetCandidateRow.CandidateMultiplier))
+                    ])
+                .Append(ml.Transforms.Concatenate("Features",
+                    [.. TargetCandidateRow.NumericFeatures, "SegmentOneHot", "MultiplierOneHot"]))
+                .Append(ml.Regression.Trainers.FastTree(new FastTreeRegressionTrainer.Options
+                {
+                    LabelColumnName = Label,
+                    FeatureColumnName = "Features",
+                    NumberOfTrees = config.NumberOfTrees,
+                    NumberOfLeaves = config.NumberOfLeaves,
+                    MinimumExampleCountPerLeaf = config.MinimumExampleCountPerLeaf,
+                    LearningRate = config.LearningRate
+                }));
+
         /// <summary>
         /// Was für die Zielwahl zählt: Wählt das Modell je Testsituation den Kandidaten mit dem kleinsten
         /// simulierten Wert? Verlust = simulierte Darts des gewählten Kandidaten minus die des besten.
         /// </summary>
-        private static (double HitRate, double MeanRegret) TopChoiceAccuracy(MLContext ml, IDataView scored)
+        /// <remarks>
+        /// „Im Rauschen“: der gewählte Kandidat liegt höchstens einen Standardfehler (Streuung / √Rollouts) hinter dem besten –
+        /// mit der Anzahl Rollouts sind solche Kandidaten nicht sicher unterscheidbar.
+        /// </remarks>
+        private static (double HitRate, double MeanRegret, double HitRateWithinNoise) TopChoiceAccuracy(MLContext ml, IDataView scored)
         {
             var rows = ml.Data.CreateEnumerable<ScoredRow>(scored, reuseRowObject: false).ToList();
             var situations = rows.GroupBy(r => r.SituationId).Where(g => g.Count() > 1).ToList();
 
             if (situations.Count == 0)
             {
-                return (0, 0);
+                return (0, 0, 0);
             }
 
             var hits = 0;
+            var withinNoise = 0;
             double regret = 0;
 
             foreach (var situation in situations)
             {
                 var chosen = situation.MinBy(r => r.Score)!;
+                var best = situation.MinBy(r => r.RelativeDarts)!;
+                var standardError = best.Rollouts > 0 ? best.DartsStdDev / Math.Sqrt(best.Rollouts) : 0;
+
                 regret += chosen.RelativeDarts;
                 hits += chosen.RelativeDarts <= 0.0001f ? 1 : 0;
+                withinNoise += chosen.RelativeDarts <= Math.Max(0.0001, standardError) ? 1 : 0;
             }
 
-            return (hits / (double)situations.Count, regret / situations.Count);
+            return (hits / (double)situations.Count, regret / situations.Count, withinNoise / (double)situations.Count);
         }
 
         private sealed class ScoredRow
         {
             public float SituationId { get; set; }
             public float RelativeDarts { get; set; }
+            public float DartsStdDev { get; set; }
+            public float Rollouts { get; set; }
             public float Score { get; set; }
         }
 

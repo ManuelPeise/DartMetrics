@@ -10,7 +10,8 @@ namespace Tools.BotTrainer
             "Remaining,DartsAvailable,OpponentRemaining,OutMode,IsOpened," +
             "ThrowPrecision,ThrowConsistency,TacticalIntelligence,PressureResistance,RiskTaking," +
             "CandidateSegment,CandidateMultiplier,CandidateScore,LeftoverIfHit,IsFinishingDart,LeftoverIsCheckable," +
-            "ExpectedDartsToFinish,DartsStdDev,Rollouts,SituationId,RelativeDarts";
+            "ExpectedDartsToFinish,DartsStdDev,Rollouts,SituationId,RelativeDarts," +
+            "LeftoverMinDarts,LeftoverFinishableThisVisit,HitProbability,BustProbability";
 
         private readonly StreamWriter _writer;
 
@@ -32,7 +33,9 @@ namespace Tools.BotTrainer
                     r.CandidateSegment.ToString(CultureInfo.InvariantCulture), r.CandidateMultiplier.ToString(CultureInfo.InvariantCulture),
                     F(r.CandidateScore), F(r.LeftoverIfHit), B(r.IsFinishingDart), B(r.LeftoverIsCheckable),
                     F(r.ExpectedDartsToFinish), F(r.DartsStdDev), r.Rollouts.ToString(CultureInfo.InvariantCulture),
-                    r.SituationId.ToString(CultureInfo.InvariantCulture), F(r.RelativeDarts)));
+                    r.SituationId.ToString(CultureInfo.InvariantCulture), F(r.RelativeDarts),
+                    r.LeftoverMinDarts.ToString(CultureInfo.InvariantCulture), B(r.LeftoverFinishableThisVisit),
+                    F(r.HitProbability), F(r.BustProbability)));
                 RowCount++;
             }
         }

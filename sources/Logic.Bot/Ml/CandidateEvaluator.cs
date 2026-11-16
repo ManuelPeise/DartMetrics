@@ -19,11 +19,17 @@ namespace Logic.Bot.Ml
         private readonly CandidateGenerator _generator = new();
         private readonly CandidateFeatureBuilder _featureBuilder = new();
         private readonly Func<int, IRandomSource> _randomFactory;
+        private readonly Func<IRandomSource, ITargetSelector> _policyFactory;
 
         /// <param name="randomFactory">Zufallsquelle je Strom (Standard: System.Random mit diesem Seed); in Tests austauschbar.</param>
-        public CandidateEvaluator(Func<int, IRandomSource>? randomFactory = null)
+        /// <param name="policyFactory">
+        /// Strategie für die Darts nach dem bewerteten Kandidaten (Standard: Regelwerk). Mit einem Modell (HybridTargetSelector)
+        /// lernt die nächste Runde, welcher Dart am besten ist, wenn danach das Modell weiterspielt.
+        /// </param>
+        public CandidateEvaluator(Func<int, IRandomSource>? randomFactory = null, Func<IRandomSource, ITargetSelector>? policyFactory = null)
         {
             _randomFactory = randomFactory ?? (seed => new DefaultRandomSource(new Random(seed)));
+            _policyFactory = policyFactory ?? (random => new RuleBasedTargetSelector(random));
         }
 
         public IReadOnlyList<TargetCandidateFeatures> Evaluate(BotSituation situation, RolloutOptions options)
@@ -54,14 +60,14 @@ namespace Logic.Bot.Ml
 
         public TargetCandidateFeatures EvaluateCandidate(BotSituation situation, DartTarget candidate, RolloutOptions options, int seed)
         {
-            var darts = new int[options.RolloutsPerCandidate];
+            var darts = new int[options.RolloutsFor(situation.Remaining)];
 
             for (var i = 0; i < darts.Length; i++)
             {
                 // Je Rollout ein eigener Seed: Rollout i startet für jeden Kandidaten mit denselben Würfen.
                 var rolloutSeed = unchecked(seed * 486187739 + i * 16777619);
                 var simulator = new LegRolloutSimulator(
-                    new RuleBasedTargetSelector(_randomFactory(~rolloutSeed)),
+                    _policyFactory(_randomFactory(~rolloutSeed)),
                     new ThrowSimulator(_randomFactory(rolloutSeed)));
 
                 darts[i] = simulator.Play(situation, candidate, options.MaxDartsPerLeg);

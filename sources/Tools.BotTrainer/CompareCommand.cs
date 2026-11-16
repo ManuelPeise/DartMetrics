@@ -25,6 +25,16 @@ namespace Tools.BotTrainer
         /// <summary>Unter ~0,4 enden die meisten Legs an der Obergrenze; solche Stufen sagen nichts über die Zielwahl.</summary>
         private static readonly float[] SkillLevels = [0.5f, 0.7f, 0.85f, 0.95f];
 
+        /// <summary>Prüfstand (--benchmark): Bot-Level mit Fähigkeiten aus der Level-Kurve, fester Seed.</summary>
+        public static readonly int[] BenchmarkLevels = [5, 10, 15, 20];
+
+        public const int BenchmarkSeed = 20261116;
+
+        public const int BenchmarkLegs = 5000;
+
+        /// <summary>Einen Kern frei lassen: sonst bekommen Lebenszeichen und Datenbankzugriffe des Workers keine Rechenzeit.</summary>
+        private static readonly ParallelOptions Parallelism = new() { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) };
+
         public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider, JobHooks? hooks = null)
         {
             var modelId = arguments.Int("model", 0);
@@ -35,8 +45,10 @@ namespace Tools.BotTrainer
                 return 1;
             }
 
-            var legs = arguments.Int("legs", 2000);
-            var seed = arguments.Int("seed", 1);
+            var benchmark = arguments.Flag("benchmark");
+            var legs = arguments.Int("legs", benchmark ? BenchmarkLegs : 2000);
+            // Prüfstand: immer derselbe Seed, damit Modelle untereinander vergleichbar sind.
+            var seed = benchmark ? BenchmarkSeed : arguments.Int("seed", 1);
             var maxDarts = arguments.Int("max-darts", 60);
             var outMode = arguments.Flag("straight-out") ? X01OutModeEnum.Straight : X01OutModeEnum.Double;
             var margins = arguments.Floats("margins", [0f, 0.3f, 0.5f, 1f]);
@@ -84,19 +96,21 @@ namespace Tools.BotTrainer
 
             var levelIndex = 0;
 
-            foreach (var skill in SkillLevels)
+            var stages = Stages(benchmark, tactical);
+            var averageByMargin = margins.ToDictionary(m => m, _ => 0.0);
+
+            foreach (var (skill, level, profile) in stages)
             {
                 if (hooks is not null)
                 {
-                    await hooks.ReportOrCancelAsync($"Vergleich: Skill-Stufe {levelIndex + 1}/{SkillLevels.Length}", levelIndex * 100 / SkillLevels.Length);
+                    await hooks.ReportOrCancelAsync($"Vergleich: Stufe {levelIndex + 1}/{stages.Count}", levelIndex * 100 / stages.Count);
                 }
 
                 levelIndex++;
-                var profile = new BotSkillProfile(skill, skill, tactical, skill, 0.5f);
                 var situation = new BotSituation(501, 3, 501, profile, X01InModeEnum.Straight, outMode);
 
                 var ruleDarts = new int[legs];
-                Parallel.For(0, legs, i =>
+                Parallel.For(0, legs, Parallelism, i =>
                 {
                     var legSeed = LegSeed(seed, i);
                     ruleDarts[i] = PlayLeg(situation, Rules(legSeed), legSeed, maxDarts);
@@ -107,7 +121,7 @@ namespace Tools.BotTrainer
                     var modelDarts = new int[legs];
                     long decisions = 0, overrides = 0;
 
-                    Parallel.For(0, legs, i =>
+                    Parallel.For(0, legs, Parallelism, i =>
                     {
                         var legSeed = LegSeed(seed, i);
                         // Gleiche Würfe und gleicher Taktik-Zufall wie im Regelwerk-Leg: nur die Abweichungen des Modells zählen.
@@ -128,12 +142,14 @@ namespace Tools.BotTrainer
 
                     // Signifikant schlechter = ganzes Intervall über 0.
                     worseByMargin[margin] |= low > 0;
+                    averageByMargin[margin] += meanDifference / stages.Count;
 
                     Console.WriteLine($"  {skill,5:0.00}  {margin,8:0.0#}   {ruleDarts.Average(),9:0.00}   {modelDarts.Average(),6:0.00}   {meanDifference,6:+0.00;-0.00} [{low:+0.00;-0.00}; {high:+0.00;-0.00}]   {better * 100.0 / legs,5:0.0} % / {worse * 100.0 / legs,4:0.0} %   {overrideShare,8:P1}");
 
                     levels.Add(new
                     {
                         Skill = skill,
+                        Level = level,
                         Margin = margin,
                         RuleDartsPerLeg = Math.Round(ruleDarts.Average(), 3),
                         ModelDartsPerLeg = Math.Round(modelDarts.Average(), 3),
@@ -150,6 +166,15 @@ namespace Tools.BotTrainer
             Console.WriteLine();
             Console.WriteLine($"Dauer {stopwatch.Elapsed:hh\\:mm\\:ss}. Differenz < 0 = Modell braucht weniger Darts.");
             var safeMargins = margins.Where(m => !worseByMargin[m]).ToList();
+            float? benchmarkMargin = safeMargins.Count == 0 ? null : safeMargins.MinBy(m => averageByMargin[m]);
+            double? benchmarkScore = benchmarkMargin is null ? null : Math.Round(averageByMargin[benchmarkMargin.Value], 3);
+
+            if (benchmark)
+            {
+                Console.WriteLine(benchmarkScore is null
+                    ? "Prüfstand: keine sichere Schwelle – kein Wert."
+                    : $"Prüfstand: {benchmarkScore:+0.000;-0.000} Darts pro Leg gegenüber dem Regelwerk (Schwelle {benchmarkMargin:0.##}).");
+            }
             Console.WriteLine(safeMargins.Count == 0
                 ? "Ergebnis: mit keiner Schwelle ist das Modell auf allen Stufen mindestens gleich gut – nicht aktivieren."
                 : $"Ergebnis: auf keiner Stufe signifikant schlechter mit Schwelle {string.Join(", ", safeMargins.Select(m => m.ToString("0.##")))}.");
@@ -170,6 +195,9 @@ namespace Tools.BotTrainer
                 TacticalIntelligence = tactical,
                 Margins = margins,
                 SafeMargins = safeMargins,
+                Benchmark = benchmark,
+                BenchmarkScore = benchmarkScore,
+                BenchmarkMargin = benchmarkMargin,
                 Levels = levels
             });
 
@@ -183,6 +211,33 @@ namespace Tools.BotTrainer
             }
 
             return safeMargins.Count == 0 ? 4 : 0;
+        }
+
+        /// <summary>
+        /// Stufen des Vergleichs. Prüfstand: Bot-Level aus der Level-Kurve (wie echte Bots); sonst alle Fähigkeiten gleich
+        /// <c>skill</c> und Taktik fest.
+        /// </summary>
+        private static List<(float Skill, int? Level, BotSkillProfile Profile)> Stages(bool benchmark, float tactical)
+        {
+            if (!benchmark)
+            {
+                return SkillLevels.Select(s => (s, (int?)null, new BotSkillProfile(s, s, tactical, s, 0.5f))).ToList();
+            }
+
+            var options = new Shared.Models.Options.DartBotOptions();
+            var start = options.StartProfile;
+
+            return BenchmarkLevels.Select(level =>
+            {
+                var profile = new BotSkillProfile(
+                    Logic.Bot.Learning.DartBotLevelCurve.SkillForLevel(options, start.ThrowPrecision, level),
+                    Logic.Bot.Learning.DartBotLevelCurve.SkillForLevel(options, start.ThrowConsistency, level),
+                    Logic.Bot.Learning.DartBotLevelCurve.SkillForLevel(options, start.TacticalIntelligence, level),
+                    Logic.Bot.Learning.DartBotLevelCurve.SkillForLevel(options, start.PressureResistance, level),
+                    start.RiskTaking);
+
+                return ((float)Math.Round(profile.ThrowPrecision, 2), (int?)level, profile);
+            }).ToList();
         }
 
         private static int LegSeed(int seed, int leg) => unchecked(seed * 1_000_003 + leg);

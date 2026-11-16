@@ -162,7 +162,9 @@ services:
       - ./ml_data:/data/ml
 
     environment:
-      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
+      # SslMode=Disabled: nur im internen Docker-Netz. Unter Volllast lief sonst der TLS-Handshake in einen Timeout,
+      # dessen Callback den Prozess beendet hat (MySql.Data, StartSSLAsync).
+      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD};SslMode=Disabled"
       MlData__Path: /data/ml
       BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
 
@@ -187,7 +189,9 @@ services:
       - ./ml_data:/data/ml
 
     environment:
-      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
+      # SslMode=Disabled: nur im internen Docker-Netz. Unter Volllast lief sonst der TLS-Handshake in einen Timeout,
+      # dessen Callback den Prozess beendet hat (MySql.Data, StartSSLAsync).
+      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD};SslMode=Disabled"
       MlData__Path: /data/ml
       BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
 

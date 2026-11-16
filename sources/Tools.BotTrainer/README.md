@@ -32,6 +32,7 @@ Er prüft alle 10 s die Tabelle `DartBotTrainingJobs` und führt einen Auftrag a
 |----------|-------------|----------|--------------------------|
 | Schnell  | 3000        | 50       | 500                      |
 | Standard | 20000       | 50       | 2000                     |
+| Gründlich | 40000      | 75       | 5000                     |
 
 Standard entspricht `deploy/train-model`. „Schnell“ ist nur ein Funktionstest: mit wenigen Situationen ist das Modell meist schlechter als das Regelwerk.
 
@@ -41,6 +42,31 @@ Standard entspricht `deploy/train-model`. „Schnell“ ist nur ein Funktionstes
 - Ohne Lebenszeichen (alle 30 s) für 10 min gilt ein Auftrag als verloren; nach einem Neustart des Workers werden laufende Aufträge als fehlgeschlagen markiert.
 - CPU-Begrenzung über `BOTTRAINER_CPUS` in `.env` (Standard 2), damit die API daneben spielbar bleibt.
 - Logs: `docker compose logs -f bottrainer-worker`.
+
+Standard und Gründlich stimmen das Training ab (`--tune`); der Vergleich läuft immer als Prüfstand (`--benchmark`).
+
+## Besseres Modell: Prüfstand, Abstimmen, Runden (Schema 3)
+
+- **Merkmale, Schema 3:** zusätzlich `LeftoverMinDarts` (kürzester Checkout-Weg nach Treffer), `LeftoverFinishableThisVisit`,
+  `HitProbability` und `BustProbability` (je Ziel und gerundetem Profil simuliert, zwischengespeichert). Modelle mit Schema 2
+  gelten danach als „Altes Schema“ und müssen neu trainiert werden.
+- **Situationen (Sampler v2):** Rest gewichtet 2–60 30 %, 61–110 25 %, 111–170 20 %, 171–501 25 %; Fähigkeiten wie echte Bots
+  (Level 3–20 über die Level-Kurve ± 0,05); Gegnerstand halb in der Nähe des eigenen Rests.
+- **Rollouts nach Rest:** ≤ 100 doppelt, > 300 halb so viele (`--fixed-rollouts` schaltet das ab).
+- **`train --tune`:** fünf Varianten (Bäume, Blätter, Mindestbeispiele, Lernrate) auf einem Validierungsanteil der Trainingsdaten,
+  die mit dem kleinsten Verlust (Regret) wird auf allen Trainingsdaten trainiert. Ergebnis und alle Varianten in `MetricsJson`.
+- **`compare --benchmark`:** Prüfstand mit festem Seed, 5.000 Legs je Stufe, Bot-Level 5/10/15/20 (Fähigkeiten aus der Level-Kurve).
+  `BenchmarkScore` = mittlere Darts pro Leg gegenüber dem Regelwerk mit der besten sicheren Schwelle (negativ = besser).
+  Nur Werte aus dem Prüfstand sind zwischen Modellen vergleichbar.
+- **Runden (`generate --policy-model <id>`):** In den Rollouts spielt das Modell (Hybrid, Schwelle `--policy-margin`) bis Rest
+  `--policy-max-remaining` (Standard 170) weiter statt des Regelwerks; die Vorhersagen werden je Situation zwischengespeichert.
+  Ablauf je Runde: generate mit dem besten Modell → train --tune → compare --benchmark; weiter nur, wenn der Prüfstand besser wird
+  (höchstens 3 Runden oder bis die Verbesserung unter 0,05 Darts liegt). Die Ausgabe zeigt ms je Situation – damit messen,
+  ob sich das im Admin-Bereich lohnt.
+
+```
+docker compose --profile tools run --rm bottrainer generate --situations 2000 --seed 7 --policy-model 2
+```
 
 ## generate (Phase 2)
 

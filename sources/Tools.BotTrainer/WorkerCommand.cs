@@ -60,7 +60,13 @@ namespace Tools.BotTrainer
             return 0;
         }
 
-        /// <summary>Nach Neustart: was beim Stoppen lief, ist verloren.</summary>
+        /// <summary>Markiert einen Auftrag, dessen Vergleich nach einem Neustart schon einmal wiederholt wurde.</summary>
+        private const string ResumedMarker = "Vergleich nach Neustart des Trainers wiederholt.";
+
+        /// <summary>
+        /// Nach Neustart: Hat ein unterbrochener Auftrag schon ein Modell, wird nur der Vergleich wiederholt (einmal);
+        /// sonst ist er verloren.
+        /// </summary>
         private static async Task FailInterruptedJobsAsync(ServiceProvider provider)
         {
             await using var scope = provider.CreateAsyncScope();
@@ -71,15 +77,25 @@ namespace Tools.BotTrainer
 
             foreach (var job in running)
             {
+                if (job.ModelId is not null && job.ErrorMessage != ResumedMarker && !job.CancelRequested)
+                {
+                    job.Status = DartBotTrainingJobStatusEnum.Queued;
+                    job.Phase = DartBotTrainingJobPhaseEnum.Compare;
+                    job.ErrorMessage = ResumedMarker;
+                    job.ProgressText = "Trainer neu gestartet – Vergleich wird wiederholt.";
+                    Console.WriteLine($"Auftrag {job.Id}: Modell {job.ModelId} vorhanden, Vergleich wird wiederholt.");
+                    continue;
+                }
+
                 job.Status = DartBotTrainingJobStatusEnum.Failed;
                 job.FinishedAt = DateTime.UtcNow;
                 job.ErrorMessage = "Der Trainer wurde während des Auftrags neu gestartet.";
+                Console.WriteLine($"Auftrag {job.Id} als fehlgeschlagen markiert (unterbrochen).");
             }
 
             if (running.Count > 0)
             {
                 await unitOfWork.SaveChangesAsync();
-                Console.WriteLine($"{running.Count} unterbrochene(r) Auftrag/Aufträge als fehlgeschlagen markiert.");
             }
         }
 
@@ -98,12 +114,14 @@ namespace Tools.BotTrainer
                 return null;
             }
 
+            var resumed = job.ModelId is not null;
+
             job.Status = DartBotTrainingJobStatusEnum.Running;
-            job.Phase = DartBotTrainingJobPhaseEnum.Generate;
-            job.StartedAt = DateTime.UtcNow;
+            job.Phase = resumed ? DartBotTrainingJobPhaseEnum.Compare : DartBotTrainingJobPhaseEnum.Generate;
+            job.StartedAt ??= DateTime.UtcNow;
             job.HeartbeatAt = DateTime.UtcNow;
-            job.ProgressPercent = 0;
-            job.ProgressText = "Gestartet";
+            job.ProgressPercent = resumed ? GenerateShare + TrainShare : 0;
+            job.ProgressText = resumed ? "Vergleich wird wiederholt …" : "Gestartet";
             await unitOfWork.SaveChangesAsync();
 
             return job.Id;
@@ -119,32 +137,47 @@ namespace Tools.BotTrainer
 
             try
             {
-                // 1. Datensatz
-                var generate = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Generate, 0, GenerateShare, stop);
-                var exitCode = await GenerateCommand.RunAsync(Arguments.Parse(
-                [
-                    "generate", "--situations", job.Situations.ToString(), "--rollouts", job.RolloutsPerCandidate.ToString(), "--seed", job.Seed.ToString()
-                ]), store, provider, generate);
+                int modelId;
+                int exitCode;
 
-                var datasetId = generate.CreatedId ?? throw new InvalidOperationException($"Datensatz konnte nicht erzeugt werden (Exit-Code {exitCode}).");
-                await UpdateAsync(provider, jobId, j => j.DatasetId = datasetId);
+                if (job.ModelId is not null)
+                {
+                    // Fortsetzung nach Neustart: Datensatz und Modell gibt es schon.
+                    modelId = job.ModelId.Value;
+                    Console.WriteLine($"Auftrag {jobId}: setze mit dem Vergleich von Modell {modelId} fort.");
+                }
+                else
+                {
+                    // 1. Datensatz
+                    var generate = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Generate, 0, GenerateShare, stop);
+                    exitCode = await GenerateCommand.RunAsync(Arguments.Parse(
+                    [
+                        "generate", "--situations", job.Situations.ToString(), "--rollouts", job.RolloutsPerCandidate.ToString(), "--seed", job.Seed.ToString()
+                    ]), store, provider, generate);
 
-                // 2. Training
-                var train = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Train, GenerateShare, TrainShare, stop);
-                await train.ReportOrCancelAsync("Modell wird trainiert …", 0);
-                exitCode = await TrainCommand.RunAsync(Arguments.Parse(
-                [
-                    "train", "--dataset", datasetId.ToString(), "--seed", job.Seed.ToString()
-                ]), store, provider, train);
+                    var datasetId = generate.CreatedId ?? throw new InvalidOperationException($"Datensatz konnte nicht erzeugt werden (Exit-Code {exitCode}).");
+                    await UpdateAsync(provider, jobId, j => j.DatasetId = datasetId);
 
-                var modelId = train.CreatedId ?? throw new InvalidOperationException($"Training fehlgeschlagen (Exit-Code {exitCode}), Details im Trainingslauf.");
-                await UpdateAsync(provider, jobId, j => j.ModelId = modelId);
+                    // 2. Training
+                    var train = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Train, GenerateShare, TrainShare, stop);
+                    await train.ReportOrCancelAsync("Modell wird trainiert …", 0);
+                    exitCode = await TrainCommand.RunAsync(Arguments.Parse(
+                    [
+                        // Abstimmen kostet etwa die fünffache Trainingszeit; beim Funktionstest (Schnell) nicht.
+                        "train", "--dataset", datasetId.ToString(), "--seed", job.Seed.ToString(),
+                        .. (job.Preset == DartBotTrainingJobPresetEnum.Quick ? Array.Empty<string>() : ["--tune"])
+                    ]), store, provider, train);
+
+                    modelId = train.CreatedId ?? throw new InvalidOperationException($"Training fehlgeschlagen (Exit-Code {exitCode}), Details im Trainingslauf.");
+                    await UpdateAsync(provider, jobId, j => j.ModelId = modelId);
+                }
 
                 // 3. Vergleich gegen das Regelwerk
                 var compare = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Compare, GenerateShare + TrainShare, 100 - GenerateShare - TrainShare, stop);
                 exitCode = await CompareCommand.RunAsync(Arguments.Parse(
                 [
-                    "compare", "--model", modelId.ToString(), "--legs", job.CompareLegs.ToString(), "--seed", job.Seed.ToString()
+                    // Prüfstand: fester Seed und Bot-Level, damit Modelle verschiedener Aufträge vergleichbar sind.
+                    "compare", "--model", modelId.ToString(), "--legs", job.CompareLegs.ToString(), "--benchmark"
                 ]), store, provider, compare);
 
                 if (compare.ComparisonPassed is null)
@@ -154,6 +187,7 @@ namespace Tools.BotTrainer
 
                 await UpdateAsync(provider, jobId, j =>
                 {
+                    j.ErrorMessage = null;
                     j.Status = DartBotTrainingJobStatusEnum.Completed;
                     j.FinishedAt = DateTime.UtcNow;
                     j.ProgressPercent = 100;

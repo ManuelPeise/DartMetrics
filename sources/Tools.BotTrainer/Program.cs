@@ -22,9 +22,10 @@ var arguments = Arguments.Parse(args);
 if (arguments.Command is not ("generate" or "train" or "compare" or "activate" or "deactivate" or "worker"))
 {
     Console.WriteLine("Verwendung:");
-    Console.WriteLine("  generate --situations <n> [--rollouts 50] [--seed 1] [--max-darts 60] [--no-db]");
-    Console.WriteLine("  train --dataset <id> [--seed 1] [--trees 200] [--leaves 64] [--min-leaf 20]");
-    Console.WriteLine("  compare --model <id> [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--max-darts 60] [--straight-out]");
+    Console.WriteLine("  generate --situations <n> [--rollouts 50] [--seed 1] [--max-darts 60] [--fixed-rollouts] [--no-db]");
+    Console.WriteLine("           [--policy-model <id> [--policy-margin 0.3] [--policy-max-remaining 170]]");
+    Console.WriteLine("  train --dataset <id> [--seed 1] [--tune] [--trees 200] [--leaves 64] [--min-leaf 20] [--learning-rate 0.1]");
+    Console.WriteLine("  compare --model <id> [--benchmark] [--legs 2000] [--margins 0,0.3,0.5,1] [--tactical 1] [--seed 1] [--max-darts 60] [--straight-out]");
     Console.WriteLine("  activate --model <id>");
     Console.WriteLine("  deactivate");
     Console.WriteLine("  worker");

@@ -4,6 +4,7 @@
     public enum DartBotTrainingJobPresetEnum
     {
         Quick = 1,
-        Standard = 2
+        Standard = 2,
+        Thorough = 3
     }
 }

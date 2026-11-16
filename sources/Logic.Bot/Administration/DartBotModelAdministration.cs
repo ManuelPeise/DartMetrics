@@ -197,6 +197,12 @@ namespace Logic.Bot.Administration
 
                 item.TopChoiceHitRate = metrics.TopChoiceHitRate;
                 item.TopChoiceMeanRegret = metrics.TopChoiceMeanRegret;
+                item.TopChoiceHitRateWithinNoise = metrics.TopChoiceHitRateWithinNoise;
+                item.BenchmarkScore = metrics.Comparison?.Benchmark == true ? metrics.Comparison.BenchmarkScore : null;
+                item.BenchmarkMargin = metrics.Comparison?.Benchmark == true ? metrics.Comparison.BenchmarkMargin : null;
+                item.Hyperparameters = metrics.Hyperparameters is null
+                    ? null
+                    : $"{metrics.Hyperparameters.NumberOfTrees} Bäume · {metrics.Hyperparameters.NumberOfLeaves} Blätter · Lernrate {metrics.Hyperparameters.LearningRate.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}";
                 item.ComparedAt = metrics.Comparison?.ComparedAt;
                 item.ComparedLegsPerLevel = metrics.Comparison?.LegsPerLevel;
                 item.Comparison = metrics.Comparison?.Levels ?? [];
@@ -230,13 +236,25 @@ namespace Logic.Bot.Administration
         {
             public double? TopChoiceHitRate { get; set; }
             public double? TopChoiceMeanRegret { get; set; }
+            public double? TopChoiceHitRateWithinNoise { get; set; }
+            public TreeMetrics? Hyperparameters { get; set; }
             public ComparisonMetrics? Comparison { get; set; }
+        }
+
+        private sealed class TreeMetrics
+        {
+            public int NumberOfTrees { get; set; }
+            public int NumberOfLeaves { get; set; }
+            public float LearningRate { get; set; }
         }
 
         private sealed class ComparisonMetrics
         {
             public DateTime? ComparedAt { get; set; }
             public int? LegsPerLevel { get; set; }
+            public bool Benchmark { get; set; }
+            public double? BenchmarkScore { get; set; }
+            public float? BenchmarkMargin { get; set; }
             public List<DartBotModelComparisonLevel>? Levels { get; set; }
         }
     }

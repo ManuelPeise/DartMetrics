@@ -26,7 +26,11 @@ namespace Logic.Bot.Ml
             CandidateScore = f.CandidateScore,
             LeftoverIfHit = f.LeftoverIfHit,
             IsFinishingDart = f.IsFinishingDart ? 1 : 0,
-            LeftoverIsCheckable = f.LeftoverIsCheckable ? 1 : 0
+            LeftoverIsCheckable = f.LeftoverIsCheckable ? 1 : 0,
+            LeftoverMinDarts = f.LeftoverMinDarts,
+            LeftoverFinishableThisVisit = f.LeftoverFinishableThisVisit ? 1 : 0,
+            HitProbability = f.HitProbability,
+            BustProbability = f.BustProbability
         };
 
         [LoadColumn(0)] public float Remaining { get; set; }
@@ -46,16 +50,30 @@ namespace Logic.Bot.Ml
         [LoadColumn(14)] public float IsFinishingDart { get; set; }
         [LoadColumn(15)] public float LeftoverIsCheckable { get; set; }
         [LoadColumn(16)] public float ExpectedDartsToFinish { get; set; }
-        // 17 DartsStdDev, 18 Rollouts: nicht geladen
+        // Nur für die Auswertung (Standardfehler des Labels), keine Merkmale.
+        [LoadColumn(17)] public float DartsStdDev { get; set; }
+
+        [LoadColumn(18)] public float Rollouts { get; set; }
+
         [LoadColumn(19)] public float SituationId { get; set; }
         [LoadColumn(20)] public float RelativeDarts { get; set; }
+
+        // Schema 3 (hinten angehängt, damit die bisherigen Spalten ihre Nummer behalten)
+        [LoadColumn(21)] public float LeftoverMinDarts { get; set; }
+
+        [LoadColumn(22)] public float LeftoverFinishableThisVisit { get; set; }
+
+        [LoadColumn(23)] public float HitProbability { get; set; }
+
+        [LoadColumn(24)] public float BustProbability { get; set; }
 
         /// <summary>Numerische Merkmale (ohne die one-hot-kodierten Kategorien und ohne Label).</summary>
         public static readonly string[] NumericFeatures =
         [
             nameof(Remaining), nameof(DartsAvailable), nameof(OpponentRemaining), nameof(OutMode), nameof(IsOpened),
             nameof(ThrowPrecision), nameof(ThrowConsistency), nameof(TacticalIntelligence), nameof(PressureResistance), nameof(RiskTaking),
-            nameof(CandidateScore), nameof(LeftoverIfHit), nameof(IsFinishingDart), nameof(LeftoverIsCheckable)
+            nameof(CandidateScore), nameof(LeftoverIfHit), nameof(IsFinishingDart), nameof(LeftoverIsCheckable),
+            nameof(LeftoverMinDarts), nameof(LeftoverFinishableThisVisit), nameof(HitProbability), nameof(BustProbability)
         ];
     }
 }

@@ -1,3 +1,5 @@
+﻿using System.Collections.Concurrent;
+using Shared.Enums.X01;
 using Shared.Interfaces.Bot;
 using Shared.Models.Bot;
 using Shared.Models.Bot.Ml;
@@ -7,7 +9,8 @@ namespace Logic.Bot.Ml
     /// <summary>
     /// Zielwahl mit Modell (Phase 5): das Regelwerk schlägt ein Ziel vor; das Modell bewertet alle Kandidaten und
     /// ersetzt den Vorschlag nur, wenn sein bester Kandidat laut Vorhersage um mehr als <c>margin</c> Darts besser ist.
-    /// Im Vergleich (Modell 3, Schwelle 0,3) 0,2–0,5 Darts pro Leg weniger als das Regelwerk auf allen Stufen 0,5–0,95.
+    /// Für Rollouts mit Modell (Training in Runden) lassen sich die Vorhersagen je Zustand zwischenspeichern und das
+    /// Modell auf den Finish-Bereich beschränken; im Spiel bleibt beides aus.
     /// </summary>
     public sealed class HybridTargetSelector : ITargetSelector
     {
@@ -16,14 +19,25 @@ namespace Logic.Bot.Ml
         private readonly LoadedTargetModel _model;
         private readonly ITargetSelector _rules;
         private readonly float _margin;
+        private readonly ConcurrentDictionary<StateKey, IReadOnlyDictionary<DartTarget, float>>? _cache;
+        private readonly int? _modelMaxRemaining;
         private int _decisions;
         private int _overrides;
 
-        public HybridTargetSelector(LoadedTargetModel model, ITargetSelector rules, float margin)
+        /// <param name="cache">Gemeinsamer Speicher der Vorhersagen je Zustand (z. B. je Situation beim Erzeugen eines Datensatzes).</param>
+        /// <param name="modelMaxRemaining">Nur bis zu diesem Rest entscheidet das Modell mit, darüber allein das Regelwerk.</param>
+        public HybridTargetSelector(
+            LoadedTargetModel model,
+            ITargetSelector rules,
+            float margin,
+            ConcurrentDictionary<StateKey, IReadOnlyDictionary<DartTarget, float>>? cache = null,
+            int? modelMaxRemaining = null)
         {
             _model = model;
             _rules = rules;
             _margin = Math.Max(0f, margin);
+            _cache = cache;
+            _modelMaxRemaining = modelMaxRemaining;
         }
 
         /// <summary>Entscheidungen bzw. Abweichungen vom Regelwerk (für Auswertungen).</summary>
@@ -36,23 +50,29 @@ namespace Logic.Bot.Ml
             var ruleTarget = _rules.SelectTarget(context);
             Interlocked.Increment(ref _decisions);
 
+            if (_modelMaxRemaining is not null && context.Remaining > _modelMaxRemaining.Value)
+            {
+                return ruleTarget;
+            }
+
             var situation = new BotSituation(
                 context.Remaining, context.DartsAvailable, context.OpponentRemaining, context.Profile,
                 context.InMode, context.OutMode, context.IsOpened);
 
-            DartTarget? best = null;
-            var bestScore = float.MaxValue;
-            float? ruleScore = null;
+            var scores = _cache is null
+                ? Score(situation)
+                : _cache.GetOrAdd(StateKey.Of(context), _ => Score(situation));
 
-            foreach (var candidate in _generator.Generate(situation))
+            if (scores.Count == 0)
             {
-                var score = Predict(situation, candidate);
+                return ruleTarget;
+            }
 
-                if (candidate == ruleTarget)
-                {
-                    ruleScore = score;
-                }
+            DartTarget best = default;
+            var bestScore = float.MaxValue;
 
+            foreach (var (candidate, score) in scores)
+            {
                 if (score < bestScore)
                 {
                     bestScore = score;
@@ -60,23 +80,45 @@ namespace Logic.Bot.Ml
                 }
             }
 
-            if (best is null)
-            {
-                return ruleTarget;
-            }
+            var ruleScore = scores.TryGetValue(ruleTarget, out var known) ? known : Predict(situation, ruleTarget);
 
-            ruleScore ??= Predict(situation, ruleTarget);
-
-            if (best.Value != ruleTarget && bestScore + _margin < ruleScore.Value)
+            if (best != ruleTarget && bestScore + _margin < ruleScore)
             {
                 Interlocked.Increment(ref _overrides);
-                return best.Value;
+                return best;
             }
 
             return ruleTarget;
         }
 
+        private IReadOnlyDictionary<DartTarget, float> Score(BotSituation situation)
+        {
+            var scores = new Dictionary<DartTarget, float>();
+
+            foreach (var candidate in _generator.Generate(situation))
+            {
+                scores[candidate] = Predict(situation, candidate);
+            }
+
+            return scores;
+        }
+
         private float Predict(BotSituation situation, DartTarget candidate) =>
             _model.Predict(TargetCandidateRow.From(_features.Build(situation, candidate)));
+
+        /// <summary>Alles, was die Merkmale bestimmt (die Vorhersage hängt nur davon ab).</summary>
+        public readonly record struct StateKey(
+            int Remaining,
+            int DartsAvailable,
+            int OpponentRemaining,
+            X01InModeEnum InMode,
+            X01OutModeEnum OutMode,
+            bool IsOpened,
+            BotSkillProfile Profile)
+        {
+            public static StateKey Of(BotThrowDecisionContext context) => new(
+                context.Remaining, context.DartsAvailable, context.OpponentRemaining,
+                context.InMode, context.OutMode, context.IsOpened, context.Profile);
+        }
     }
 }

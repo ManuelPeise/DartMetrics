@@ -12,6 +12,8 @@ namespace Shared.Models.Bot
         {
             DartBotTrainingJobPresetEnum.Quick => (3000, 50, 500),
             DartBotTrainingJobPresetEnum.Standard => (20000, 50, 2000),
+            // Für über Nacht: doppelt so viele Situationen, mehr Rollouts, Prüfstand mit 5.000 Legs je Stufe.
+            DartBotTrainingJobPresetEnum.Thorough => (40000, 75, 5000),
             _ => throw new ArgumentOutOfRangeException(nameof(preset), preset, "Unknown training preset.")
         };
     }

@@ -131,6 +131,7 @@
         <HeaderTemplate>
             <th>Modell</th>
             <th>Training</th>
+            <th>Prüfstand</th>
             <th>Vergleich gegen Regelwerk</th>
             <th>Datei</th>
             <th>Status</th>
@@ -149,11 +150,34 @@
                     {
                         <text> · Treffer @model.TopChoiceHitRate.Value.ToString("P1", German)</text>
                     }
+                    @if (model.TopChoiceHitRateWithinNoise is not null)
+                    {
+                        <text> (im Rauschen @model.TopChoiceHitRateWithinNoise.Value.ToString("P0", German))</text>
+                    }
                     @if (model.TopChoiceMeanRegret is not null)
                     {
                         <text> · Regret @model.TopChoiceMeanRegret.Value.ToString("0.00", German)</text>
                     }
+                    @if (model.Hyperparameters is not null)
+                    {
+                        <br /><text>@model.Hyperparameters</text>
+                    }
                 </small>
+            </td>
+            <td data-label="Prüfstand" class="adm-cell-title">
+                @if (model.BenchmarkScore is not null)
+                {
+                    <strong class="adm-num">@model.BenchmarkScore.Value.ToString("+0.00;−0.00;0.00", German) Darts</strong>
+                    <small>pro Leg ggü. Regelwerk · Schwelle @model.BenchmarkMargin?.ToString("0.0#", German)</small>
+                    @if (model.Id == BestBenchmarkModelId)
+                    {
+                        <AdminStatusBadge Text="Bestes Modell" Status="AdminStatus.Success" />
+                    }
+                }
+                else
+                {
+                    <small>@(model.ComparedAt is null ? "–" : "Kein Prüfstand oder keine sichere Schwelle")</small>
+                }
             </td>
             <td data-label="Vergleich">
                 @{ var levels = LevelsFor(model); }
@@ -167,7 +191,7 @@
                         @foreach (var level in levels)
                         {
                             <li>
-                                <span>Skill @level.Skill.ToString("0.00", German)</span>
+                                <span>@StageLabel(level)</span>
                                 <span class="adm-num" title="95-%-Intervall @level.Ci95Low.ToString("0.00", German) bis @level.Ci95High.ToString("0.00", German) · abgewichen @level.OverrideShare.ToString("P1", German)">
                                     @level.MeanDifference.ToString("+0.00;−0.00;0.00", German) Darts
                                 </span>
@@ -222,7 +246,8 @@
     private static readonly IReadOnlyList<AdminSelectOption> PresetOptions =
     [
         new(nameof(DartBotTrainingJobPresetEnum.Quick), "Schnell – 3.000 Situationen, 500 Vergleichs-Legs (Funktionstest)"),
-        new(nameof(DartBotTrainingJobPresetEnum.Standard), "Standard – 20.000 Situationen, 2.000 Vergleichs-Legs")
+        new(nameof(DartBotTrainingJobPresetEnum.Standard), "Standard – 20.000 Situationen, 2.000 Vergleichs-Legs"),
+        new(nameof(DartBotTrainingJobPresetEnum.Thorough), "Gründlich – 40.000 Situationen, 5.000 Vergleichs-Legs (über Nacht)")
     ];
 
     private List<DartBotTrainingJobListItem>? _jobs;
@@ -444,8 +469,22 @@
         _pollTimer?.Dispose();
     }
 
-    private static string PresetText(DartBotTrainingJobPresetEnum preset) =>
-        preset == DartBotTrainingJobPresetEnum.Standard ? "Standard" : "Schnell";
+    private static string PresetText(DartBotTrainingJobPresetEnum preset) => preset switch
+    {
+        DartBotTrainingJobPresetEnum.Standard => "Standard",
+        DartBotTrainingJobPresetEnum.Thorough => "Gründlich",
+        _ => "Schnell"
+    };
+
+    private static string StageLabel(DartBotModelComparisonLevel level) =>
+        level.Level is null ? "Skill " + level.Skill.ToString("0.00", German) : "Level " + level.Level;
+
+    /// <summary>Modell mit dem besten Prüfstand-Wert (nur gültige Dateien).</summary>
+    private int? BestBenchmarkModelId => _overview?.Models
+        .Where(m => m.BenchmarkScore is not null && m.FileStatus == DartBotModelFileStatusEnum.Ok)
+        .OrderBy(m => m.BenchmarkScore)
+        .Select(m => (int?)m.Id)
+        .FirstOrDefault();
 
     private static int PhaseNumber(DartBotTrainingJobPhaseEnum phase) => (int)phase;
 

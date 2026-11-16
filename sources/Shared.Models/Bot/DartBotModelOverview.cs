@@ -48,12 +48,26 @@ namespace Shared.Models.Bot
 
         public int? ComparedLegsPerLevel { get; set; }
 
+        /// <summary>Prüfstand (fester Seed, Bot-Level 5–20): mittlere Darts pro Leg gegenüber dem Regelwerk, negativ = besser. Null = kein Prüfstand oder keine sichere Schwelle.</summary>
+        public double? BenchmarkScore { get; set; }
+
+        public float? BenchmarkMargin { get; set; }
+
+        /// <summary>Anteil Testsituationen, in denen die Wahl höchstens einen Standardfehler hinter dem besten Kandidaten liegt.</summary>
+        public double? TopChoiceHitRateWithinNoise { get; set; }
+
+        /// <summary>Gewählte Trainings-Einstellungen (Text), null bei alten Modellen.</summary>
+        public string? Hyperparameters { get; set; }
+
         public List<DartBotModelComparisonLevel> Comparison { get; set; } = [];
     }
 
     public class DartBotModelComparisonLevel
     {
         public float Skill { get; set; }
+
+        /// <summary>Bot-Level beim Prüfstand, sonst null.</summary>
+        public int? Level { get; set; }
         public float Margin { get; set; }
         public double RuleDartsPerLeg { get; set; }
         public double ModelDartsPerLeg { get; set; }
