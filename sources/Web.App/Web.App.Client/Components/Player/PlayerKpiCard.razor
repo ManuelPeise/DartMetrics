@@ -1,0 +1,41 @@
+@*
+    Große Kennzahl mit Vergleich zum Vorzeitraum (▲/▼). Change null = kein Vergleich möglich.
+    Farben nur aus player.css; Richtung zusätzlich als Text, nicht nur über die Farbe.
+*@
+<div class="pa-kpi">
+    <span class="pa-kpi__label">@Label</span>
+    <strong class="pa-kpi__value">@(Value is { } v ? Format(v) + Unit : "–")</strong>
+    @if (Change is { } change && Value is not null)
+    {
+        var direction = Math.Abs(change) < Threshold ? 0 : Math.Sign(change);
+        <span class="pa-kpi__trend @(direction > 0 ? "is-up" : direction < 0 ? "is-down" : "")">
+            <span aria-hidden="true">@(direction > 0 ? "▲" : direction < 0 ? "▼" : "■")</span>
+            @(change >= 0 ? "+" : "−")@Format(Math.Abs(change))@Unit
+            <small>@CompareText</small>
+        </span>
+    }
+    else if (Value is not null && !string.IsNullOrEmpty(NoCompareText))
+    {
+        <span class="pa-kpi__trend"><small>@NoCompareText</small></span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    [Parameter] public decimal? Value { get; set; }
+
+    [Parameter] public decimal? Change { get; set; }
+
+    /// <summary>z. B. " %" bei Quoten.</summary>
+    [Parameter] public string Unit { get; set; } = "";
+
+    [Parameter] public string CompareText { get; set; } = "ggü. Vorzeitraum";
+
+    [Parameter] public string? NoCompareText { get; set; }
+
+    /// <summary>Änderungen darunter gelten als unverändert (■).</summary>
+    [Parameter] public decimal Threshold { get; set; } = 0.05m;
+
+    private static string Format(decimal value) => value.ToString("0.0");
+}

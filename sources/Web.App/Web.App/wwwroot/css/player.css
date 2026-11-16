@@ -1091,3 +1091,178 @@ a.pa-card:hover {
         grid-template-areas: "info" "input" "chalk";
     }
 }
+
+/* ---------- Statistik-Dashboard ---------- */
+
+.pa-stats-filters {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.pa-stats-custom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+    .pa-stats-custom .pl-field { min-width: 10rem; }
+
+.pa-stats-summary {
+    margin: 1.25rem 0 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.85rem;
+}
+
+.pa-section__subtitle {
+    margin: 1.5rem 0 0.6rem;
+    font-family: var(--pl-font-display);
+    font-size: 1.1rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* Vier große Kennzahlen */
+.pa-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.pa-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    background: var(--pa-surface);
+}
+
+.pa-kpi__label {
+    color: var(--pl-ink-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.pa-kpi__value {
+    font-family: var(--pl-font-display);
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--pl-brass-strong);
+}
+
+.pa-kpi__trend {
+    color: var(--pl-ink-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+    .pa-kpi__trend small { margin-left: 0.25rem; font-weight: 400; }
+
+    .pa-kpi__trend.is-up { color: #5fbf73; }
+
+    .pa-kpi__trend.is-down { color: #e0646c; }
+
+/* Average-Diagramm mit zwei Linien */
+.pa-trend--large { margin-top: 0.25rem; }
+
+.pa-trend__chart--large { height: 160px; }
+
+.pa-trend__line--second { stroke: var(--pl-ink-muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+.pa-trend__ref { stroke: var(--pl-brass-strong); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
+
+.pa-trend__dot { fill: var(--pl-brass); stroke: none; cursor: default; }
+
+.pa-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: var(--pl-ink-muted);
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+.pa-legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+.pa-legend__swatch { display: inline-block; width: 1rem; height: 0; border-top: 2px solid var(--pl-brass); }
+
+.pa-legend__swatch--second { border-top: 2px dashed var(--pl-ink-muted); }
+
+.pa-legend__swatch--ref { border-top: 1px dotted var(--pl-brass-strong); }
+
+/* Score-Verteilung */
+.pa-distribution { margin-top: 1rem; }
+
+.pa-distribution__bars {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.35rem;
+    height: 150px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pa-distribution__bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    gap: 0.25rem;
+}
+
+.pa-distribution__count { color: var(--pl-ink-muted); font-size: 0.7rem; }
+
+.pa-distribution__fill {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: rgba(209, 164, 95, 0.45);
+}
+
+    .pa-distribution__fill.is-high { background: var(--pl-brass); }
+
+.pa-distribution__label {
+    color: var(--pl-ink-muted);
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+
+/* Entwicklung */
+.pa-insights {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+    .pa-insights li {
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--pl-brass);
+        border-radius: 0 var(--pa-radius-sm) var(--pa-radius-sm) 0;
+        background: var(--pa-surface);
+        font-size: 0.9rem;
+    }
+
+.pa-development th small,
+.pa-development td small { display: block; font-weight: 400; }
+
+.pa-development td small.pa-kpi__trend { display: inline; margin-left: 0.4rem; }
+
+@media (max-width: 900px) {
+    .pa-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+    .pa-kpi__value { font-size: 2.1rem; }
+
+    .pa-distribution__label { font-size: 0.55rem; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+    .pa-distribution__bars { height: 180px; }
+}

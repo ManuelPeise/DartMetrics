@@ -19,7 +19,7 @@ Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bed
 | `Logic.Profile` | Benutzerprofil | [README](Logic.Profile/README.md) |
 | `Logic.Training` | Trainings (Segment, Checkout, X01, Around the Clock) | [README](Logic.Training/README.md) |
 | `Logic.Bot` | DartBots: Simulation, Zielwahl, Spiele, Lernen, Verwaltung, ML (Kandidaten, Rollouts, Hybrid-Zielwahl mit Modell, Modellverwaltung für Admins) | [README](Logic.Bot/README.md) |
-| `Logic.Statistics` | Spieler-Statistik (nur lesend, über Trainings und Bot-Spiele) | [README](Logic.Statistics/README.md) |
+| `Logic.Statistics` | Leistungs-Statistik (nur lesend): Legs aus X01-Training, Bot-Spielen und Turnieren, Kategorien Overall/Training/Official, `StatisticsCalculator` | [README](Logic.Statistics/README.md) |
 | `Logic.Tournament` | Turniere (Liga, K.-o./WM): Datenmodell, X01-Match Dart für Dart, Liga (Spielplan, Tabelle), K.-o. (Baum, Setzliste, Weiterrücken) | [README](Logic.Tournament/README.md) |
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen, Löschfristen (`DataRetentionWorker`) | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
@@ -27,6 +27,7 @@ Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bed
 | `deploy/` | Skripte: Deployment, Updates, Modell-Training, Backups, Schriften | [README](README.md#deployment-und-skripte) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
+| `Logic.Statistics.Tests` | Unit-Tests des Statistik-Rechenkerns (ohne Datenbank) | [README](Logic.Statistics.Tests/README.md) |
 | `Logic.Tournament.Tests` | Unit-Tests der Turnier-Logik (ohne Datenbank) | [README](Logic.Tournament.Tests/README.md) |
 | `Logic.Integration.Tests` | Integrationstests gegen MySQL 8.4 (Testcontainers) | [README](Logic.Integration.Tests/README.md) |
 | **Daten** | | |
@@ -87,7 +88,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `IDartBotAdministration` | `DartBotAdministration` | [Logic.Bot](Logic.Bot/README.md) | S | `CreateBotAsync`, `ActivateBotAsync`, `DeactivateBotAsync`, `GetBotsAsync`, `GetBotAsync` |
 | `IDartBotGameService` | `DartBotGameService` | [Logic.Bot](Logic.Bot/README.md) | S | `StartGameAsync`, `AddUserVisitAsync`, `AbortGameAsync`, `GetGameAsync`, `GetRunningGameAsync`, `GetRatingHistoryAsync`, `GetAvailableBotsAsync` |
 | `IDartBotLearningService` | `DartBotLearningService` | [Logic.Bot](Logic.Bot/README.md) | S | `ApplyGameResultAsync` (XP, Elo Bot + Spieler, Level), `ApplyTournamentResultAsync` (offizielle Turnier-Matches), `MergeConcurrentBotUpdatesAsync` |
-| `IPlayerStatisticsService` | `PlayerStatisticsService` | [Logic.Statistics](Logic.Statistics/README.md) | S | `GetStatisticsAsync(period)` |
+| `IPlayerStatisticsService` | `PlayerStatisticsService` | [Logic.Statistics](Logic.Statistics/README.md) | S | `GetStatisticsAsync(category, fromUtc, toUtc)` |
 | `ILeagueService` | `LeagueService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateLeagueAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartLeagueAsync`, `ScheduleRoundAsync`, `GetLeagueAsync`, `GetTableAsync`, `FinishLeagueIfCompleteAsync` |
 | `IKnockoutService` | `KnockoutService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `CreateKnockoutAsync`, `AddParticipantAsync`, `RemoveParticipantAsync`, `StartKnockoutAsync`, `ScheduleRoundAsync`, `GetKnockoutAsync`, `AdvanceAsync` |
 | `ITournamentQueryService` | `TournamentQueryService` | [Logic.Tournament](Logic.Tournament/README.md) | S | `GetTournamentsAsync`, `GetCandidatesAsync` |
@@ -123,7 +124,7 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | – | `CsrfHeaderHandler` | [Web.App.Client](Web.App/Web.App.Client/README.md) | T | Setzt den CSRF-Header für BFF-Aufrufe |
 | `IProfileApi` | `ProfileApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Profil laden/speichern, Passwort, Profilbild hoch-/entfernen |
 | – | `PlayerProfileState` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Profil für Kopfzeile und Profilseite, `Changed`-Ereignis |
-| `IStatisticsApi` | `StatisticsApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetStatisticsAsync(period)` (PlayerStatistics) |
+| `IStatisticsApi` | `StatisticsApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | `GetStatisticsAsync(category, fromUtc, toUtc)` (PlayerStatistics) |
 | `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Offenes Training, Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
 | `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand, Elo-Verlauf (DartBotGameController) |
 | `ITournamentApi` | `TournamentApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Turniere, Anmeldung, Liga, K.o., Match-Eingabe (TournamentController) |

@@ -78,13 +78,26 @@ Und zwei Arten:
 
 ## 6. Statistiken
 
-Unter **Statistiken**, wählbar für 30 Tage, 90 Tage oder gesamt:
+Unter **Statistiken** wählst du oben:
 
-- Anzahl Trainings, Darts, Bot-Spiele und Siegquote
-- Kennzahlen je Trainingsart (Average, Checkout- und Trefferquoten)
-- Verlauf von Average und Elo
+- **Kategorie:** *Overall* (alles), *Training* (X01-Training, alle Spiele gegen Bots, Übungen) oder *Official* (Turnier-Matches)
+- **Zeitraum:** gesamt, 7 Tage, 30 Tage, dieser Monat, dieses Jahr oder ein eigener Zeitraum
 
-Es zählen nur beendete Trainings.
+Alle Werte und Diagramme folgen dieser Auswahl:
+
+| Bereich | Inhalt |
+|---|---|
+| Überblick | 3-Dart-Average, First-9-Average, Checkout-Quote, Siegquote – je mit Vergleich zum gleich langen Zeitraum davor (▲/▼); Verlauf von 3-Dart- und First-9-Average mit deinem Bestwert |
+| Scoring | Highest Score, 180er (auch pro 100 Legs), 140+, 100+, 80+, 60+, Verteilung deiner Aufnahmen |
+| Checkout | Checkout-Quote, Checkouts, Missed Doubles, Highest und Ø Checkout, Busts, Verlauf der Quote |
+| Legs & Matches | Matches und Legs (gespielt/gewonnen), Ø Darts pro Leg, bestes Leg, längste Siegesserie, Elo |
+| Entwicklung | Zeitraum gegen Vorzeitraum, letzte 10 gegen die 10 Matches davor, Bestwerte; bei genug Daten automatische Hinweise |
+| Übungen | Checkout-, Segment- und Around-the-Clock-Training (nur Training/Overall) |
+
+So wird gerechnet:
+- **3-Dart-Average** = Punkte ÷ Darts × 3; **First 9** = die ersten drei Aufnahmen jedes Legs.
+- **Checkout-Quote** = Checkouts ÷ Darts auf ein Doppel. Ein Dart zählt als Doppel-Versuch, wenn ein Ein-Dart-Finish möglich war (Rest gerade bis 40 oder 50); jeder verfehlte Doppel-Dart zählt mit. Nur Double-Out.
+- Es zählen nur beendete Trainings und Spiele; abgebrochene Spiele nicht. Ein X01-Training allein ist kein Match (keine Siegquote).
 
 ## 7. Profil
 

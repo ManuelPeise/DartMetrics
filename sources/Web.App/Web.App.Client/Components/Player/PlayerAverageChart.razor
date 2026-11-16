@@ -1,0 +1,103 @@
+@*
+    Average-Entwicklung: 3-Dart-Average und First-9-Average als Linien (SVG, ohne Bibliothek),
+    gestrichelt der persönliche Bestwert. Jeder Punkt hat einen Tooltip (Datum, Werte, Legs).
+*@
+@using global::Shared.Models.Statistics
+
+<figure class="pa-trend pa-trend--large">
+    <figcaption class="pa-trend__title">
+        <span>Average-Entwicklung</span>
+        <span class="pa-legend">
+            <span class="pa-legend__item"><i class="pa-legend__swatch pa-legend__swatch--main"></i>3-Dart</span>
+            <span class="pa-legend__item"><i class="pa-legend__swatch pa-legend__swatch--second"></i>First 9</span>
+            @if (Best is not null)
+            {
+                <span class="pa-legend__item"><i class="pa-legend__swatch pa-legend__swatch--ref"></i>Bestwert</span>
+            }
+        </span>
+    </figcaption>
+
+    @if (Points.Count < 2)
+    {
+        <p class="pa-section__hint">Ab zwei Matches bzw. Trainings im Zeitraum erscheint hier dein Verlauf.</p>
+    }
+    else
+    {
+        <svg class="pa-trend__chart pa-trend__chart--large" viewBox="0 0 @Width @Height" preserveAspectRatio="none" role="img"
+             aria-label="@($"3-Dart-Average von {Points[0].ThreeDartAverage:0.0} auf {Points[^1].ThreeDartAverage:0.0}")">
+            <line class="pa-trend__grid" x1="0" y1="@Y(_max)" x2="@Width" y2="@Y(_max)" />
+            <line class="pa-trend__grid" x1="0" y1="@Y(_min)" x2="@Width" y2="@Y(_min)" />
+            @if (Best is { } best && best <= _max)
+            {
+                <line class="pa-trend__ref" x1="0" y1="@Y(best)" x2="@Width" y2="@Y(best)" vector-effect="non-scaling-stroke" />
+            }
+            @if (_firstNine.Count >= 2)
+            {
+                <polyline class="pa-trend__line pa-trend__line--second" points="@Line(_firstNine)" vector-effect="non-scaling-stroke" />
+            }
+            <polyline class="pa-trend__line" points="@Line(_main)" vector-effect="non-scaling-stroke" />
+            @for (var i = 0; i < Points.Count; i++)
+            {
+                var p = Points[i];
+                <circle class="pa-trend__dot" cx="@Fx(X(i))" cy="@Fx(Y(p.ThreeDartAverage))" r="2.5" vector-effect="non-scaling-stroke">
+                    <title>@($"{p.Date.ToLocalTime():dd.MM.yy}: 3-Dart {p.ThreeDartAverage:0.0}, First 9 {(p.FirstNineAverage is { } f ? f.ToString("0.0") : "–")}, {p.Legs} Legs")</title>
+                </circle>
+            }
+        </svg>
+        <div class="pa-trend__axis">
+            <span>@Points[0].Date.ToLocalTime().ToString("dd.MM.yy")</span>
+            <span>min @_min.ToString("0.0") · max @_max.ToString("0.0")</span>
+            <span>@Points[^1].Date.ToLocalTime().ToString("dd.MM.yy")</span>
+        </div>
+    }
+</figure>
+
+@code {
+    private const double Width = 600;
+    private const double Height = 160;
+    private const double Padding = 8;
+
+    [Parameter, EditorRequired] public IReadOnlyList<AverageTrendPoint> Points { get; set; } = [];
+
+    /// <summary>Persönlicher Bestwert (3-Dart-Average), gestrichelt; nur wenn er im sichtbaren Bereich liegt.</summary>
+    [Parameter] public decimal? Best { get; set; }
+
+    private decimal _min;
+    private decimal _max;
+    private List<(int Index, decimal Value)> _main = [];
+    private List<(int Index, decimal Value)> _firstNine = [];
+
+    protected override void OnParametersSet()
+    {
+        _main = Points.Select((p, i) => (i, p.ThreeDartAverage)).ToList();
+        _firstNine = Points.Select((p, i) => (i, p.FirstNineAverage)).Where(p => p.FirstNineAverage is not null)
+            .Select(p => (p.i, p.FirstNineAverage!.Value)).ToList();
+
+        var values = _main.Select(p => p.Value).Concat(_firstNine.Select(p => p.Value)).ToList();
+        _min = values.Count == 0 ? 0 : values.Min();
+        _max = values.Count == 0 ? 0 : values.Max();
+
+        if (Best is { } best && best > _max && best - _max <= 15)
+        {
+            _max = best;
+        }
+    }
+
+    private string Line(List<(int Index, decimal Value)> points) =>
+        string.Join(" ", points.Select(p => $"{Fx(X(p.Index))},{Fx(Y(p.Value))}"));
+
+    private double X(int index) => Points.Count < 2 ? 0 : index * Width / (Points.Count - 1);
+
+    private double Y(decimal value)
+    {
+        if (_max == _min)
+        {
+            return Height / 2;
+        }
+
+        var ratio = (double)((value - _min) / (_max - _min));
+        return Height - Padding - ratio * (Height - 2 * Padding);
+    }
+
+    private static string Fx(double value) => FormattableString.Invariant($"{value:0.#}");
+}

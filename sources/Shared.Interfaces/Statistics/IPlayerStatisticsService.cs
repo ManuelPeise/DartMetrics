@@ -5,7 +5,10 @@ namespace Shared.Interfaces.Statistics
 {
     public interface IPlayerStatisticsService
     {
-        /// <summary>Statistik des angemeldeten Spielers; ein leerer 30/90-Tage-Zeitraum weicht auf All aus.</summary>
-        Task<PlayerStatistics> GetStatisticsAsync(StatisticsPeriodEnum period);
+        /// <summary>
+        /// Leistungs-Statistik des angemeldeten Spielers für eine Kategorie und einen Zeitraum [fromUtc, toUtc).
+        /// fromUtc null = All Time (ohne Vorzeitraum-Vergleich), toUtc null = bis jetzt.
+        /// </summary>
+        Task<PlayerStatistics> GetStatisticsAsync(StatisticsCategoryEnum category, DateTime? fromUtc, DateTime? toUtc);
     }
 }

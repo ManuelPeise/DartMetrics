@@ -24,6 +24,7 @@
   <Folder Name="/06 Tests/">
     <Project Path="Logic.Bot.Tests/Logic.Bot.Tests.csproj" />
     <Project Path="Logic.Integration.Tests/Logic.Integration.Tests.csproj" />
+    <Project Path="Logic.Statistics.Tests/Logic.Statistics.Tests.csproj" />
     <Project Path="Logic.Tournament.Tests/Logic.Tournament.Tests.csproj" />
   </Folder>
   <Folder Name="/04 Data/">

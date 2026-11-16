@@ -18,9 +18,21 @@ namespace Service.Api.Controllers.Statistics
         }
 
         [HttpGet(Name = "GetPlayerStatistics")]
-        public async Task<IActionResult> GetPlayerStatistics([FromQuery] StatisticsPeriodEnum period = StatisticsPeriodEnum.Last30Days)
+        public async Task<IActionResult> GetPlayerStatistics(
+            [FromQuery] StatisticsCategoryEnum category = StatisticsCategoryEnum.Overall,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
         {
-            return Ok(await _statisticsService.GetStatisticsAsync(period));
+            return Ok(await _statisticsService.GetStatisticsAsync(category, ToUtc(from), ToUtc(to)));
         }
+
+        /// <summary>Die Seite schickt UTC im ISO-Format ("…Z"); ohne Zone wird der Wert als UTC behandelt.</summary>
+        private static DateTime? ToUtc(DateTime? value) => value switch
+        {
+            null => null,
+            { Kind: DateTimeKind.Utc } v => v,
+            { Kind: DateTimeKind.Local } v => v.ToUniversalTime(),
+            { } v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+        };
     }
 }

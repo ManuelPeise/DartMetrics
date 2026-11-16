@@ -1,0 +1,41 @@
+@*
+    Verteilung der Aufnahmen auf Punkte-Bänder als Balken (HTML, ohne Bibliothek).
+    Höhe relativ zum häufigsten Band; Anzahl und Anteil als Tooltip und für Screenreader.
+*@
+@using global::Shared.Models.Statistics
+
+<figure class="pa-trend pa-distribution">
+    <figcaption class="pa-trend__title"><span>Score-Verteilung</span><small>@Total Aufnahmen</small></figcaption>
+
+    @if (Total == 0)
+    {
+        <p class="pa-section__hint">Noch keine Aufnahmen im Zeitraum.</p>
+    }
+    else
+    {
+        <ol class="pa-distribution__bars" aria-label="Aufnahmen je Punkte-Bereich">
+            @foreach (var band in Bands)
+            {
+                var share = band.Count * 100.0 / Total;
+                <li class="pa-distribution__bar" title="@($"{band.Label}: {band.Count} Aufnahmen ({share:0.#} %)")">
+                    <span class="pa-distribution__count">@(band.Count > 0 ? band.Count.ToString() : "")</span>
+                    <span class="pa-distribution__fill @(band.Min >= 100 ? "is-high" : "")" style="height: @(Height(band.Count))%"></span>
+                    <span class="pa-distribution__label">@band.Label</span>
+                    <span class="pa-sr-only">@band.Count Aufnahmen, @share.ToString("0.#") Prozent</span>
+                </li>
+            }
+        </ol>
+    }
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ScoreBand> Bands { get; set; } = [];
+
+    private int Total => Bands.Sum(b => b.Count);
+
+    private string Height(int count)
+    {
+        var max = Bands.Count == 0 ? 0 : Bands.Max(b => b.Count);
+        return max == 0 ? "0" : FormattableString.Invariant($"{Math.Max(count == 0 ? 0 : 3, count * 100.0 / max):0.#}");
+    }
+}

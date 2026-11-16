@@ -6,6 +6,6 @@ namespace Web.App.Client.Services.Api
     /// <summary>Eigene Statistik (PlayerStatisticsController).</summary>
     public interface IStatisticsApi
     {
-        Task<ApiResult<PlayerStatistics>> GetStatisticsAsync(StatisticsPeriodEnum period, CancellationToken cancellationToken = default);
+        Task<ApiResult<PlayerStatistics>> GetStatisticsAsync(StatisticsCategoryEnum category, DateTime? fromUtc, DateTime? toUtc, CancellationToken cancellationToken = default);
     }
 }
