@@ -1,0 +1,25 @@
+# Beta-Instanz parallel zur normalen Installation (deploy/deploy-beta.ps1 bzw. deploy-beta.sh).
+# Wird zusammen mit docker-compose.yml geladen, Projektname "dartmetrics-beta":
+#   eigene Container, eigene Volumes (eigene Datenbank), eigene Ports, eigene .env.beta.
+# "!override" ersetzt Listen statt sie anzuhängen (Docker Compose ab 2.24).
+
+name: dartmetrics-beta
+
+services:
+  mysql:
+    container_name: dartmetrics-beta-mysql
+
+  api:
+    image: dartmetrics-api:beta
+    container_name: dartmetrics-beta-api
+
+  web:
+    image: dartmetrics-web:beta
+    container_name: dartmetrics-beta-web
+
+    ports: !override
+      - "${BETA_HTTPS_PORT:-7354}:7254"   # HTTPS
+      - "${BETA_HTTP_PORT:-5223}:5123"    # HTTP (leitet auf HTTPS um)
+
+    environment:
+      ASPNETCORE_HTTPS_PORT: ${BETA_HTTPS_PORT:-7354}
