@@ -25,6 +25,7 @@ namespace Logic.Bot.DI
             // Services mit Datenbank.
             services.AddScoped<IDartBotAdministration, DartBotAdministration>();
             services.AddScoped<IDartBotModelAdministration, DartBotModelAdministration>();
+            services.AddScoped<IDartBotTrainingJobAdministration, DartBotTrainingJobAdministration>();
             services.AddScoped<IDartBotGameService, DartBotGameService>();
             services.AddScoped<IDartBotLearningService, DartBotLearningService>();
         }

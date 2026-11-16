@@ -60,7 +60,13 @@ namespace Logic.Bot.Administration
                     throw new ArgumentException($"A bot with alias '{alias}' already exists.");
                 }
 
+                if (model.StartLevel < 0 || model.StartLevel > _options.MaxLevel)
+                {
+                    throw new ArgumentException($"Start level must be between 0 and {_options.MaxLevel}.");
+                }
+
                 var start = _options.StartProfile;
+                var level = model.StartLevel;
 
                 var bot = new DartBotEntity
                 {

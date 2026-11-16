@@ -12,7 +12,7 @@ namespace Tools.BotTrainer
     /// <summary>Phase 2: Datensatz aus simulierten Situationen (CSV) + Metadaten in DartBotTrainingDatasets.</summary>
     public static class GenerateCommand
     {
-        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider? provider)
+        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider? provider, JobHooks? hooks = null)
         {
             var situations = arguments.Int("situations", 1000);
             var options = new RolloutOptions
@@ -54,6 +54,11 @@ namespace Tools.BotTrainer
                     if ((i + 1) % 50 == 0 || i + 1 == situations)
                     {
                         Console.WriteLine($"  {i + 1}/{situations} Situationen, {writer.RowCount} Zeilen, {stopwatch.Elapsed:hh\\:mm\\:ss}");
+                    }
+
+                    if (hooks is not null && ((i + 1) % 10 == 0 || i + 1 == situations))
+                    {
+                        await hooks.ReportOrCancelAsync($"Datensatz: {i + 1}/{situations} Situationen", (i + 1) * 100 / situations);
                     }
                 }
             }
@@ -98,6 +103,11 @@ namespace Tools.BotTrainer
             await unitOfWork.SaveChangesAsync();
 
             Console.WriteLine($"Metadaten gespeichert: DartBotTrainingDatasets.Id = {dataset.Id}");
+
+            if (hooks is not null)
+            {
+                hooks.CreatedId = dataset.Id;
+            }
             return 0;
         }
     }

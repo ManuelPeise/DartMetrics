@@ -166,6 +166,31 @@ services:
       MlData__Path: /data/ml
       BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
 
+  # Dauerbetrieb: arbeitet die Trainingsaufträge aus dem Admin-Bereich ab (/admin/models).
+  # Gleiches Image wie bottrainer; ohne Auftrag prüft er nur alle 10 s die Datenbank.
+  bottrainer-worker:
+    image: dartmetrics-bottrainer:dev
+    command: ["worker"]
+    restart: unless-stopped
+    # Training belegt die CPU; die API soll daneben spielbar bleiben (auf dem Raspberry Pi ggf. kleiner wählen).
+    cpus: ${BOTTRAINER_CPUS:-2}
+    stop_grace_period: 30s
+
+    # Die API spielt die Migrationen ein; erst danach gibt es die Tabelle DartBotTrainingJobs.
+    depends_on:
+      mysql:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+    volumes:
+      - ./ml_data:/data/ml
+
+    environment:
+      ConnectionStrings__DartContext: "server=mysql;port=3306;database=DartContextDb;user=dartforge;password=${MYSQL_PASSWORD}"
+      MlData__Path: /data/ml
+      BOTTRAINER_COMMIT: ${BOTTRAINER_COMMIT:-}
+
 volumes:
   mysql_data:
   web_dataprotection:

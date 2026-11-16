@@ -2,7 +2,7 @@
 # Baut die DartMetrics-Container neu und startet sie aktualisiert.
 # Die Daten (Volume mysql_data) bleiben erhalten.
 #
-#   ./deploy/update-containers.sh             nur die API neu bauen + neu starten
+#   ./deploy/update-containers.sh             API, Web-App und Trainer-Worker neu bauen + neu starten
 #   ./deploy/update-containers.sh --all       alle Dienste aktualisieren
 #   ./deploy/update-containers.sh --all --pull  zusätzlich neue MySQL/Mailpit-Images holen
 #   ./deploy/update-containers.sh --no-cache  API ohne Build-Cache bauen
@@ -31,7 +31,7 @@ cd "$(dirname "$0")/.."
 docker info >/dev/null 2>&1 || { echo "Docker läuft nicht." >&2; exit 1; }
 [ -f .env ] || { echo ".env fehlt im Lösungsordner." >&2; exit 1; }
 
-SERVICES=(); [ "$ALL" -eq 1 ] || SERVICES=(api web)
+SERVICES=(); [ "$ALL" -eq 1 ] || SERVICES=(api web bottrainer-worker)
 
 step() { printf '\n==> %s\n' "$1"; }
 
@@ -60,8 +60,9 @@ if [ "$PULL" -eq 1 ]; then
   docker compose pull --ignore-buildable "${SERVICES[@]}"
 fi
 
-step "API-Image bauen"
-docker compose build $NO_CACHE --pull api
+step "Images bauen (api, web, bottrainer)"
+# bottrainer hat dasselbe Image wie bottrainer-worker (sonst liefe der Worker mit altem Code).
+docker compose --profile tools build $NO_CACHE --pull api web bottrainer
 
 step "Container ersetzen"
 docker compose up -d --force-recreate --remove-orphans "${SERVICES[@]}"

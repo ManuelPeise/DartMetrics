@@ -16,6 +16,7 @@ namespace Shared.Interfaces.UnitsOfWork
         IRepositoryBase<DartBotModelTrainingEntity> DartBotModelTrainingRepository { get; }
         IRepositoryBase<DartBotProfileVersionEntity> DartBotProfileVersionRepository { get; }
         IRepositoryBase<DartBotTrainingDatasetEntity> DartBotTrainingDatasetRepository { get; }
+        IRepositoryBase<DartBotTrainingJobEntity> DartBotTrainingJobRepository { get; }
 
     }
 }

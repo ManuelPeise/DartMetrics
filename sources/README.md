@@ -57,7 +57,7 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 | Skript (`.ps1` Windows / `.sh` Linux, Pi) | Zweck |
 | --- | --- |
 | `deploy/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App und trainiert ein ML-Modell, falls keins aktiv ist. `-Production` / `--production` ohne offene DB/API-Ports und ohne Mailpit. |
-| `deploy/update-containers` | Code-Update: Datenbank-Backup, API/Web-App neu bauen und ersetzen. |
+| `deploy/update-containers` | Code-Update: Datenbank-Backup, API, Web-App und Trainer-Worker neu bauen und ersetzen. |
 | `deploy/train-model` | DartBot-Zielwahl-Modell in Docker erzeugen → trainieren → mit dem Regelwerk vergleichen → aktivieren (nur wenn nicht schlechter). Ohne `-Force` / `--force` nur, wenn noch keins aktiv ist. |
 | `deploy/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
 | `deploy/download-fonts` | Schriften einmalig lokal ablegen. |

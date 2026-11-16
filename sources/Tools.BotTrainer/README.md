@@ -22,6 +22,26 @@ docker compose --profile tools run --rm bottrainer train --dataset 4
 
 Die Optionen unten gelten für beide Wege. Lokal mit `dotnet run` nutzt das Werkzeug die DB auf `localhost:3306` (nur in der Entwicklung offen, siehe `docker-compose.override.yml`).
 
+## Aus dem Admin-Bereich: worker
+
+Der Container `bottrainer-worker` (in `docker-compose.yml`, startet mit `docker compose up -d`) läuft dauerhaft mit `worker`.
+Er prüft alle 10 s die Tabelle `DartBotTrainingJobs` und führt einen Auftrag aus `/admin/models` aus:
+`generate` → `train` → `compare`, mit Fortschritt und Ergebnis im Admin-Bereich. Aktiviert wird nur von Hand.
+
+| Umfang   | Situationen | Rollouts | Vergleichs-Legs je Stufe |
+|----------|-------------|----------|--------------------------|
+| Schnell  | 3000        | 50       | 500                      |
+| Standard | 20000       | 50       | 2000                     |
+
+Standard entspricht `deploy/train-model`. „Schnell“ ist nur ein Funktionstest: mit wenigen Situationen ist das Modell meist schlechter als das Regelwerk.
+
+- Es wartet oder läuft immer höchstens ein Auftrag; jeder Auftrag bekommt einen neuen Seed.
+- Abbrechen: wartende Aufträge sofort, laufende beim nächsten Zwischenstand (während des eigentlichen Trainings erst danach).
+  Ein abgebrochener Datensatz bleibt als Datei in `ml_data/datasets` liegen, wird aber nicht registriert.
+- Ohne Lebenszeichen (alle 30 s) für 10 min gilt ein Auftrag als verloren; nach einem Neustart des Workers werden laufende Aufträge als fehlgeschlagen markiert.
+- CPU-Begrenzung über `BOTTRAINER_CPUS` in `.env` (Standard 2), damit die API daneben spielbar bleibt.
+- Logs: `docker compose logs -f bottrainer-worker`.
+
 ## generate (Phase 2)
 
 Erzeugt einen Datensatz für das Zielwahl-Modell: zufällige Situationen (`SituationSampler`), je Situation alle Kandidaten mit Label aus N Rollouts (`Logic.Bot/Ml/CandidateEvaluator`).

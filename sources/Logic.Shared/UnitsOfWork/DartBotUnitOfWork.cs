@@ -31,6 +31,8 @@ namespace Logic.Shared.UnitsOfWork
 
         public IRepositoryBase<DartBotTrainingDatasetEntity> DartBotTrainingDatasetRepository { get; }
 
+        public IRepositoryBase<DartBotTrainingJobEntity> DartBotTrainingJobRepository { get; }
+
         public DartBotUnitOfWork(DartDatabaseContext context)
         {
             _context = context;
@@ -46,6 +48,7 @@ namespace Logic.Shared.UnitsOfWork
             DartBotModelTrainingRepository = new RepositoryBase<DartBotModelTrainingEntity>(_context);
             DartBotProfileVersionRepository = new RepositoryBase<DartBotProfileVersionEntity>(_context);
             DartBotTrainingDatasetRepository = new RepositoryBase<DartBotTrainingDatasetEntity>(_context);
+            DartBotTrainingJobRepository = new RepositoryBase<DartBotTrainingJobEntity>(_context);
         }
     }
 }

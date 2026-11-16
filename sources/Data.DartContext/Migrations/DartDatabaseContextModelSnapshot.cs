@@ -844,6 +844,99 @@ namespace Data.DartContext.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingJobEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("CancelRequested")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("CompareLegs")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("ComparisonPassed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("HeartbeatAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ModelId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Phase")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Preset")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProgressPercent")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProgressText")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("RolloutsPerCandidate")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Situations")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.HasIndex("ModelId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("DartBotTrainingJobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DartBotTrainingJob_Progress", "`ProgressPercent` BETWEEN 0 AND 100");
+                        });
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Log.LogMessageEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -2439,6 +2532,23 @@ namespace Data.DartContext.Migrations
                     b.Navigation("GeneratorTargetModel");
 
                     b.Navigation("GeneratorThrowModel");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Bot.DartBotTrainingJobEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotTrainingDatasetEntity", "Dataset")
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "Model")
+                        .WithMany()
+                        .HasForeignKey("ModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Dataset");
+
+                    b.Navigation("Model");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>

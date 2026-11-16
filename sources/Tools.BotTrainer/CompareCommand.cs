@@ -25,7 +25,7 @@ namespace Tools.BotTrainer
         /// <summary>Unter ~0,4 enden die meisten Legs an der Obergrenze; solche Stufen sagen nichts über die Zielwahl.</summary>
         private static readonly float[] SkillLevels = [0.5f, 0.7f, 0.85f, 0.95f];
 
-        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
+        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider, JobHooks? hooks = null)
         {
             var modelId = arguments.Int("model", 0);
 
@@ -82,8 +82,16 @@ namespace Tools.BotTrainer
             var levels = new List<object>();
             var worseByMargin = margins.ToDictionary(m => m, _ => false);
 
+            var levelIndex = 0;
+
             foreach (var skill in SkillLevels)
             {
+                if (hooks is not null)
+                {
+                    await hooks.ReportOrCancelAsync($"Vergleich: Skill-Stufe {levelIndex + 1}/{SkillLevels.Length}", levelIndex * 100 / SkillLevels.Length);
+                }
+
+                levelIndex++;
                 var profile = new BotSkillProfile(skill, skill, tactical, skill, 0.5f);
                 var situation = new BotSituation(501, 3, 501, profile, X01InModeEnum.Straight, outMode);
 
@@ -169,6 +177,11 @@ namespace Tools.BotTrainer
             await unitOfWork.SaveChangesAsync();
 
             Console.WriteLine($"Gespeichert in DartBotModelTrainings.Id {modelEntity.TrainingId} (MetricsJson.Comparison).");
+            if (hooks is not null)
+            {
+                hooks.ComparisonPassed = safeMargins.Count > 0;
+            }
+
             return safeMargins.Count == 0 ? 4 : 0;
         }
 

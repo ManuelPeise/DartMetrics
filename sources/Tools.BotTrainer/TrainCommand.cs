@@ -26,7 +26,7 @@ namespace Tools.BotTrainer
         /// <summary>Schema 2: Abstand zum besten Kandidaten der Situation (die Rangfolge zählt, nicht der absolute Wert).</summary>
         private const string Label = nameof(TargetCandidateRow.RelativeDarts);
 
-        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider)
+        public static async Task<int> RunAsync(Arguments arguments, MlDataStore store, ServiceProvider provider, JobHooks? hooks = null)
         {
             var datasetId = arguments.Int("dataset", 0);
 
@@ -177,6 +177,11 @@ namespace Tools.BotTrainer
 
                 Console.WriteLine($"Modell gespeichert: {modelPath}");
                 Console.WriteLine($"DartBotModels: Id {modelEntity.Id}, TargetSelection Version {versionNumber} (nicht aktiviert)");
+
+                if (hooks is not null)
+                {
+                    hooks.CreatedId = modelEntity.Id;
+                }
                 return 0;
             }
             catch (Exception exception)

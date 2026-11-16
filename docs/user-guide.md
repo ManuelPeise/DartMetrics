@@ -127,7 +127,7 @@ Nur für Admins, unter `/admin`. Beim allerersten Login muss der Admin sein Star
 | **Dashboard** | Benutzer, Bots, ML-Modelle, Trainings, Systemstatus, letzte Aktivitäten |
 | **Benutzerverwaltung** | Rolle Player ↔ GameMaster ändern, Konten sperren/entsperren, anonymisiert löschen. Admin-Konten und das eigene Konto sind geschützt. |
 | **DartBot-Verwaltung** | Bots anlegen (Name, Kürzel, optional Spielstil), aktivieren, deaktivieren, Entwicklung verfolgen |
-| **ML-Modelle** | Trainierte Zielwahl-Modelle mit Kennzahlen ansehen, eins aktivieren oder alle deaktivieren (dann spielen die Bots regelbasiert). Trainiert werden Modelle mit `deploy/train-model`. |
+| **ML-Modelle** | Trainierte Zielwahl-Modelle mit Kennzahlen ansehen, eins aktivieren oder alle deaktivieren (dann spielen die Bots regelbasiert). Neue Modelle trainierst du direkt dort mit **Neues Modell trainieren** (Schnell oder Standard): Datensatz, Training und Vergleich gegen das Regelwerk laufen im Container `bottrainer-worker`, Fortschritt und Ergebnis erscheinen auf der Seite. Aktiviert wird nur von Hand. Alternativ: `deploy/train-model`. |
 | **System-Logs** | Fehler, Warnungen und Hinweise durchsuchen und löschen; Einträge werden nach 90 Tagen automatisch gelöscht |
 | **Passwort ändern** | Eigenes Passwort |
 

@@ -3,11 +3,12 @@
 @using global::Shared.Interfaces.Blazor.Api
 @using global::Shared.Models.Bot
 @inject IAuthorizedApiClient Api
+@implements IDisposable
 
 <PageTitle>ML-Modellverwaltung – DartMetrics Admin</PageTitle>
 
 <AdminPageHeader Eyebrow="Administration" Title="ML-Modellverwaltung"
-                 Subtitle="Zielwahl-Modelle der DartBots prüfen und aktivieren. Training und Vergleich laufen in Tools.BotTrainer." />
+                 Subtitle="Zielwahl-Modelle der DartBots trainieren, prüfen und aktivieren. Training und Vergleich laufen im BotTrainer-Container." />
 
 @if (_message is not null)
 {
@@ -28,6 +29,89 @@
                    Description="@(_overview is null ? null : $"Erwartetes Schema: {_overview.ExpectedFeatureSchemaVersion}")"
                    Status="@(_overview?.MlEnabled == false ? AdminStatus.Warning : AdminStatus.Neutral)" />
 </div>
+
+<AdminCard Title="Neues Modell trainieren" Subtitle="Datensatz erzeugen, trainieren und gegen das Regelwerk vergleichen. Aktiviert wird nur von Hand.">
+    @if (CurrentJob is not null)
+    {
+        <div class="adm-form">
+            <div style="display:flex; gap: var(--adm-space-3); align-items:center; flex-wrap:wrap">
+                <strong>Auftrag @CurrentJob.Id · @PresetText(CurrentJob.Preset)</strong>
+                <AdminStatusBadge Text="@JobStatusText(CurrentJob)" Status="@JobStatus(CurrentJob)" />
+                @if (CurrentJob.Phase is not null)
+                {
+                    <small>Schritt @PhaseNumber(CurrentJob.Phase.Value)/3: @PhaseText(CurrentJob.Phase.Value)</small>
+                }
+            </div>
+            <AdminSkillBar Label="Fortschritt" Value="@(CurrentJob.ProgressPercent / 100f)" />
+            <small>@CurrentJob.ProgressText</small>
+            @if (CurrentJob.Status == DartBotTrainingJobStatusEnum.Queued && CurrentJob.CreatedAt < DateTime.UtcNow.AddMinutes(-1))
+            {
+                <div class="adm-alert" role="status">Der Auftrag wartet seit über einer Minute. Läuft der Container <code>bottrainer-worker</code>?</div>
+            }
+            <div class="adm-form-actions">
+                <AdminButton Variant="AdminButtonVariant.Danger" IsLoading="_cancelling" Disabled="@(CurrentJob.CancelRequested)" OnClick="CancelJobAsync">
+                    @(CurrentJob.CancelRequested ? "Abbruch angefordert …" : "Abbrechen")
+                </AdminButton>
+            </div>
+        </div>
+    }
+    else
+    {
+        <form class="adm-form" @onsubmit="StartJobAsync" @onsubmit:preventDefault>
+            <AdminSelect Id="job-preset" Label="Umfang" Options="PresetOptions" @bind-Value="_preset"
+                         Hint="Schnell nur zum Ausprobieren (Modell meist schlechter als das Regelwerk). Standard für ein Modell, das aktiviert werden soll: auf einem PC grob 10–30 min, auf dem Raspberry Pi deutlich länger." Disabled="_starting" />
+            <div class="adm-form-actions">
+                <AdminButton Type="submit" IsLoading="_starting" Icon="AdminIconName.Training">Training starten</AdminButton>
+            </div>
+        </form>
+    }
+</AdminCard>
+
+<AdminCard Title="Trainingsaufträge" Subtitle="Die letzten Aufträge aus dem Admin-Bereich." Flush="true">
+    <AdminTable Items="_jobs" IsLoading="@(_jobs is null && _jobsError is null)" ErrorText="@_jobsError" OnRetry="LoadJobsAsync">
+        <HeaderTemplate>
+            <th>Auftrag</th>
+            <th>Status</th>
+            <th>Ergebnis</th>
+        </HeaderTemplate>
+        <RowTemplate Context="job">
+            <td data-label="Auftrag" class="adm-cell-title">
+                <strong>#@job.Id · @PresetText(job.Preset)</strong>
+                <small>@job.CreatedAt.ToLocalTime().ToString("g", German) · @job.RequestedBy · @job.Situations Situationen · @job.CompareLegs Legs je Stufe</small>
+            </td>
+            <td data-label="Status" class="adm-cell-title">
+                <AdminStatusBadge Text="@JobStatusText(job)" Status="@JobStatus(job)" />
+                @if (job.Status == DartBotTrainingJobStatusEnum.Failed && job.ErrorMessage is not null)
+                {
+                    <small>@job.ErrorMessage</small>
+                }
+                else if (job.FinishedAt is not null && job.StartedAt is not null)
+                {
+                    <small>Dauer @FormatDuration(job.FinishedAt.Value - job.StartedAt.Value)</small>
+                }
+            </td>
+            <td data-label="Ergebnis" class="adm-cell-title">
+                @if (job.ModelId is not null)
+                {
+                    <span>Modell Version @job.ModelVersionNumber (Id @job.ModelId)</span>
+                }
+                @if (job.ComparisonPassed is not null)
+                {
+                    <AdminStatusBadge Text="@(job.ComparisonPassed.Value ? "Vergleich bestanden" : "Schlechter als Regelwerk")"
+                                      Status="@(job.ComparisonPassed.Value ? AdminStatus.Success : AdminStatus.Danger)" />
+                }
+                else if (job.ModelId is null)
+                {
+                    <small>–</small>
+                }
+            </td>
+        </RowTemplate>
+        <EmptyContent>
+            <AdminEmptyState Icon="AdminIconName.Training" Title="Noch keine Aufträge"
+                             Text="Starte oben ein Training. Ergebnisse erscheinen danach unten bei den Zielwahl-Modellen." />
+        </EmptyContent>
+    </AdminTable>
+</AdminCard>
 
 <AdminCard Title="Zielwahl-Modelle" Subtitle="Neue Bot-Spiele nutzen das aktive Modell; laufende Spiele behalten ihres." Flush="true">
     <div class="adm-toolbar">
@@ -114,7 +198,7 @@
         </RowTemplate>
         <EmptyContent>
             <AdminEmptyState Icon="AdminIconName.Model" Title="Noch keine Modelle"
-                             Text="Modelle entstehen mit Tools.BotTrainer (generate, train, compare)." />
+                             Text="Starte oben ein Training oder nutze Tools.BotTrainer (generate, train, compare)." />
         </EmptyContent>
     </AdminTable>
 </AdminCard>
@@ -135,12 +219,29 @@
 
     private DartBotModelListItem? ActiveModel => _overview?.Models.FirstOrDefault(m => m.IsActive);
 
+    private static readonly IReadOnlyList<AdminSelectOption> PresetOptions =
+    [
+        new(nameof(DartBotTrainingJobPresetEnum.Quick), "Schnell – 3.000 Situationen, 500 Vergleichs-Legs (Funktionstest)"),
+        new(nameof(DartBotTrainingJobPresetEnum.Standard), "Standard – 20.000 Situationen, 2.000 Vergleichs-Legs")
+    ];
+
+    private List<DartBotTrainingJobListItem>? _jobs;
+    private string? _jobsError;
+    private string? _preset = nameof(DartBotTrainingJobPresetEnum.Quick);
+    private bool _starting;
+    private bool _cancelling;
+    private System.Threading.Timer? _pollTimer;
+    private bool _disposed;
+
+    private DartBotTrainingJobListItem? CurrentJob => _jobs?.FirstOrDefault(j =>
+        j.Status is DartBotTrainingJobStatusEnum.Queued or DartBotTrainingJobStatusEnum.Running);
+
     // Erst nach dem ersten interaktiven Rendern laden (sonst doppelt durch Prerendering).
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadAsync();
+            await Task.WhenAll(LoadAsync(), LoadJobsAsync());
         }
     }
 
@@ -225,6 +326,155 @@
         _deactivating = false;
         await LoadAsync();
     }
+
+    private async Task LoadJobsAsync()
+    {
+        var hadCurrentJob = CurrentJob is not null;
+        _jobsError = null;
+
+        try
+        {
+            using var response = await Api.GetAsync("DartBotTrainingJobAdministration/GetDartBotTrainingJobs?take=10");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _jobs = await response.Content.ReadFromJsonAsync<List<DartBotTrainingJobListItem>>() ?? [];
+            }
+            else
+            {
+                _jobsError = await ApiProblem.ReadMessageAsync(response);
+            }
+        }
+        catch
+        {
+            _jobsError = "Die Trainingsaufträge konnten nicht geladen werden.";
+        }
+
+        // Auftrag gerade fertig geworden: neues Modell in der Liste zeigen.
+        if (hadCurrentJob && CurrentJob is null && _jobsError is null)
+        {
+            await LoadAsync();
+        }
+
+        UpdatePolling();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Nur solange ein Auftrag wartet oder läuft, alle 3 s nachladen.</summary>
+    private void UpdatePolling()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (CurrentJob is not null && _pollTimer is null)
+        {
+            _pollTimer = new System.Threading.Timer(_ => _ = InvokeAsync(LoadJobsAsync), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+        }
+        else if (CurrentJob is null && _pollTimer is not null)
+        {
+            _pollTimer.Dispose();
+            _pollTimer = null;
+        }
+    }
+
+    private async Task StartJobAsync()
+    {
+        _starting = true;
+        _message = null;
+
+        try
+        {
+            var model = new CreateDartBotTrainingJobModel
+            {
+                Preset = Enum.TryParse<DartBotTrainingJobPresetEnum>(_preset, out var preset) ? preset : DartBotTrainingJobPresetEnum.Quick
+            };
+
+            using var response = await Api.PostAsync("DartBotTrainingJobAdministration/CreateDartBotTrainingJob", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage("Training gestartet. Der Fortschritt aktualisiert sich automatisch.", isError: false);
+            }
+            else
+            {
+                ShowMessage(await ApiProblem.ReadMessageAsync(response), isError: true);
+            }
+        }
+        catch
+        {
+            ShowMessage("Das Training konnte nicht gestartet werden.", isError: true);
+        }
+
+        _starting = false;
+        await LoadJobsAsync();
+    }
+
+    private async Task CancelJobAsync()
+    {
+        if (CurrentJob is null)
+        {
+            return;
+        }
+
+        _cancelling = true;
+
+        try
+        {
+            using var response = await Api.PostAsync($"DartBotTrainingJobAdministration/CancelDartBotTrainingJob?jobId={CurrentJob.Id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowMessage(await ApiProblem.ReadMessageAsync(response), isError: true);
+            }
+        }
+        catch
+        {
+            ShowMessage("Der Auftrag konnte nicht abgebrochen werden.", isError: true);
+        }
+
+        _cancelling = false;
+        await LoadJobsAsync();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _pollTimer?.Dispose();
+    }
+
+    private static string PresetText(DartBotTrainingJobPresetEnum preset) =>
+        preset == DartBotTrainingJobPresetEnum.Standard ? "Standard" : "Schnell";
+
+    private static int PhaseNumber(DartBotTrainingJobPhaseEnum phase) => (int)phase;
+
+    private static string PhaseText(DartBotTrainingJobPhaseEnum phase) => phase switch
+    {
+        DartBotTrainingJobPhaseEnum.Generate => "Datensatz erzeugen",
+        DartBotTrainingJobPhaseEnum.Train => "Modell trainieren",
+        _ => "Vergleich gegen Regelwerk"
+    };
+
+    private static string JobStatusText(DartBotTrainingJobListItem job) => job.Status switch
+    {
+        DartBotTrainingJobStatusEnum.Queued => "Wartet",
+        DartBotTrainingJobStatusEnum.Running => job.CancelRequested ? "Wird abgebrochen" : $"Läuft · {job.ProgressPercent} %",
+        DartBotTrainingJobStatusEnum.Completed => "Fertig",
+        DartBotTrainingJobStatusEnum.Cancelled => "Abgebrochen",
+        _ => "Fehlgeschlagen"
+    };
+
+    private static AdminStatus JobStatus(DartBotTrainingJobListItem job) => job.Status switch
+    {
+        DartBotTrainingJobStatusEnum.Completed => AdminStatus.Success,
+        DartBotTrainingJobStatusEnum.Failed => AdminStatus.Danger,
+        DartBotTrainingJobStatusEnum.Running or DartBotTrainingJobStatusEnum.Queued => AdminStatus.Warning,
+        _ => AdminStatus.Neutral
+    };
+
+    private static string FormatDuration(TimeSpan duration) =>
+        duration.TotalHours >= 1 ? $"{(int)duration.TotalHours} h {duration.Minutes} min" : $"{Math.Max(1, (int)Math.Round(duration.TotalMinutes))} min";
 
     /// <summary>Vergleichszeilen zur Schwelle der API; ohne passende Schwelle die nächstgelegene.</summary>
     private List<DartBotModelComparisonLevel> LevelsFor(DartBotModelListItem model)

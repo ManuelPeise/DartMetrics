@@ -50,6 +50,7 @@ namespace Data.DartContext
         public DbSet<DartBotModelTrainingEntity> DartBotModelTrainings => Set<DartBotModelTrainingEntity>();
         public DbSet<DartBotModelEntity> DartBotModels => Set<DartBotModelEntity>();
         public DbSet<DartBotActiveModelEntity> DartBotActiveModels => Set<DartBotActiveModelEntity>();
+        public DbSet<DartBotTrainingJobEntity> DartBotTrainingJobs => Set<DartBotTrainingJobEntity>();
 
         // Turniere
         public DbSet<TournamentEntity> Tournaments => Set<TournamentEntity>();
