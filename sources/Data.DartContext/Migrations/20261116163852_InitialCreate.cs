@@ -726,6 +726,8 @@ namespace Data.DartContext.Migrations
                     BiasYMm = table.Column<float>(type: "float", nullable: false),
                     BadDartRate = table.Column<float>(type: "float", nullable: false),
                     Nervousness = table.Column<float>(type: "float", nullable: false),
+                    FavoriteDouble = table.Column<int>(type: "int", nullable: true),
+                    WeakDouble = table.Column<int>(type: "int", nullable: true),
                     ChangeReason = table.Column<int>(type: "int", nullable: false),
                     ReasonText = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
                     PreviousVersionId = table.Column<int>(type: "int", nullable: true),

@@ -1,5 +1,6 @@
 using Data.DartContext.Entities.Tournament;
 using Logic.Shared.Bot;
+using Shared.Interfaces.Progression;
 using Logic.Shared.Rules;
 using Logic.Tournament.Match;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ namespace Logic.Tournament.Play
         private readonly ILeagueService _leagueService;
         private readonly IKnockoutService _knockoutService;
         private readonly IDartBotLearningService _learningService;
+        private readonly IProgressionService _progression;
 
         public TournamentMatchService(
             IUnitOfWork unitOfWork,
@@ -32,8 +34,10 @@ namespace Logic.Tournament.Play
             IBotVisitPlayer botVisitPlayer,
             ILeagueService leagueService,
             IKnockoutService knockoutService,
-            IDartBotLearningService learningService) : base(unitOfWork, messageLog, claimsHelper)
+            IDartBotLearningService learningService,
+            IProgressionService progression) : base(unitOfWork, messageLog, claimsHelper)
         {
+            _progression = progression;
             _learningService = learningService;
             _botVisitPlayer = botVisitPlayer;
             _leagueService = leagueService;
@@ -425,6 +429,20 @@ namespace Logic.Tournament.Play
         }
 
         private async Task SaveAndFinalizeAsync(TournamentMatchEntity match)
+        {
+            await SaveAndFinalizeCoreAsync(match);
+
+            // Fortschritt der menschlichen Teilnehmer nach Matchende (Fehler dort lassen das Match nicht scheitern).
+            if (match.Status == TournamentMatchStatusEnum.Finished)
+            {
+                foreach (var userId in new[] { match.HomeParticipant?.UserId, match.AwayParticipant?.UserId }.OfType<int>())
+                {
+                    await _progression.EvaluateAsync(userId);
+                }
+            }
+        }
+
+        private async Task SaveAndFinalizeCoreAsync(TournamentMatchEntity match)
         {
             // Wertung (Elo, XP, Level) mit dem Matchende in derselben Speicherung.
             await _learningService.ApplyTournamentResultAsync(match, DateTime.UtcNow);

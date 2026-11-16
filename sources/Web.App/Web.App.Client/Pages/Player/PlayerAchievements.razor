@@ -1,0 +1,120 @@
+﻿@page "/player/achievements"
+@using global::Shared.Models.Progression
+@inject IProgressApi ProgressApi
+
+@*
+    Level (nur durch Spiele), Erfolge nach Kategorie und persönliche Rekorde.
+    Berechnet wird alles im Server (Logic.Statistics/Progression).
+*@
+
+<PageTitle>Erfolge – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="Fortschritt" Title="Level, Erfolge & Rekorde" Subtitle="Jedes Spiel bringt Erfahrung. Erfolge und Rekorde zeigen deine Meilensteine." />
+
+@if (_loading)
+{
+    <PlayerLoadingState />
+}
+else if (_error is not null || _progress is null)
+{
+    <PlayerErrorState Text="@(_error ?? "Fortschritt konnte nicht geladen werden.")" OnRetry="LoadAsync" />
+}
+else
+{
+    var p = _progress;
+
+    @if (p.NewlyUnlocked.Count > 0)
+    {
+        <section class="pa-section pa-ach-new" aria-label="Neu freigeschaltet">
+            <strong>Neu freigeschaltet:</strong> @string.Join(" · ", p.NewlyUnlocked.Select(a => a.Name))
+        </section>
+    }
+
+    <section class="pa-section pa-level" aria-labelledby="level-title">
+        <h2 class="pa-section__title" id="level-title">Level @p.Level</h2>
+        <div class="pa-level__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@LevelPercent(p)">
+            <span style="width:@(LevelPercent(p))%"></span>
+        </div>
+        <p class="pa-level__text">
+            @p.ExperiencePoints.ToString("N0") XP
+            @if (p.NextLevelXp > p.LevelStartXp)
+            {
+                <span> · noch @((p.NextLevelXp - p.ExperiencePoints).ToString("N0")) XP bis Level @(p.Level + 1)</span>
+            }
+        </p>
+    </section>
+
+    <section class="pa-section" aria-labelledby="records-title">
+        <h2 class="pa-section__title" id="records-title">Rekorde</h2>
+        <ul class="pa-records">
+            @foreach (var r in p.Records)
+            {
+                <li class="pa-records__item">
+                    <span class="pa-records__name">@r.Name</span>
+                    <strong class="pa-records__value">@(r.Value ?? "–")</strong>
+                    @if (r.Value is not null)
+                    {
+                        <small class="pa-records__meta">@r.AchievedAt?.ToLocalTime().ToString("d") @(r.Context is null ? "" : " · " + r.Context)</small>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+
+    @foreach (var group in p.Achievements.GroupBy(a => a.Category))
+    {
+        <section class="pa-section" aria-label="@group.Key">
+            <h2 class="pa-section__title">@group.Key <small>@group.Count(a => a.IsUnlocked) / @group.Count()</small></h2>
+            <ul class="pa-ach">
+                @foreach (var a in group)
+                {
+                    <li class="pa-ach__item @(a.IsUnlocked ? "is-unlocked" : "") @TierClass(a.Tier)">
+                        <strong>@a.Name</strong>
+                        <span>@a.Description</span>
+                        @if (a.IsUnlocked)
+                        {
+                            <small>Freigeschaltet am @a.UnlockedAt?.ToLocalTime().ToString("d")</small>
+                        }
+                        else if (a.Target > 1)
+                        {
+                            <div class="pa-level__bar pa-level__bar--small"><span style="width:@(Percent(a.Progress, a.Target))%"></span></div>
+                            <small>@Math.Min(a.Progress, a.Target) / @a.Target</small>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}
+
+@code {
+    private PlayerProgress? _progress;
+    private string? _error;
+    private bool _loading = true;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        var result = await ProgressApi.GetMyProgressAsync();
+        _progress = result.Value;
+        _error = result.Error;
+        _loading = false;
+    }
+
+    private static int LevelPercent(PlayerProgress p)
+        => p.NextLevelXp <= p.LevelStartXp ? 100 : Percent(p.ExperiencePoints - p.LevelStartXp, p.NextLevelXp - p.LevelStartXp);
+
+    private static int Percent(long value, long total)
+        => total <= 0 ? 0 : (int)Math.Clamp(value * 100 / total, 0, 100);
+
+    private static string TierClass(int tier) => tier switch
+    {
+        1 => "is-bronze",
+        2 => "is-silver",
+        3 => "is-gold",
+        _ => ""
+    };
+}

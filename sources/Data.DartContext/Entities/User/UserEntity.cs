@@ -23,6 +23,11 @@ namespace Data.DartContext.Entities.User
         /// <summary>Elo aus Spielen gegen Bots (gleiche Skala wie DartBotEntity.Rating, Start 1000).</summary>
         public int Rating { get; set; } = 1000;
 
+        /// <summary>Fortschritt (steigt nur durch beendete Spiele gegen Bots und Turnier-Matches, nie Abstieg).</summary>
+        public long ExperiencePoints { get; set; }
+
+        public int Level { get; set; }
+
         /// <summary>Version des Profilbilds (UserAvatarEntity.Version), null = kein Bild. Spart das Laden des Bilds.</summary>
         public Guid? AvatarVersion { get; set; }
 

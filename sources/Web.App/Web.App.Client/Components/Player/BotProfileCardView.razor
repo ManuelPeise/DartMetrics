@@ -50,6 +50,8 @@
         <div><dt><small>Nerven</small></dt><dd>@Percent(Card.Nerves)</dd></div>
         <div><dt><small>Wegewissen</small></dt><dd>@Percent(Card.RouteKnowledge)</dd></div>
         <div><dt><small>Risiko</small></dt><dd>@Percent(Card.Risk)</dd></div>
+        <div><dt><small>Lieblingsdoppel</small></dt><dd>@DoubleName(Card.FavoriteDouble)</dd></div>
+        <div><dt><small>Angstdoppel</small></dt><dd>@DoubleName(Card.WeakDouble)</dd></div>
     </dl>
 </section>
 
@@ -66,6 +68,13 @@
         (game.Average is { } average ? $", Ø {average:0.0}" : "");
 
     private static string Format(double? value) => value is { } v ? v.ToString("0.0") : "–";
+
+    private static string DoubleName(int? segment) => segment switch
+    {
+        null => "–",
+        25 => "Bull",
+        _ => $"D{segment}"
+    };
 
     private static string Percent(float value) => $"{value * 100:0} %";
 }

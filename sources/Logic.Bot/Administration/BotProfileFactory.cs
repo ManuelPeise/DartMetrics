@@ -44,10 +44,16 @@ namespace Logic.Bot.Administration
                     _ => 0.5f
                 },
                 PlayingStyle = style,
+                FavoriteDouble = randomize ? FavoriteDoubles[random.Next(FavoriteDoubles.Length)] : null,
+                WeakDouble = randomize ? WeakDoubles[random.Next(WeakDoubles.Length)] : null,
                 ChangeReason = DartBotProfileChangeReasonEnum.Initial,
                 ReasonText = $"Startprofil {DartBotStages.NameOf(DartBotStages.StageFor(average))}, Ø {average:0.#}"
             };
         }
+
+        /// <summary>Übliche Lieblingsdoppel (gerade, gut zu stellen) und typische Angstdoppel.</summary>
+        private static readonly int[] FavoriteDoubles = [20, 16, 18, 12, 8, 10];
+        private static readonly int[] WeakDoubles = [3, 7, 9, 1, 5, 11, 13, 17, 19];
 
         /// <summary>Potenzial: 15–35 Punkte über dem Start, höchstens Weltmeister-Niveau plus etwas Luft.</summary>
         public static float Potential(float baseAverage, Random random) =>

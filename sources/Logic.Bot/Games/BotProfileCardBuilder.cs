@@ -48,6 +48,8 @@ namespace Logic.Bot.Games
                 Nerves = 1f - profile.Nervousness,
                 RouteKnowledge = profile.TacticalIntelligence,
                 Risk = profile.RiskTaking,
+                FavoriteDouble = profile.FavoriteDouble,
+                WeakDouble = profile.WeakDouble,
                 GamesPlayed = botGames.Count,
                 GamesWon = botGames.Count(x => x.Game.WinnerPlayerId == x.Player.Id),
                 Average = darts == 0 ? null : Math.Round(points * 3.0 / darts, 2),

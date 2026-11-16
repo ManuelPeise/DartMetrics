@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.DartContext.Migrations
 {
     [DbContext(typeof(DartDatabaseContext))]
-    [Migration("20261116161808_InitialCreate")]
+    [Migration("20261116163852_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -509,6 +509,9 @@ namespace Data.DartContext.Migrations
                     b.Property<int>("DartBotId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FavoriteDouble")
+                        .HasColumnType("int");
+
                     b.Property<float>("Nervousness")
                         .HasColumnType("float");
 
@@ -555,6 +558,9 @@ namespace Data.DartContext.Migrations
 
                     b.Property<float>("VerticalRatio")
                         .HasColumnType("float");
+
+                    b.Property<int?>("WeakDouble")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

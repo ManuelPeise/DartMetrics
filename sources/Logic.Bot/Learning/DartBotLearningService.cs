@@ -301,6 +301,8 @@ namespace Logic.Bot.Learning
                 BiasYMm = current.BiasYMm,
                 BadDartRate = current.BadDartRate,
                 Nervousness = current.Nervousness,
+                FavoriteDouble = current.FavoriteDouble,
+                WeakDouble = current.WeakDouble,
                 ChangeReason = DartBotProfileChangeReasonEnum.LevelUp,
                 ReasonText = $"Level {previousLevel} -> {newLevel}",
                 PreviousVersion = current,

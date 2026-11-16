@@ -51,6 +51,12 @@ namespace Data.DartContext.Entities.Bot
         /// <summary>Wie stark eigene Fehler nachwirken (0 = cool, 1 = sehr nervös).</summary>
         public float Nervousness { get; set; }
 
+        /// <summary>Lieblingsdoppel (Segment 1–20 oder 25): weniger Streuung darauf, Wege dorthin werden bevorzugt.</summary>
+        public int? FavoriteDouble { get; set; }
+
+        /// <summary>Angstdoppel: mehr Streuung darauf.</summary>
+        public int? WeakDouble { get; set; }
+
         // Herkunft
         public DartBotProfileChangeReasonEnum ChangeReason { get; set; }
 

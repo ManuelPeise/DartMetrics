@@ -48,7 +48,7 @@ namespace Logic.Bot.Tactics
                 {
                     var knowledgeGap = (1.0 - Math.Clamp(context.Profile.TacticalIntelligence, 0f, 1f)) * MaxKnowledgeGap;
 
-                    return _random.NextDouble() < knowledgeGap ? Instinct(context.Remaining) : ChooseRoute(routes, context.Profile.RiskTaking)[0];
+                    return _random.NextDouble() < knowledgeGap ? Instinct(context.Remaining) : ChooseRoute(routes, context.Profile.RiskTaking, context.Profile.FavoriteDouble)[0];
                 }
             }
 
@@ -64,9 +64,25 @@ namespace Logic.Bot.Tactics
         /// aggressiv = wenigste Darts, Bull-Wege gern; defensiv = keine Bull-Wege, Doppel mit viel Rest-Spielraum (D16, D20, D8);
         /// normal = Hauptweg.
         /// </summary>
-        public static DartTarget[] ChooseRoute(IReadOnlyList<DartTarget[]> routes, float riskTaking)
+        public static DartTarget[] ChooseRoute(IReadOnlyList<DartTarget[]> routes, float riskTaking, int? favoriteDouble = null)
         {
-            if (routes.Count == 1 || riskTaking is > RiskDefensive and < RiskAggressive)
+            if (routes.Count == 1)
+            {
+                return routes[0];
+            }
+
+            // Lieblingsdoppel: unter gleich langen Buch-Varianten die, die darauf endet (nicht bei aggressiv: dort zählt Tempo).
+            if (favoriteDouble is { } favorite && riskTaking < RiskAggressive)
+            {
+                var toFavorite = routes.FirstOrDefault(r => r.Length == routes[0].Length && r[^1].Segment == favorite && r[^1].IsDouble);
+
+                if (toFavorite is not null)
+                {
+                    return toFavorite;
+                }
+            }
+
+            if (riskTaking is > RiskDefensive and < RiskAggressive)
             {
                 return routes[0];
             }

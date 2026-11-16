@@ -27,5 +27,6 @@ builder.Services.AddScoped<IBotGameApi, BotGameApi>();
 builder.Services.AddScoped<ITournamentApi, TournamentApi>();
 builder.Services.AddScoped<ITrainingApi, TrainingApi>();
 builder.Services.AddScoped<IStatisticsApi, StatisticsApi>();
+builder.Services.AddScoped<IProgressApi, ProgressApi>();
 
 await builder.Build().RunAsync();

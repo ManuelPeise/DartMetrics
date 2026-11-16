@@ -42,7 +42,7 @@
             @foreach (var bot in _bots.OrderBy(b => _rating is { } r ? Math.Abs(b.Rating - r) : 0).Take(MaxBotsShown))
             {
                 <PlayerCard Title="@bot.Name" Icon="PlayerIconName.Bot" Href="player/bots"
-                            Text="@($"Level {bot.DevelopmentLevel} · Elo {bot.Rating}")"
+                            Text="@($"{bot.StageName} · Ø {bot.BaseAverage:0} · Elo {bot.Rating}")"
                             Meta="@(EloMatch.IsGoodMatch(_rating, bot.Rating) ? "Passender Gegner →" : "Herausfordern →")" />
             }
         </div>

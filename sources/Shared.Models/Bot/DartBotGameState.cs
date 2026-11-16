@@ -6,6 +6,9 @@ namespace Shared.Models.Bot
     /// <summary>Spielstand aus Sicht des Menschen (Spieler 1 = Mensch, Spieler 2 = Bot).</summary>
     public class DartBotGameState
     {
+        /// <summary>Beim Spielende neu freigeschaltete Erfolge (Namen); sonst leer.</summary>
+        public List<string> NewAchievements { get; set; } = [];
+
         public int GameId { get; set; }
 
         public DartBotGameModeEnum GameMode { get; set; }

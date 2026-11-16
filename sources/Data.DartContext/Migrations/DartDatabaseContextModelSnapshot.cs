@@ -506,6 +506,9 @@ namespace Data.DartContext.Migrations
                     b.Property<int>("DartBotId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FavoriteDouble")
+                        .HasColumnType("int");
+
                     b.Property<float>("Nervousness")
                         .HasColumnType("float");
 
@@ -552,6 +555,9 @@ namespace Data.DartContext.Migrations
 
                     b.Property<float>("VerticalRatio")
                         .HasColumnType("float");
+
+                    b.Property<int?>("WeakDouble")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

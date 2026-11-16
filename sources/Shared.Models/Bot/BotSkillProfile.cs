@@ -24,5 +24,20 @@
 
         /// <summary>V2: Anteil richtig schlechter Darts (dreifache Streuung), auch Profis haben welche.</summary>
         public float BadDartRate { get; init; }
+
+        /// <summary>V2: Lieblingsdoppel (weniger Streuung, Wege dorthin bevorzugt) und Angstdoppel (mehr Streuung).</summary>
+        public int? FavoriteDouble { get; init; }
+
+        public int? WeakDouble { get; init; }
+
+        /// <summary>Faktor auf die Streuung beim Zielen auf dieses Ziel (Lieblings-/Angstdoppel).</summary>
+        public float FieldFactor(DartTarget target) =>
+            target.Multiplier != 2 ? 1f
+            : target.Segment == FavoriteDouble ? FavoriteDoubleFactor
+            : target.Segment == WeakDouble ? WeakDoubleFactor
+            : 1f;
+
+        public const float FavoriteDoubleFactor = 0.85f;
+        public const float WeakDoubleFactor = 1.15f;
     }
 }

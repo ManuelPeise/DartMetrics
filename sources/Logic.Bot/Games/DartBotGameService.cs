@@ -9,6 +9,7 @@ using Shared.Enums.X01;
 using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Bot;
 using Shared.Interfaces.Logger;
+using Shared.Interfaces.Progression;
 using Shared.Interfaces.UnitsOfWork;
 using Shared.Models.Authentication;
 using Shared.Models.Bot;
@@ -33,6 +34,7 @@ namespace Logic.Bot.Games
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly IDartBotLearningService _learningService;
         private readonly IRandomSource _random;
+        private readonly IProgressionService _progression;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
@@ -41,12 +43,14 @@ namespace Logic.Bot.Games
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
             IDartBotLearningService learningService,
-            IRandomSource random) : base(unitOfWork, messageLog)
+            IRandomSource random,
+            IProgressionService progression) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
             _learningService = learningService;
             _random = random;
+            _progression = progression;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -188,7 +192,15 @@ namespace Logic.Bot.Games
                     await UnitOfWork.SaveChangesAsync();
                 }
 
-                return BuildState(game);
+                var state = BuildState(game);
+
+                // Level, Erfolge und Rekorde nach dem Spielende (Fehler dort lassen das Spiel nicht scheitern).
+                if (game.Status == DartBotGameStatusEnum.Finished && userPlayer.UserId is { } finishedUserId)
+                {
+                    state.NewAchievements = (await _progression.EvaluateAsync(finishedUserId)).Select(a => a.Name).ToList();
+                }
+
+                return state;
             }
             catch (Exception exception)
             {
@@ -412,6 +424,21 @@ namespace Logic.Bot.Games
             }
         }
 
+        /// <summary>Match-Dart (ein Leg zum Sieg) = 1, Entscheidungs-Leg (beide brauchen noch eins) = 0,5, sonst 0.</summary>
+        private static float MatchPressure(DartBotGameEntity game, DartBotGamePlayerEntity botPlayer)
+        {
+            var legsToWin = X01SetRules.LegsToWin(game.BestOfLegs);
+            var botLegs = game.Legs.Count(l => l.WinnerPlayerId == botPlayer.Id || l.WinnerPlayer == botPlayer);
+            var opponentLegs = game.Legs.Count(l => l.WinnerPlayerId != null && l.WinnerPlayerId != botPlayer.Id && l.WinnerPlayer != botPlayer);
+
+            if (botLegs == legsToWin - 1)
+            {
+                return opponentLegs == legsToWin - 1 ? 1f : 0.75f;
+            }
+
+            return opponentLegs == legsToWin - 1 ? 0.5f : 0f;
+        }
+
         /// <summary>Tagesform × Nerven (Fehler seit dem letzten eigenen Checkout in diesem Spiel).</summary>
         private static float ScatterFactor(DartBotGameEntity game, DartBotGamePlayerEntity botPlayer, DartBotProfileVersionEntity profile)
         {
@@ -438,7 +465,8 @@ namespace Logic.Bot.Games
                 profile.ToSkillProfile(ScatterFactor(game, botPlayer, profile)),
                 game.InMode,
                 game.OutMode,
-                IsOpened(game, leg, botPlayer)));
+                IsOpened(game, leg, botPlayer),
+                MatchPressure(game, botPlayer)));
 
             var visit = NewVisit(game, leg, botPlayer, scoreBefore, opponentScoreBefore);
             visit.ScoreAfter = result.ScoreAfter;

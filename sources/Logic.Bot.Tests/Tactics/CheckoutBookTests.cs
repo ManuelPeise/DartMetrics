@@ -98,6 +98,16 @@ namespace Logic.Bot.Tests.Tactics
         }
 
         [Fact]
+        public void FavoriteDouble_PicksVariantEndingThere()
+        {
+            // 150: T20 T18 D18 (Hauptweg) oder T19 T19 D18 – beide D18; 146: T20 T18 D16 | T19 T19 D16; 151: … D20 | … D20.
+            // 164: T20 T18 Bull | T19 T19 Bull → Lieblingsdoppel Bull nimmt den Hauptweg (gleich lang).
+            var routes = CheckoutBook.RoutesFor(132, 3); // T20 T16 D12 | SB T19 DB | DB T14 D20
+            Assert.Equal("Bull", ProTargetSelector.ChooseRoute(routes, 0.5f, favoriteDouble: 20)[0].ToString());
+            Assert.Equal("T20", ProTargetSelector.ChooseRoute(routes, 0.5f, favoriteDouble: 7)[0].ToString());
+        }
+
+        [Fact]
         public void NoRoute_ForBogeyOrTooHigh()
         {
             Assert.Null(CheckoutBook.NextTarget(169, 3));

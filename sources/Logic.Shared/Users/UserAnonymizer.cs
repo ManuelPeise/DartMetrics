@@ -52,6 +52,15 @@ namespace Logic.Shared.Users
 
             user.AvatarVersion = null;
 
+            // Fortschritt ist persönlich: Erfolge löschen, Level zurücksetzen.
+            foreach (var achievement in await _unitOfWork.UserUnitOfWork.UserAchievementRepository.GetWhereAsync(a => a.UserId == user.Id))
+            {
+                _unitOfWork.UserUnitOfWork.UserAchievementRepository.Delete(achievement);
+            }
+
+            user.ExperiencePoints = 0;
+            user.Level = 0;
+
             // Bot-Spiele bleiben erhalten (Statistik, ML), nur der Name wird anonymisiert; laufende Spiele enden.
             var botPlayers = await _unitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
                 p => p.UserId == user.Id,

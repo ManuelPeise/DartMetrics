@@ -19,6 +19,7 @@ namespace Web.App.Client.Layout.Player
             new("Gegen Bot spielen", "Bot", Root + "/bots", PlayerIconName.Bot),
             new("Turniere", "Turniere", Root + "/tournaments", PlayerIconName.Trophy),
             new("Statistiken", "Statistik", Root + "/statistics", PlayerIconName.Chart),
+            new("Erfolge", "Erfolge", Root + "/achievements", PlayerIconName.Trophy),
             new("Profil", "Profil", Root + "/profile", PlayerIconName.User)
         ];
     }

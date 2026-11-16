@@ -29,6 +29,28 @@ namespace Logic.Bot.Play
             _throwSimulator = throwSimulator;
         }
 
+        /// <summary>Zusätzliche Streuung auf Match-Darts bzw. im Entscheidungs-Leg bei Druckresistenz 0.</summary>
+        public const float MaxMatchPressurePenalty = 0.3f;
+
+        /// <summary>Match-Dart / Entscheidungs-Leg: mehr Streuung, je weniger Druckresistenz.</summary>
+        public static BotSkillProfile WithMatchPressure(BotSkillProfile profile, float matchPressure)
+        {
+            if (matchPressure <= 0f)
+            {
+                return profile;
+            }
+
+            var factor = 1f + Math.Clamp(matchPressure, 0f, 1f) * MaxMatchPressurePenalty * (1f - Math.Clamp(profile.PressureResistance, 0f, 1f));
+            return profile with { SigmaMm = (float)ThrowSimulator.HorizontalSigma(profile) * factor };
+        }
+
+        /// <summary>Lieblings- bzw. Angstdoppel: Streuung für dieses Ziel anpassen.</summary>
+        public static BotSkillProfile WithFieldFactor(BotSkillProfile profile, DartTarget target)
+        {
+            var factor = profile.FieldFactor(target);
+            return factor == 1f ? profile : profile with { SigmaMm = (float)ThrowSimulator.HorizontalSigma(profile) * factor };
+        }
+
         public BotVisitResult PlayVisit(BotVisitContext context) => PlayVisit(context, _targetSelector);
 
         public BotVisitResult PlayVisit(BotVisitContext context, ITargetSelector targetSelector)
@@ -45,6 +67,7 @@ namespace Logic.Bot.Play
             var remaining = context.ScoreBefore;
             var visitScore = 0;
             var isOpened = context.IsOpened || context.InMode == X01InModeEnum.Straight;
+            var dartsInBoard = new List<BoardPoint>(DartsPerVisit);
 
             for (var throwNumber = 1; throwNumber <= DartsPerVisit; throwNumber++)
             {
@@ -65,7 +88,9 @@ namespace Logic.Bot.Play
                 var isPressure = isFinishingDart || context.OpponentScoreBefore <= OpponentPressureThreshold;
 
                 var aimPoint = DartBoardGeometry.GetAimPoint(target);
-                var hitPoint = _throwSimulator.Throw(aimPoint, context.Profile, visitForm, isPressure);
+                var profile = WithFieldFactor(isFinishingDart ? WithMatchPressure(context.Profile, context.MatchPressure) : context.Profile, target);
+                var hitPoint = _throwSimulator.Throw(aimPoint, profile, visitForm, isPressure, dartsInBoard);
+                dartsInBoard.Add(hitPoint);
                 var hit = DartBoardGeometry.Resolve(hitPoint);
 
                 result.Throws.Add(new BotThrowResult

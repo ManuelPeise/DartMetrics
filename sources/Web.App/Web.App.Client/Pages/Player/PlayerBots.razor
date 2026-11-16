@@ -168,6 +168,13 @@
             {
                 <PlayerStatGrid Stats="BotProgressStats" />
             }
+            @if (_state.NewAchievements.Count > 0)
+            {
+                <div class="pa-new-achievements" role="status">
+                    <strong>Neue Erfolge:</strong> @string.Join(" · ", _state.NewAchievements)
+                    · <a href="player/achievements">Ansehen →</a>
+                </div>
+            }
             <div class="pa-setup__actions">
                 <button type="button" class="pl-btn pl-btn--primary" @onclick="NewGameAsync">Neues Spiel</button>
                 <a href="player" class="pl-btn pl-btn--ghost">Zur Übersicht</a>

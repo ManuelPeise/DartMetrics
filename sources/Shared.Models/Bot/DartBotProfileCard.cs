@@ -20,6 +20,9 @@ namespace Shared.Models.Bot
         public float RouteKnowledge { get; set; }
         public float Risk { get; set; }
 
+        public int? FavoriteDouble { get; set; }
+        public int? WeakDouble { get; set; }
+
         // Kennzahlen aus beendeten Spielen
         public int GamesPlayed { get; set; }
         public int GamesWon { get; set; }

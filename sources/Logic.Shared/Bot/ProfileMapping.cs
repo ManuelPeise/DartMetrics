@@ -19,7 +19,9 @@ namespace Logic.Shared.Bot
             VerticalRatio = profile.VerticalRatio,
             BiasXMm = profile.BiasXMm,
             BiasYMm = profile.BiasYMm,
-            BadDartRate = profile.BadDartRate
+            BadDartRate = profile.BadDartRate,
+            FavoriteDouble = profile.FavoriteDouble,
+            WeakDouble = profile.WeakDouble
         };
     }
 }
