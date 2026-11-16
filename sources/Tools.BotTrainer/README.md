@@ -68,6 +68,10 @@ Standard und Gründlich stimmen das Training ab (`--tune`); der Vergleich läuft
 docker compose --profile tools run --rm bottrainer generate --situations 2000 --seed 7 --policy-model 2
 ```
 
+Im Admin-Bereich: beim Training „Aufbauen auf“ ein Modell wählen (angeboten werden Modelle mit Prüfstand-Wert und gültiger
+Datei, das beste ist vorausgewählt). Die Auftragsliste zeigt den Prüfstand und „Besser als Basis“ / „Nicht besser als Basis“.
+Gemessen: etwa 80–140 ms je Situation statt 38 ms (Kommandozeile), also 2–4-mal so lange.
+
 ## generate (Phase 2)
 
 Erzeugt einen Datensatz für das Zielwahl-Modell: zufällige Situationen (`SituationSampler`), je Situation alle Kandidaten mit Label aus N Rollouts (`Logic.Bot/Ml/CandidateEvaluator`).

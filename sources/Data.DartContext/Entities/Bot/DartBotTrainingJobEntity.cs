@@ -28,6 +28,11 @@ namespace Data.DartContext.Entities.Bot
 
         public int Seed { get; set; }
 
+        /// <summary>Runde: in den Rollouts spielt dieses Modell weiter statt des Regelwerks (null = Regelwerk).</summary>
+        public int? PolicyModelId { get; set; }
+
+        public DartBotModelEntity? PolicyModel { get; set; }
+
         public string RequestedBy { get; set; } = null!;
 
         public bool CancelRequested { get; set; }

@@ -886,6 +886,9 @@ namespace Data.DartContext.Migrations
                     b.Property<int?>("Phase")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PolicyModelId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Preset")
                         .HasColumnType("int");
 
@@ -928,6 +931,8 @@ namespace Data.DartContext.Migrations
                     b.HasIndex("DatasetId");
 
                     b.HasIndex("ModelId");
+
+                    b.HasIndex("PolicyModelId");
 
                     b.HasIndex("Status");
 
@@ -2546,9 +2551,16 @@ namespace Data.DartContext.Migrations
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Data.DartContext.Entities.Bot.DartBotModelEntity", "PolicyModel")
+                        .WithMany()
+                        .HasForeignKey("PolicyModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Dataset");
 
                     b.Navigation("Model");
+
+                    b.Navigation("PolicyModel");
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Tournament.TournamentEntity", b =>

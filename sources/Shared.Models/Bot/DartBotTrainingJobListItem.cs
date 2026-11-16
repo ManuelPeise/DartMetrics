@@ -23,5 +23,18 @@ namespace Shared.Models.Bot
         public int? ModelId { get; set; }
         public int? ModelVersionNumber { get; set; }
         public bool? ComparisonPassed { get; set; }
+
+        /// <summary>Runde: Basis-Modell der Rollouts (null = Regelwerk).</summary>
+        public int? BaseModelId { get; set; }
+        public int? BaseModelVersionNumber { get; set; }
+
+        /// <summary>Prüfstand des neuen Modells bzw. der Basis (Darts pro Leg ggü. Regelwerk, negativ = besser).</summary>
+        public double? BenchmarkScore { get; set; }
+        public double? BaseBenchmarkScore { get; set; }
+
+        /// <summary>Nur bei Runden: neues Modell im Prüfstand besser als die Basis.</summary>
+        public bool? BetterThanBase => BaseModelId is null || BenchmarkScore is null || BaseBenchmarkScore is null
+            ? null
+            : BenchmarkScore < BaseBenchmarkScore;
     }
 }

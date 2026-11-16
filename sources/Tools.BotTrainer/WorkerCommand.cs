@@ -130,7 +130,8 @@ namespace Tools.BotTrainer
         private static async Task RunJobAsync(int jobId, MlDataStore store, ServiceProvider provider, CancellationToken stop)
         {
             var job = await LoadAsync(provider, jobId);
-            Console.WriteLine($"Auftrag {jobId}: {job.Preset}, {job.Situations} Situationen, {job.CompareLegs} Vergleichs-Legs, Seed {job.Seed}");
+            Console.WriteLine($"Auftrag {jobId}: {job.Preset}, {job.Situations} Situationen, {job.CompareLegs} Vergleichs-Legs, Seed {job.Seed}" +
+                              (job.PolicyModelId is null ? "" : $", Runde auf Basis von Modell {job.PolicyModelId}"));
 
             using var heartbeatStop = CancellationTokenSource.CreateLinkedTokenSource(stop);
             var heartbeat = HeartbeatAsync(provider, jobId, heartbeatStop.Token);
@@ -152,7 +153,9 @@ namespace Tools.BotTrainer
                     var generate = Hooks(provider, jobId, DartBotTrainingJobPhaseEnum.Generate, 0, GenerateShare, stop);
                     exitCode = await GenerateCommand.RunAsync(Arguments.Parse(
                     [
-                        "generate", "--situations", job.Situations.ToString(), "--rollouts", job.RolloutsPerCandidate.ToString(), "--seed", job.Seed.ToString()
+                        "generate", "--situations", job.Situations.ToString(), "--rollouts", job.RolloutsPerCandidate.ToString(), "--seed", job.Seed.ToString(),
+                        // Runde: in den Rollouts spielt das Basis-Modell weiter.
+                        .. (job.PolicyModelId is null ? Array.Empty<string>() : ["--policy-model", job.PolicyModelId.Value.ToString()])
                     ]), store, provider, generate);
 
                     var datasetId = generate.CreatedId ?? throw new InvalidOperationException($"Datensatz konnte nicht erzeugt werden (Exit-Code {exitCode}).");

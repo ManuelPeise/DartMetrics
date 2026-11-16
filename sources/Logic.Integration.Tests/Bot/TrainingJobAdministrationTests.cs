@@ -97,6 +97,19 @@ namespace Logic.Integration.Tests.Bot
         }
 
         [Fact]
+        public async Task CreateJob_WithUnknownBaseModel_IsRejected()
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _host.RunAsync<IDartBotTrainingJobAdministration, int>(a => a.CreateJobAsync(new CreateDartBotTrainingJobModel
+                {
+                    Preset = DartBotTrainingJobPresetEnum.Quick,
+                    BaseModelId = 999_999
+                })));
+
+            Assert.Empty(await GetJobsAsync());
+        }
+
+        [Fact]
         public async Task Player_CannotCreateJobs()
         {
             await _host.SignInNewPlayerAsync();

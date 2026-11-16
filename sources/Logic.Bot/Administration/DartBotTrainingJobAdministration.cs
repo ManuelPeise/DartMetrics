@@ -1,6 +1,8 @@
 using Data.DartContext.Entities.Bot;
 using Logic.Shared;
+using Logic.Bot.Ml;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Shared.Enums.Bot;
 using Shared.Enums.User;
 using Shared.Interfaces.Administration;
@@ -8,6 +10,8 @@ using Shared.Interfaces.Authentication;
 using Shared.Interfaces.Logger;
 using Shared.Interfaces.UnitsOfWork;
 using Shared.Models.Bot;
+using Shared.Models.Bot.Ml;
+using Shared.Models.Options;
 using Shared.Models.Shared;
 
 namespace Logic.Bot.Administration
@@ -22,13 +26,16 @@ namespace Logic.Bot.Administration
         public static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromMinutes(10);
 
         private readonly IClaimsHelper _claimsHelper;
+        private readonly DartBotMlOptions _mlOptions;
 
         public DartBotTrainingJobAdministration(
             IUnitOfWork unitOfWork,
             IMessageLog messageLog,
-            IClaimsHelper claimsHelper) : base(unitOfWork, messageLog)
+            IClaimsHelper claimsHelper,
+            IOptions<DartBotOptions> options) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
+            _mlOptions = options.Value.Ml;
         }
 
         public async Task<List<DartBotTrainingJobListItem>> GetJobsAsync(int take = 20)
@@ -42,7 +49,9 @@ namespace Logic.Bot.Administration
                 var jobs = await UnitOfWork.DartBotUnitOfWork.DartBotTrainingJobRepository.GetWhereAsync(
                     _ => true,
                     asNoTracking: true,
-                    include: q => q.Include(j => j.Model));
+                    include: q => q
+                        .Include(j => j.Model).ThenInclude(m => m!.Training)
+                        .Include(j => j.PolicyModel).ThenInclude(m => m!.Training));
 
                 return jobs
                     .OrderByDescending(j => j.Id)
@@ -81,6 +90,11 @@ namespace Logic.Bot.Administration
 
                 var (situations, rollouts, legs) = DartBotTrainingPresets.For(model.Preset);
 
+                if (model.BaseModelId is not null)
+                {
+                    await EnsureUsableBaseModelAsync(model.BaseModelId.Value);
+                }
+
                 var job = new DartBotTrainingJobEntity
                 {
                     Preset = model.Preset,
@@ -90,6 +104,7 @@ namespace Logic.Bot.Administration
                     CompareLegs = legs,
                     // Neuer Seed je Auftrag, sonst entstünde immer derselbe Datensatz.
                     Seed = Random.Shared.Next(1, int.MaxValue),
+                    PolicyModelId = model.BaseModelId,
                     RequestedBy = Truncate(currentUser.Email, 100),
                     ProgressText = "Wartet auf den Trainer …"
                 };
@@ -142,6 +157,28 @@ namespace Logic.Bot.Administration
             }
         }
 
+        /// <summary>Basis einer Runde: Zielwahl-Modell mit aktuellem Schema und gültiger Datei.</summary>
+        private async Task EnsureUsableBaseModelAsync(int modelId)
+        {
+            var baseModel = await UnitOfWork.DartBotUnitOfWork.DartBotModelRepository.GetFirstOrDefaultAsync(m => m.Id == modelId, asNoTracking: true)
+                ?? throw new ArgumentException($"Model {modelId} not found.");
+
+            if (baseModel.ModelType != DartBotModelTypeEnum.TargetSelection)
+            {
+                throw new ArgumentException($"Model {modelId} is not a target selection model.");
+            }
+
+            if (baseModel.FeatureSchemaVersion != TargetCandidateFeatures.FeatureSchemaVersion)
+            {
+                throw new BusinessRuleException($"Modell Version {baseModel.VersionNumber} hat ein altes Schema und kann keine Basis sein.");
+            }
+
+            if (ModelFileCheck.Check(_mlOptions.Path, baseModel) != DartBotModelFileStatusEnum.Ok)
+            {
+                throw new BusinessRuleException($"Die Datei von Modell Version {baseModel.VersionNumber} fehlt oder wurde verändert.");
+            }
+        }
+
         /// <summary>Laufende Aufträge ohne Lebenszeichen blockieren sonst jeden neuen Auftrag.</summary>
         private async Task FailLostJobsAsync()
         {
@@ -185,7 +222,11 @@ namespace Logic.Bot.Administration
             DatasetId = job.DatasetId,
             ModelId = job.ModelId,
             ModelVersionNumber = job.Model?.VersionNumber,
-            ComparisonPassed = job.ComparisonPassed
+            ComparisonPassed = job.ComparisonPassed,
+            BaseModelId = job.PolicyModelId,
+            BaseModelVersionNumber = job.PolicyModel?.VersionNumber,
+            BenchmarkScore = BenchmarkReader.Score(job.Model?.Training?.MetricsJson),
+            BaseBenchmarkScore = BenchmarkReader.Score(job.PolicyModel?.Training?.MetricsJson)
         };
 
         private static string Truncate(string value, int maxLength) => value.Length <= maxLength ? value : value[..maxLength];

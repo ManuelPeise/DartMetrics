@@ -60,6 +60,8 @@
         <form class="adm-form" @onsubmit="StartJobAsync" @onsubmit:preventDefault>
             <AdminSelect Id="job-preset" Label="Umfang" Options="PresetOptions" @bind-Value="_preset"
                          Hint="Schnell nur zum Ausprobieren (Modell meist schlechter als das Regelwerk). Standard für ein Modell, das aktiviert werden soll: auf einem PC grob 10–30 min, auf dem Raspberry Pi deutlich länger." Disabled="_starting" />
+            <AdminSelect Id="job-base" Label="Aufbauen auf" Options="BaseModelOptions" @bind-Value="_baseModel"
+                         Hint="Runde: In den Simulationen spielt das gewählte Modell weiter statt des Regelwerks. Das neue Modell zählt nur, wenn es im Prüfstand besser ist als die Basis. Dauert etwa 2–4-mal so lange und hat bisher keinen Gewinn gezeigt." Disabled="_starting" />
             <div class="adm-form-actions">
                 <AdminButton Type="submit" IsLoading="_starting" Icon="AdminIconName.Training">Training starten</AdminButton>
             </div>
@@ -78,6 +80,7 @@
             <td data-label="Auftrag" class="adm-cell-title">
                 <strong>#@job.Id · @PresetText(job.Preset)</strong>
                 <small>@job.CreatedAt.ToLocalTime().ToString("g", German) · @job.RequestedBy · @job.Situations Situationen · @job.CompareLegs Legs je Stufe</small>
+                <small>@(job.BaseModelId is null ? "Rollouts: Regelwerk" : $"Runde auf Basis von Version {job.BaseModelVersionNumber}")</small>
             </td>
             <td data-label="Status" class="adm-cell-title">
                 <AdminStatusBadge Text="@JobStatusText(job)" Status="@JobStatus(job)" />
@@ -94,6 +97,15 @@
                 @if (job.ModelId is not null)
                 {
                     <span>Modell Version @job.ModelVersionNumber (Id @job.ModelId)</span>
+                }
+                @if (job.BenchmarkScore is not null)
+                {
+                    <small>Prüfstand @job.BenchmarkScore.Value.ToString("+0.00;−0.00;0.00", German) Darts</small>
+                }
+                @if (job.BetterThanBase is not null)
+                {
+                    <AdminStatusBadge Text="@(job.BetterThanBase.Value ? "Besser als Basis" : "Nicht besser als Basis")"
+                                      Status="@(job.BetterThanBase.Value ? AdminStatus.Success : AdminStatus.Warning)" />
                 }
                 @if (job.ComparisonPassed is not null)
                 {
@@ -253,6 +265,18 @@
     private List<DartBotTrainingJobListItem>? _jobs;
     private string? _jobsError;
     private string? _preset = nameof(DartBotTrainingJobPresetEnum.Quick);
+    private string? _baseModel;
+    private bool _baseModelInitialized;
+
+    /// <summary>Basis einer Runde: nur Modelle mit Prüfstand-Wert und gültiger Datei, bestes zuerst.</summary>
+    private IReadOnlyList<AdminSelectOption> BaseModelOptions =>
+    [
+        new("", "Regelwerk (erste Runde)"),
+        .. (_overview?.Models ?? [])
+            .Where(m => m.BenchmarkScore is not null && m.FileStatus == DartBotModelFileStatusEnum.Ok)
+            .OrderBy(m => m.BenchmarkScore)
+            .Select(m => new AdminSelectOption(m.Id.ToString(), $"Modell Version {m.VersionNumber} (Prüfstand {m.BenchmarkScore!.Value.ToString("+0.00;−0.00;0.00", German)})"))
+    ];
     private bool _starting;
     private bool _cancelling;
     private System.Threading.Timer? _pollTimer;
@@ -283,6 +307,13 @@
             if (response.IsSuccessStatusCode)
             {
                 _overview = await response.Content.ReadFromJsonAsync<DartBotModelOverview>();
+
+                // Vorauswahl Regelwerk: Runden auf Basis eines Modells haben im Test (Version 3 → 5) keinen Gewinn gezeigt.
+                if (!_baseModelInitialized)
+                {
+                    _baseModel = "";
+                    _baseModelInitialized = true;
+                }
             }
             else
             {
@@ -413,7 +444,8 @@
         {
             var model = new CreateDartBotTrainingJobModel
             {
-                Preset = Enum.TryParse<DartBotTrainingJobPresetEnum>(_preset, out var preset) ? preset : DartBotTrainingJobPresetEnum.Quick
+                Preset = Enum.TryParse<DartBotTrainingJobPresetEnum>(_preset, out var preset) ? preset : DartBotTrainingJobPresetEnum.Quick,
+                BaseModelId = int.TryParse(_baseModel, out var baseModelId) ? baseModelId : null
             };
 
             using var response = await Api.PostAsync("DartBotTrainingJobAdministration/CreateDartBotTrainingJob", model);

@@ -27,6 +27,11 @@ namespace Data.DartContext.Configurations.Bot
                 .HasForeignKey(x => x.ModelId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.PolicyModel)
+                .WithMany()
+                .HasForeignKey(x => x.PolicyModelId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasIndex(x => x.Status);
 
             builder.UseUtcDateTimes();
