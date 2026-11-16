@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.DartContext.Migrations
 {
     [DbContext(typeof(DartDatabaseContext))]
-    [Migration("20261116163852_InitialCreate")]
+    [Migration("20261116180546_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -1783,6 +1783,49 @@ namespace Data.DartContext.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.User.UserAchievementEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("AchievementKey")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsSeen")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("UnlockedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "AchievementKey")
+                        .IsUnique();
+
+                    b.ToTable("UserAchievements", (string)null);
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.User.UserAvatarEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1911,6 +1954,9 @@ namespace Data.DartContext.Migrations
                     b.Property<DateTime?>("EmailVerifiedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<long>("ExperiencePoints")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1923,6 +1969,9 @@ namespace Data.DartContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
 
                     b.Property<int>("Rating")
                         .ValueGeneratedOnAdd()
@@ -2392,6 +2441,17 @@ namespace Data.DartContext.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.User.UserAchievementEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.User.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");

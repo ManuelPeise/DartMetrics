@@ -1,3 +1,4 @@
+using Data.DartContext.Configurations.Bot;
 using Data.DartContext.Entities.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

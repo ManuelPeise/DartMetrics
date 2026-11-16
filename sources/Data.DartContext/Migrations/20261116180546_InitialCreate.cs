@@ -99,6 +99,8 @@ namespace Data.DartContext.Migrations
                     DisplayName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Rating = table.Column<int>(type: "int", nullable: false, defaultValue: 1000),
+                    ExperiencePoints = table.Column<long>(type: "bigint", nullable: false),
+                    Level = table.Column<int>(type: "int", nullable: false),
                     AvatarVersion = table.Column<Guid>(type: "char(36)", nullable: true),
                     EmailVerifiedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
@@ -139,6 +141,33 @@ namespace Data.DartContext.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "UserAchievements",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    AchievementKey = table.Column<string>(type: "varchar(60)", maxLength: 60, nullable: false),
+                    UnlockedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    IsSeen = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    CreatedBy = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserAchievements", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserAchievements_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -1430,6 +1459,12 @@ namespace Data.DartContext.Migrations
                 columns: new[] { "UserId", "StartedAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserAchievements_UserId_AchievementKey",
+                table: "UserAchievements",
+                columns: new[] { "UserId", "AchievementKey" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserAvatars_UserId",
                 table: "UserAvatars",
                 column: "UserId",
@@ -1587,6 +1622,9 @@ namespace Data.DartContext.Migrations
 
             migrationBuilder.DropTable(
                 name: "TrainingGameThrows");
+
+            migrationBuilder.DropTable(
+                name: "UserAchievements");
 
             migrationBuilder.DropTable(
                 name: "UserAvatars");

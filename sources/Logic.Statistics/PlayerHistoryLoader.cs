@@ -61,7 +61,7 @@ namespace Logic.Statistics
         /// <summary>X01-Training allein: Reststand je Dart wird aus der Aufnahme abgeleitet (Double-In: Darts vor dem Eröffnen zählen 0).</summary>
         private async Task<List<StatLeg>> LoadX01TrainingLegsAsync(int userId)
         {
-            var trainings = await _unitOfWork.DartTraining_unitOfWork.TrainingGameRepository.GetWhereAsync(
+            var trainings = await _unitOfWork.DartTrainingUnitOfWork.TrainingGameRepository.GetWhereAsync(
                 t => t.TrainingSession.UserId == userId && t.TrainingSession.FinishedAt != null,
                 asNoTracking: true,
                 include: q => q.Include(t => t.TrainingSession).Include(t => t.Visits).ThenInclude(v => v.Throws));
@@ -114,7 +114,7 @@ namespace Logic.Statistics
         public async Task<List<DartBotGamePlayerEntity>> LoadBotGamesAsync(int userId)
         {
             // Nur Vorwärts-Includes: No-Tracking erlaubt keine Zyklen.
-            var players = await _unitOfWork.DartBot_unitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
+            var players = await _unitOfWork.DartBotUnitOfWork.DartBotGamePlayerRepository.GetWhereAsync(
                 p => p.UserId == userId && p.Game.Status == DartBotGameStatusEnum.Finished && p.Game.FinishedAt != null,
                 asNoTracking: true,
                 include: q => q.Include(p => p.Game).ThenInclude(g => g.Legs).Include(p => p.Visits).ThenInclude(v => v.Throws));
@@ -146,7 +146,7 @@ namespace Logic.Statistics
 
         public async Task<List<TournamentMatchEntity>> LoadTournamentMatchesAsync(int userId)
         {
-            var matches = await _unitOfWork.Tournament_unitOfWork.TournamentMatchRepository.GetWhereAsync(
+            var matches = await _unitOfWork.TournamentUnitOfWork.TournamentMatchRepository.GetWhereAsync(
                 m => m.Status == TournamentMatchStatusEnum.Finished && m.FinishedAt != null &&
                      (m.HomeParticipant!.UserId == userId || m.AwayParticipant!.UserId == userId),
                 asNoTracking: true,
