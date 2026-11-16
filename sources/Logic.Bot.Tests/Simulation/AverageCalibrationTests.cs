@@ -8,9 +8,9 @@ namespace Logic.Bot.Tests.Simulation
     public class AverageCalibrationTests
     {
         [Theory]
-        [InlineData(100.5f, 5f)]
-        [InlineData(56.9f, 12f)]
-        [InlineData(26.3f, 27f)]
+        [InlineData(99.8f, 4.78f)]
+        [InlineData(55.5f, 11.34f)]
+        [InlineData(24.7f, 23.29f)]
         public void MeasuredPoints_AreHitExactly(float average, float sigma)
         {
             Assert.Equal(sigma, AverageCalibration.SigmaForAverage(average), 2);

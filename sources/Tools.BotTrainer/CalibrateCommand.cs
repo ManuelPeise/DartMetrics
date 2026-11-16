@@ -1,17 +1,17 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using Logic.Bot.Administration;
+using Logic.Bot.Learning;
 using Logic.Bot.Models;
 using Logic.Bot.Policy;
-using Logic.Bot.Simulation;
-using Logic.Bot.Tactics;
-using Shared.Enums.X01;
-using Shared.Models.Bot;
 
 namespace Tools.BotTrainer
 {
     /// <summary>
-    /// Kalibrierung: welche Streuung (mm) ergibt welchen 3-Dart-Durchschnitt? Gespielt wird mit der echten Zielwahl
-    /// (Wegebuch + Tabelle) und einem typischen V2-Profil. Die Ausgabe am Ende ist die Tabelle für die Bot-Erstellung.
+    /// Kalibrierung: welche Streuung (mm) braucht ein Bot, wie ihn die Erstellung anlegt (BotProfileFactory, Mittelwerte
+    /// ohne Zufall: Wegewissen, Form, Nerven, schlechte Darts je Stärke), damit er im Mittel den Ziel-Ø spielt?
+    /// Gespielt wird wie im Realismus-Prüfstand (Tagesform je 5 Legs, Nerven). Suche je Ziel-Ø per Bisektion.
+    /// Die Ausgabe am Ende gehört in AverageCalibration.Points.
     /// </summary>
     public static class CalibrateCommand
     {
@@ -19,48 +19,64 @@ namespace Tools.BotTrainer
 
         public static int Run(Arguments arguments)
         {
-            var legs = arguments.Int("legs", 2000);
-            var sigmas = arguments.Floats("sigmas", [3f, 4f, 5f, 6f, 7f, 8f, 10f, 12f, 15f, 18f, 22f, 27f, 33f, 40f, 50f, 60f, 75f]);
+            var legs = arguments.Int("legs", 1500);
+            var steps = arguments.Int("steps", 9);
+            var targets = arguments.Floats("averages", [15f, 20f, 25f, 30f, 35f, 40f, 47f, 55f, 62f, 70f, 77f, 85f, 90f, 95f, 100f, 105f, 110f, 115f]);
             var cache = new PolicyTableCache(arguments.Int("samples", 4000));
             var stopwatch = Stopwatch.StartNew();
-            var rows = new List<(float Sigma, double Average, double DartsPerLeg)>();
+            var points = new List<(float Sigma, double Average)>();
 
-            Console.WriteLine($"Kalibrierung: {legs} Legs je Streuung, 501 Double-Out, Zielwahl Wegebuch + Tabelle");
+            Console.WriteLine($"Kalibrierung: {legs} Legs je Versuch, {steps} Schritte je Ziel-Ø, Bot wie bei der Erstellung (Mittelwerte)");
 
-            foreach (var sigma in sigmas)
+            foreach (var target in targets)
             {
-                var profile = TypicalProfile(sigma);
-                var situation = new BotSituation(501, 3, 501, profile, X01InModeEnum.Straight, X01OutModeEnum.Double);
-                var darts = new int[legs];
+                // log(σ) bisektieren: kleine Streuung = hoher Ø.
+                var low = MathF.Log(2f);
+                var high = MathF.Log(120f);
+                var measured = 0.0;
+                var sigma = 0f;
 
-                Parallel.For(0, legs, Parallelism, i =>
+                for (var step = 0; step < steps; step++)
                 {
-                    var legSeed = unchecked(BenchmarkCommand.Seed * 1_000_003 + i);
-                    var strategy = new ProTargetSelector(cache, new DefaultRandomSource(new Random(~legSeed)));
-                    var simulator = new LegRolloutSimulator(strategy, new ThrowSimulator(new DefaultRandomSource(new Random(legSeed))));
-                    var first = strategy.SelectTarget(new BotThrowDecisionContext(501, 3, 501, profile));
-                    darts[i] = simulator.Play(situation, first, 150);
-                });
+                    sigma = MathF.Exp((low + high) / 2);
+                    measured = Measure(target, sigma, legs, cache);
 
-                var perLeg = darts.Average();
-                var average = 501.0 * 3 / perLeg;
-                rows.Add((sigma, average, perLeg));
-                Console.WriteLine($"  Streuung {sigma,5:0.#} mm → Ø {average,6:0.0}  ({perLeg:0.00} Darts pro Leg, {stopwatch.Elapsed:mm\\:ss})");
+                    if (measured > target)
+                    {
+                        low = MathF.Log(sigma);
+                    }
+                    else
+                    {
+                        high = MathF.Log(sigma);
+                    }
+                }
+
+                points.Add((sigma, measured));
+                Console.WriteLine($"  Ziel Ø {target,5:0} → Streuung {sigma,6:0.00} mm (gemessen Ø {measured:0.0}, {stopwatch.Elapsed:mm\\:ss})");
             }
 
             Console.WriteLine();
-            Console.WriteLine("Für AverageCalibration.Points (Streuung mm, Durchschnitt):");
-            Console.WriteLine(string.Join(", ", rows.Select(r =>
-                string.Create(CultureInfo.InvariantCulture, $"({r.Sigma:0.#}f, {r.Average:0.0}f)"))));
+            Console.WriteLine("Für AverageCalibration.Points (Streuung mm, Durchschnitt), absteigender Ø:");
+            Console.WriteLine(string.Join(", ", points
+                .OrderBy(p => p.Sigma)
+                .Select(p => string.Create(CultureInfo.InvariantCulture, $"({p.Sigma:0.00}f, {p.Average:0.0}f)"))));
             return 0;
         }
 
-        /// <summary>Typischer Bot: senkrecht etwas stärker, wenige schlechte Darts, solide Form und Nerven, kennt die Wege.</summary>
-        public static BotSkillProfile TypicalProfile(float sigma) => new(0.9f, 0.8f, 1f, 0.8f, 0.5f)
+        private static double Measure(float target, float sigma, int legs, PolicyTableCache cache)
         {
-            SigmaMm = sigma,
-            VerticalRatio = 1.3f,
-            BadDartRate = 0.03f
-        };
+            var profile = BotProfileFactory.Create(target, null, new Random(1), randomize: false, sigmaOverride: sigma);
+            var forms = RealismCommand.Forms(legs, profile.ThrowConsistency);
+            var stats = new RealismCommand.Stats[legs];
+
+            Parallel.For(0, legs, Parallelism, i =>
+            {
+                var seed = unchecked(BenchmarkCommand.Seed * 1_000_003 + i);
+                stats[i] = RealismCommand.PlayLeg(profile, BotForm.DayFactor(forms[i / RealismCommand.LegsPerGame]), cache,
+                    new DefaultRandomSource(new Random(seed)), new DefaultRandomSource(new Random(~seed)));
+            });
+
+            return stats.Sum(s => s.Points) * 3.0 / stats.Sum(s => s.Darts);
+        }
     }
 }

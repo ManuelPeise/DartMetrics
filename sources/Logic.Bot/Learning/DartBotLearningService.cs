@@ -71,6 +71,15 @@ namespace Logic.Bot.Learning
             }
         }
 
+        /// <summary>3-Dart-Durchschnitt eines Spielers im Spiel (Punkte je Dart × 3), null ohne Darts.</summary>
+        private static float? GameAverage(DartBotGameEntity game, DartBotGamePlayerEntity player)
+        {
+            var visits = game.Legs.SelectMany(l => l.Visits).Where(v => v.DartBotGamePlayerId == player.Id || v.Player == player).ToList();
+            var darts = visits.Sum(v => v.DartsUsed);
+
+            return darts == 0 ? null : MathF.Round(visits.Sum(v => v.ScoreBefore - v.ScoreAfter) * 3f / darts, 2);
+        }
+
         /// <summary>Elo-Formel mit K aus den Optionen, nie unter 0.</summary>
         private int NewRating(int ownRating, int opponentRating, double actual)
         {
@@ -104,6 +113,10 @@ namespace Logic.Bot.Learning
             var ratingAfter = NewRating(ratingBefore, opponentRating, isWinner ? 1.0 : 0.0);
 
             bot.Rating = ratingAfter;
+
+            // Selbstvertrauen und gespielter Ø für den Verlauf.
+            bot.CurrentForm = BotForm.AfterResult(bot.CurrentForm, isWinner);
+            botPlayer.AverageInGame = GameAverage(game, botPlayer);
 
             // 3. Level-Aufstieg
             ApplyLevelUp(bot, game, reasonSuffix: "");

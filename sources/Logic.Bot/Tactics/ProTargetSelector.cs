@@ -42,18 +42,54 @@ namespace Logic.Bot.Tactics
 
             if (context.OutMode == X01OutModeEnum.Double)
             {
-                var book = CheckoutBook.NextTarget(context.Remaining, context.DartsAvailable);
+                var routes = CheckoutBook.RoutesFor(context.Remaining, context.DartsAvailable);
 
-                if (book is not null)
+                if (routes.Count > 0)
                 {
                     var knowledgeGap = (1.0 - Math.Clamp(context.Profile.TacticalIntelligence, 0f, 1f)) * MaxKnowledgeGap;
 
-                    return _random.NextDouble() < knowledgeGap ? Instinct(context.Remaining) : book.Value;
+                    return _random.NextDouble() < knowledgeGap ? Instinct(context.Remaining) : ChooseRoute(routes, context.Profile.RiskTaking)[0];
                 }
             }
 
             return _table.SelectTarget(context);
         }
+
+        /// <summary>Ab diesem Risiko-Wert spielt der Bot aggressiv, bis zu RiskDefensive defensiv (Stil: 0,8 / 0,5 / 0,2).</summary>
+        public const float RiskAggressive = 0.7f;
+        public const float RiskDefensive = 0.3f;
+
+        /// <summary>
+        /// Stil wählt nur zwischen Buch-Varianten:
+        /// aggressiv = wenigste Darts, Bull-Wege gern; defensiv = keine Bull-Wege, Doppel mit viel Rest-Spielraum (D16, D20, D8);
+        /// normal = Hauptweg.
+        /// </summary>
+        public static DartTarget[] ChooseRoute(IReadOnlyList<DartTarget[]> routes, float riskTaking)
+        {
+            if (routes.Count == 1 || riskTaking is > RiskDefensive and < RiskAggressive)
+            {
+                return routes[0];
+            }
+
+            return riskTaking >= RiskAggressive
+                ? routes.OrderBy(r => r.Length).ThenBy(r => r.Any(IsBull) ? 0 : 1).First()
+                : routes.OrderBy(r => r.Any(IsBull) ? 1 : 0).ThenBy(r => DefensiveDoubleRank(r[^1])).First();
+        }
+
+        private static bool IsBull(DartTarget target) => target.Segment == 25;
+
+        /// <summary>Doppel, bei denen ein Fehlwurf nach innen wieder ein Doppel lässt (32 → 16 → 8 …), zuerst.</summary>
+        private static int DefensiveDoubleRank(DartTarget finish) => finish.Segment switch
+        {
+            16 => 0,
+            20 => 1,
+            8 => 2,
+            12 => 3,
+            18 => 4,
+            4 => 5,
+            10 => 6,
+            _ => 10
+        };
 
         /// <summary>Was ein Anfänger ohne Wegewissen wirft.</summary>
         private static DartTarget Instinct(int remaining) =>

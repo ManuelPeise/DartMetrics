@@ -21,6 +21,12 @@
         /// <summary>V2: Durchschnitt, auf den der Bot durch Spielen zuwachsen kann (null = kein Wachstum über das Level hinaus).</summary>
         public float? PotentialAverage { get; set; }
 
+        /// <summary>
+        /// Formkurve (log. Faktor auf die Streuung, 0 = normal, negativ = in Form) aus dem letzten Spiel.
+        /// Die nächste Tagesform hängt daran: so entstehen Serien guter und schwacher Tage.
+        /// </summary>
+        public float CurrentForm { get; set; }
+
         /// <summary>Elo-Wertung; ändert sich nur in abgeschlossenen Spielen gegen Menschen.</summary>
         public int Rating { get; set; } = 1000;
 

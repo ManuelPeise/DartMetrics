@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.DartContext.Migrations
 {
     [DbContext(typeof(DartDatabaseContext))]
-    [Migration("20261116155727_InitialCreate")]
+    [Migration("20261116161808_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,6 +44,9 @@ namespace Data.DartContext.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<float>("CurrentForm")
+                        .HasColumnType("float");
 
                     b.Property<int>("DevelopmentLevel")
                         .HasColumnType("int");

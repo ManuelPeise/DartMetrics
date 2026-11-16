@@ -1,16 +1,17 @@
 ﻿namespace Logic.Bot.Simulation
 {
     /// <summary>
-    /// Streuung (mm, waagerecht) ↔ 3-Dart-Durchschnitt, gemessen mit „BotTrainer calibrate“ (2000 Legs je Punkt,
-    /// Wegebuch + Tabelle, typisches Profil: senkrecht ×1,3, 3 % schlechte Darts, Konstanz/Druck 0,8).
+    /// Streuung (mm, waagerecht) ↔ 3-Dart-Durchschnitt, gemessen mit „BotTrainer calibrate“ (1500 Legs je Versuch, Bisektion):
+    /// Bot wie bei der Erstellung (Mittelwerte je Stärke), mit Tagesform und Nerven, Zielwahl Wegebuch + Tabelle.
     /// Zwischen den Punkten logarithmisch interpoliert. Neu messen, wenn sich Wurfmodell oder Zielwahl ändern.
     /// </summary>
     public static class AverageCalibration
     {
         public static readonly (float Sigma, float Average)[] Points =
         [
-            (3f, 126.8f), (4f, 110.9f), (5f, 100.5f), (6f, 91.0f), (7f, 83.7f), (8f, 76.9f), (10f, 65.9f), (12f, 56.9f),
-            (15f, 45.8f), (18f, 38.7f), (22f, 32.4f), (27f, 26.3f), (33f, 21.9f), (40f, 18.7f), (50f, 15.5f), (60f, 13.8f), (75f, 12.1f)
+            (3.47f, 114.7f), (3.82f, 109.7f), (4.28f, 105.1f), (4.78f, 99.8f), (5.35f, 94.6f), (5.89f, 90.2f), (6.58f, 84.6f),
+            (7.60f, 77.2f), (8.78f, 69.5f), (9.98f, 61.8f), (11.34f, 55.5f), (13.31f, 47.1f), (15.37f, 39.8f), (17.19f, 35.1f),
+            (19.85f, 30.3f), (23.29f, 24.7f), (29.14f, 20.2f), (40.77f, 15.1f)
         ];
 
         /// <summary>Streuung für einen Ziel-Durchschnitt (außerhalb der Messpunkte begrenzt).</summary>

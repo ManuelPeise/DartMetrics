@@ -16,6 +16,9 @@ namespace Web.App.Client.Services.Api
         public Task<ApiResult<List<DartBotSummary>>> GetAvailableBotsAsync(CancellationToken ct = default) =>
             ApiResponse.ReadAsync<List<DartBotSummary>>(_api.GetAsync(Controller + "GetAvailableDartBots", ct), ct);
 
+        public Task<ApiResult<DartBotProfileCard>> GetBotProfileCardAsync(int botId, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<DartBotProfileCard>(_api.GetAsync($"{Controller}GetDartBotProfileCard?botId={botId}", ct), ct);
+
         public Task<ApiResult<List<DartBotRatingHistoryEntry>>> GetRatingHistoryAsync(int take = 20, CancellationToken ct = default) =>
             ApiResponse.ReadAsync<List<DartBotRatingHistoryEntry>>(_api.GetAsync($"{Controller}GetDartBotRatingHistory?take={take}", ct), ct);
 

@@ -1,4 +1,5 @@
 ﻿using Data.DartContext.Entities.Bot;
+using Logic.Bot.Learning;
 using Logic.Shared.Bot;
 using Logic.Shared;
 using Logic.Shared.Rules;
@@ -31,6 +32,7 @@ namespace Logic.Bot.Games
         private readonly IClaimsHelper _claimsHelper;
         private readonly IBotVisitPlayer _botVisitPlayer;
         private readonly IDartBotLearningService _learningService;
+        private readonly IRandomSource _random;
         private readonly X01Rules _rules = new();
 
         public DartBotGameService(
@@ -38,11 +40,13 @@ namespace Logic.Bot.Games
             IMessageLog messageLog,
             IClaimsHelper claimsHelper,
             IBotVisitPlayer botVisitPlayer,
-            IDartBotLearningService learningService) : base(unitOfWork, messageLog)
+            IDartBotLearningService learningService,
+            IRandomSource random) : base(unitOfWork, messageLog)
         {
             _claimsHelper = claimsHelper;
             _botVisitPlayer = botVisitPlayer;
             _learningService = learningService;
+            _random = random;
         }
 
         public async Task<DartBotGameState> StartGameAsync(StartDartBotGameModel model)
@@ -94,6 +98,10 @@ namespace Logic.Bot.Games
                     ProfileVersion = profileVersion,
                     DisplayName = bot.Name
                 };
+
+                // Tagesform aus der Formkurve (Serien guter und schwacher Tage).
+                bot.CurrentForm = BotForm.NextForm(bot.CurrentForm, profileVersion.ThrowConsistency, _random);
+                botPlayer.DayForm = BotForm.DayFactor(bot.CurrentForm);
 
                 var game = new DartBotGameEntity
                 {
@@ -317,18 +325,22 @@ namespace Logic.Bot.Games
             {
                 GetCurrentUser();
 
-                var bots = await UnitOfWork.DartBotUnitOfWork.DartBotRepository.GetWhereAsync(b => b.IsActive, asNoTracking: true);
+                var bots = await UnitOfWork.DartBotUnitOfWork.DartBotRepository.GetWhereAsync(
+                    b => b.IsActive, asNoTracking: true, include: q => q.Include(b => b.ProfileVersions));
 
                 return bots
-                    .OrderBy(b => b.DevelopmentLevel)
-                    .ThenBy(b => b.Name)
-                    .Select(b => new DartBotSummary
+                    .Select(b => (Bot: b, Profile: b.ProfileVersions.MaxBy(p => p.VersionNumber)))
+                    .OrderBy(x => x.Profile?.BaseAverage ?? x.Bot.DevelopmentLevel)
+                    .ThenBy(x => x.Bot.Name)
+                    .Select(x => new DartBotSummary
                     {
-                        Id = b.Id,
-                        Name = b.Name,
-                        Alias = b.Alias,
-                        DevelopmentLevel = b.DevelopmentLevel,
-                        Rating = b.Rating
+                        Id = x.Bot.Id,
+                        Name = x.Bot.Name,
+                        Alias = x.Bot.Alias,
+                        DevelopmentLevel = x.Bot.DevelopmentLevel,
+                        Rating = x.Bot.Rating,
+                        BaseAverage = x.Profile?.BaseAverage,
+                        StageName = x.Profile?.BaseAverage is { } average ? DartBotStages.NameOf(DartBotStages.StageFor(average)) : null
                     })
                     .ToList();
             }
@@ -336,6 +348,38 @@ namespace Logic.Bot.Games
             {
                 await MessageLog.LogMessage("Error loading available dart bots.", nameof(DartBotGameService), exception);
 
+                throw;
+            }
+        }
+
+        public async Task<DartBotProfileCard> GetBotProfileCardAsync(int botId, int recentGames = 10)
+        {
+            try
+            {
+                GetCurrentUser();
+
+                var bots = UnitOfWork.DartBotUnitOfWork;
+                var bot = await bots.DartBotRepository.GetFirstOrDefaultAsync(
+                    b => b.Id == botId && b.IsActive, asNoTracking: true, include: q => q.Include(b => b.ProfileVersions))
+                    ?? throw new KeyNotFoundException($"Active dart bot with id {botId} was not found.");
+
+                var profile = bot.ProfileVersions.MaxBy(p => p.VersionNumber)
+                    ?? throw new InvalidOperationException($"Dart bot {botId} has no profile version.");
+
+                // Tracking: Game -> Players -> Game ist ein Zyklus, den EF in No-Tracking-Abfragen ablehnt.
+                var games = await bots.DartBotGameRepository.GetWhereAsync(
+                    g => g.Status == DartBotGameStatusEnum.Finished && g.Players.Any(p => p.DartBotId == botId),
+                    asNoTracking: false,
+                    include: q => q
+                        .Include(g => g.Players)
+                        .Include(g => g.Legs).ThenInclude(l => l.Visits).ThenInclude(v => v.Throws)
+                        .AsSplitQuery());
+
+                return BotProfileCardBuilder.Build(bot, profile, games, Math.Clamp(recentGames, 1, 50));
+            }
+            catch (Exception exception)
+            {
+                await MessageLog.LogMessage($"Error loading profile card of dart bot {botId}.", nameof(DartBotGameService), exception);
                 throw;
             }
         }
@@ -368,6 +412,17 @@ namespace Logic.Bot.Games
             }
         }
 
+        /// <summary>Tagesform × Nerven (Fehler seit dem letzten eigenen Checkout in diesem Spiel).</summary>
+        private static float ScatterFactor(DartBotGameEntity game, DartBotGamePlayerEntity botPlayer, DartBotProfileVersionEntity profile)
+        {
+            var ownVisits = game.Legs
+                .OrderBy(l => l.LegNumber)
+                .SelectMany(l => l.Visits.OrderBy(v => v.TurnNumber))
+                .Where(v => v.DartBotGamePlayerId == botPlayer.Id || v.Player == botPlayer);
+
+            return (botPlayer.DayForm ?? 1f) * BotForm.NervesFactor(ownVisits, profile.Nervousness);
+        }
+
         private DartBotGameVisitEntity PlayBotVisit(DartBotGameEntity game, DartBotGameLegEntity leg, DartBotGamePlayerEntity botPlayer)
         {
             var userPlayer = GetPlayer(game, UserPlayerNumber);
@@ -380,7 +435,7 @@ namespace Logic.Bot.Games
             var result = _botVisitPlayer.PlayVisit(new BotVisitContext(
                 scoreBefore,
                 opponentScoreBefore,
-                profile.ToSkillProfile(),
+                profile.ToSkillProfile(ScatterFactor(game, botPlayer, profile)),
                 game.InMode,
                 game.OutMode,
                 IsOpened(game, leg, botPlayer)));

@@ -63,6 +63,12 @@ namespace Service.Api.Controllers.Bot
             return Ok(bots);
         }
 
+        [HttpGet(Name = "GetDartBotProfileCard")]
+        public async Task<IActionResult> GetDartBotProfileCard([FromQuery] int botId, [FromQuery] int recentGames = 10)
+        {
+            return Ok(await _dartBotGameService.GetBotProfileCardAsync(botId, recentGames));
+        }
+
         [HttpGet(Name = "GetDartBotGame")]
         public async Task<IActionResult> GetDartBotGame([FromQuery] int gameId)
         {

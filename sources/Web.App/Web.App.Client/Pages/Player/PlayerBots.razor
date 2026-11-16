@@ -51,11 +51,11 @@
                         @foreach (var bot in _bots)
                         {
                             <button type="button" class="pa-bot-option @(bot.Id == _botId ? "is-selected" : "")"
-                                    aria-pressed="@(bot.Id == _botId ? "true" : "false")" @onclick="() => _botId = bot.Id">
+                                    aria-pressed="@(bot.Id == _botId ? "true" : "false")" @onclick="() => SelectBotAsync(bot.Id)">
                                 <PlayerIcon Name="PlayerIconName.Bot" Size="22" />
                                 <span>
                                     <strong>@bot.Name</strong>
-                                    <small>Level @bot.DevelopmentLevel · Elo @bot.Rating</small>
+                                    <small>@(bot.StageName is null ? $"Level {bot.DevelopmentLevel}" : $"{bot.StageName} · Ø {bot.BaseAverage:0}") · Elo @bot.Rating</small>
                                     @if (EloMatch.IsGoodMatch(_userRating, bot.Rating))
                                     {
                                         <small class="pa-bot-option__match">Passender Gegner</small>
@@ -65,6 +65,11 @@
                         }
                     </div>
                 </fieldset>
+
+                @if (_card is not null && _card.Id == _botId)
+                {
+                    <BotProfileCardView Card="_card" />
+                }
 
                 <PlayerChoiceGroup Label="Art" Options="ModeOptions" @bind-Value="_gameMode" />
                 @if (_gameMode == DartBotGameModeEnum.Match)
@@ -295,6 +300,21 @@
         _error = result.Error;
         _botId ??= _bots?.OrderBy(b => _userRating is { } r ? Math.Abs(b.Rating - r) : 0).FirstOrDefault()?.Id;
         _phase = Phase.Setup;
+
+        if (_botId is { } selected)
+        {
+            await SelectBotAsync(selected);
+        }
+    }
+
+    private DartBotProfileCard? _card;
+
+    /// <summary>Gegner wählen und seinen Steckbrief laden (Fehler beim Laden blenden nur den Steckbrief aus).</summary>
+    private async Task SelectBotAsync(int botId)
+    {
+        _botId = botId;
+        var result = await BotGameApi.GetBotProfileCardAsync(botId);
+        _card = result.IsSuccess && _botId == botId ? result.Value : null;
     }
 
     private async Task StartAsync()

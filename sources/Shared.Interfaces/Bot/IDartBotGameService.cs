@@ -24,5 +24,7 @@ namespace Shared.Interfaces.Bot
 
         /// <summary>Aktive Bots für die Gegnerwahl, sortiert nach Level.</summary>
         Task<List<DartBotSummary>> GetAvailableBotsAsync();
+        /// <summary>Steckbrief eines aktiven Bots (Kennzahlen, Formverlauf, letzte Spiele).</summary>
+        Task<DartBotProfileCard> GetBotProfileCardAsync(int botId, int recentGames = 10);
     }
 }

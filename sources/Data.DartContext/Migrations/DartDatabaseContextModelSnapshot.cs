@@ -42,6 +42,9 @@ namespace Data.DartContext.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<float>("CurrentForm")
+                        .HasColumnType("float");
+
                     b.Property<int>("DevelopmentLevel")
                         .HasColumnType("int");
 

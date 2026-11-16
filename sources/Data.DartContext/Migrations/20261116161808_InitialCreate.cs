@@ -29,6 +29,7 @@ namespace Data.DartContext.Migrations
                     ExperiencePoints = table.Column<long>(type: "bigint", nullable: false),
                     DevelopmentLevel = table.Column<int>(type: "int", nullable: false),
                     PotentialAverage = table.Column<float>(type: "float", nullable: true),
+                    CurrentForm = table.Column<float>(type: "float", nullable: false),
                     Rating = table.Column<int>(type: "int", nullable: false, defaultValue: 1000),
                     ConcurrencyStamp = table.Column<Guid>(type: "char(36)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),

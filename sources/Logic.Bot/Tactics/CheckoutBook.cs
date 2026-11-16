@@ -159,6 +159,22 @@ namespace Logic.Bot.Tactics
         /// <summary>Nächster Dart nach dem Buch, null = kein Weg (Bogey, zu hoch, nicht checkbar mit den Darts).</summary>
         public static DartTarget? NextTarget(int remaining, int dartsLeft, int variant = 0) => Route(remaining, dartsLeft, variant)?[0];
 
+        /// <summary>Alle Buch-Wege, die mit diesen Darts zu spielen sind (Hauptweg zuerst); sonst der eine erzeugte Weg.</summary>
+        public static IReadOnlyList<DartTarget[]> RoutesFor(int remaining, int dartsLeft)
+        {
+            if (remaining is >= 41 and <= 170)
+            {
+                var routes = RoutesFor(remaining).Where(r => r.Length <= dartsLeft).ToList();
+
+                if (routes.Count > 0)
+                {
+                    return routes;
+                }
+            }
+
+            return Route(remaining, dartsLeft) is { } single ? [single] : [];
+        }
+
         /// <summary>Kompletter Weg für Rest und Darts (Variante 0 = Hauptweg).</summary>
         public static DartTarget[]? Route(int remaining, int dartsLeft, int variant = 0)
         {

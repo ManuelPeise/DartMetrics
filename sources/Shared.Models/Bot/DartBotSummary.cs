@@ -12,5 +12,9 @@ namespace Shared.Models.Bot
         public int DevelopmentLevel { get; set; }
 
         public int Rating { get; set; }
+
+        public string? StageName { get; set; }
+
+        public float? BaseAverage { get; set; }
     }
 }

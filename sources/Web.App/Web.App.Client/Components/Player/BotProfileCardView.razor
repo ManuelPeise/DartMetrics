@@ -1,0 +1,71 @@
+﻿@*
+    Steckbrief eines Bots: Stufe, Basis-Ø → Potenzial, Kennzahlen aus echten Spielen, Formverlauf (Ø je Spiel)
+    und die letzten Spiele als S/N-Reihe (Sieg grün, Niederlage rot; Ergebnis zusätzlich als Buchstabe, nicht nur Farbe).
+*@
+@using global::Shared.Models.Bot
+@using global::Shared.Models.Statistics
+
+<section class="pa-card" aria-label="Steckbrief @Card.Name" style="margin-top: 1rem">
+    <header style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:baseline">
+        <div>
+            <strong style="font-size:1.1rem">@Card.Name</strong>
+            <div><small>@(Card.StageName ?? "–")@(Card.BaseAverage is { } b ? $" · Ø {b:0.#}" : "")@(Card.PotentialAverage is { } p ? $" → Potenzial {p:0}" : "") · Elo @Card.Rating</small></div>
+        </div>
+        <span title="Tendenz der letzten Spiele">
+            @(Card.FormTrend > 0 ? "▲ Form steigt" : Card.FormTrend < 0 ? "▼ Form fällt" : "■ Form stabil")
+        </span>
+    </header>
+
+    <dl style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:.5rem 1rem; margin:1rem 0">
+        <div><dt><small>Spiele</small></dt><dd><strong>@Card.GamesPlayed</strong> <small>(@Card.GamesWon Siege)</small></dd></div>
+        <div><dt><small>Ø</small></dt><dd><strong>@Format(Card.Average)</strong></dd></div>
+        <div><dt><small>First-9-Ø</small></dt><dd><strong>@Format(Card.First9Average)</strong></dd></div>
+        <div><dt><small>Checkout-Quote</small></dt><dd><strong>@(Card.CheckoutRate is { } c ? $"{c * 100:0.0} %" : "–")</strong></dd></div>
+        <div><dt><small>Höchstes Finish</small></dt><dd><strong>@(Card.HighestFinish?.ToString() ?? "–")</strong></dd></div>
+        <div><dt><small>180er</small></dt><dd><strong>@Card.OneEighties</strong></dd></div>
+    </dl>
+
+    @if (Card.RecentGames.Count > 0)
+    {
+        <div aria-label="Letzte Spiele" style="display:flex; gap:.25rem; flex-wrap:wrap; margin-bottom:1rem">
+            @foreach (var game in Card.RecentGames)
+            {
+                <span title="@Tooltip(game)"
+                      style="display:inline-flex; width:1.8rem; height:1.8rem; align-items:center; justify-content:center; border-radius:4px; font-weight:700; color:#fff; background:@(game.IsWin ? "#1f8a3b" : "#c8232f")">
+                    @(game.IsWin ? "S" : "N")
+                </span>
+            }
+        </div>
+
+        <PlayerTrendChart Title="Ø je Spiel" Points="AveragePoints" EmptyText="Noch zu wenige Spiele für einen Verlauf." />
+    }
+    else
+    {
+        <p><small>Noch keine beendeten Spiele.</small></p>
+    }
+
+    <dl style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:.25rem 1rem; margin-top:1rem">
+        <div><dt><small>Form</small></dt><dd>@Percent(Card.Form)</dd></div>
+        <div><dt><small>Druck</small></dt><dd>@Percent(Card.Pressure)</dd></div>
+        <div><dt><small>Nerven</small></dt><dd>@Percent(Card.Nerves)</dd></div>
+        <div><dt><small>Wegewissen</small></dt><dd>@Percent(Card.RouteKnowledge)</dd></div>
+        <div><dt><small>Risiko</small></dt><dd>@Percent(Card.Risk)</dd></div>
+    </dl>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public DartBotProfileCard Card { get; set; } = null!;
+
+    private IReadOnlyList<StatisticsTrendPoint> AveragePoints => Card.RecentGames
+        .Where(g => g.Average is not null)
+        .Select(g => new StatisticsTrendPoint { Date = g.PlayedAt, Value = (decimal)g.Average!.Value })
+        .ToList();
+
+    private static string Tooltip(DartBotProfileCardGame game) =>
+        $"{game.PlayedAt.ToLocalTime():d} gegen {game.OpponentName}: {game.LegsWon}:{game.LegsLost}" +
+        (game.Average is { } average ? $", Ø {average:0.0}" : "");
+
+    private static string Format(double? value) => value is { } v ? v.ToString("0.0") : "–";
+
+    private static string Percent(float value) => $"{value * 100:0} %";
+}

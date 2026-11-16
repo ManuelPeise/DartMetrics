@@ -7,6 +7,8 @@ namespace Web.App.Client.Services.Api
     {
         Task<ApiResult<List<DartBotSummary>>> GetAvailableBotsAsync(CancellationToken cancellationToken = default);
 
+        Task<ApiResult<DartBotProfileCard>> GetBotProfileCardAsync(int botId, CancellationToken cancellationToken = default);
+
         /// <summary>Laufendes Spiel oder null (zum Fortsetzen nach dem Neuladen).</summary>
         Task<ApiResult<DartBotGameState?>> GetRunningGameAsync(CancellationToken cancellationToken = default);
 

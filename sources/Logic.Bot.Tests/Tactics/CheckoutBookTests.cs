@@ -88,6 +88,16 @@ namespace Logic.Bot.Tests.Tactics
         }
 
         [Fact]
+        public void Style_ChoosesBetweenBookVariants()
+        {
+            var routes = CheckoutBook.RoutesFor(135, 3);
+
+            Assert.Equal("T20", ProTargetSelector.ChooseRoute(routes, 0.5f)[0].ToString());   // Hauptweg T20 T17 D12
+            Assert.Equal("25", ProTargetSelector.ChooseRoute(routes, 0.8f)[0].ToString());    // aggressiv: SB T20 Bull
+            Assert.Equal("T20", ProTargetSelector.ChooseRoute(routes, 0.2f)[0].ToString());   // defensiv: kein Bull-Weg
+        }
+
+        [Fact]
         public void NoRoute_ForBogeyOrTooHigh()
         {
             Assert.Null(CheckoutBook.NextTarget(169, 3));
