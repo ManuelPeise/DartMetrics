@@ -79,6 +79,7 @@ Prefer plain Docker Compose? `docker compose up -d` in `sources/` works too – 
 | [Technical documentation](sources/README.md) | Setup, deployment scripts, production on a Raspberry Pi, running your own instance *(German)* |
 | [Architecture](sources/ARCHITECTURE.md) | Projects, dependencies, runtime, services, API *(German)* |
 | [Bot trainer](sources/Tools.BotTrainer/README.md) | Developer tool: bot benchmark and calibration *(German)* |
+| [Deployer](sources/Tools.Deployer/README.md) | Windows app for the Docker deployment (settings, deploy, status) *(German)* |
 | [Contributing](CONTRIBUTING.md) | How to report bugs, propose features and open pull requests |
 | [Security](SECURITY.md) | How to report vulnerabilities privately |
 

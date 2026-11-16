@@ -20,6 +20,7 @@
   </Folder>
   <Folder Name="/07 Tools/">
     <Project Path="Tools.BotTrainer/Tools.BotTrainer.csproj" />
+    <Project Path="Tools.Deployer/Tools.Deployer.csproj" />
   </Folder>
   <Folder Name="/06 Tests/">
     <Project Path="Logic.Bot.Tests/Logic.Bot.Tests.csproj" />

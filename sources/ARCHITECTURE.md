@@ -24,6 +24,7 @@ Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bed
 | `Logic.Administration` | System-Logs, Benutzerverwaltung, Dashboard-Kennzahlen, Löschfristen (`DataRetentionWorker`) | [README](Logic.Administration/README.md) |
 | **Werkzeuge** | | |
 | `Tools.BotTrainer` | Entwickler-Konsole ohne Datenbank: Prüfstand und Kalibrierung der Bots | [README](Tools.BotTrainer/README.md) |
+| `Tools.Deployer` | Windows-Oberfläche (WinForms) für das Docker-Deployment: `.env` bearbeiten, Skripte in `deploy/` ausführen, Container-Status | [README](Tools.Deployer/README.md) |
 | `deploy/` | Skripte: Deployment, Updates, Backups, Schriften | [README](README.md#deployment-und-skripte) |
 | **Tests** | | |
 | `Logic.Bot.Tests` | Unit-Tests der Bot-Logik (ohne Datenbank) | [README](Logic.Bot.Tests/README.md) |
