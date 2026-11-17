@@ -1,4 +1,5 @@
 ﻿@page "/player/training/checkout"
+@using global::Shared.Enums.X01
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
@@ -45,12 +46,14 @@
     case Phase.Playing:
         <div class="pa-play">
             <div class="pa-play__info">
-                <PlayerScoreboard Label="@($"Versuch {_attemptNumber} · Rest")" Value="@_remaining.ToString()" Status="@_status" Tone="@_tone">
-                    <CheckoutHint Suggestions="_suggestions" />
+                <PlayerScoreboard Label="@($"Versuch {_attemptNumber} · Rest")" Value="@Preview.Remaining.ToString()" Status="@_status" Tone="@_tone">
+                    <CheckoutHint Suggestions="ShownSuggestions" />
                 </PlayerScoreboard>
                 <PlayerStatGrid Stats="LiveStats" />
             </div>
-            <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" Disabled="_busy" />
+            <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
+                          OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@Preview.IsVisitFinished"
+                          SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(_busy || _submitting)" />
         </div>
         break;
 
@@ -93,12 +96,35 @@
     private int _successful;
     private int _dartsThrown;
     private readonly List<DartThrowInput> _darts = [];
+    /// <summary>Eingegebene, noch nicht gesendete Darts (Ende von _darts).</summary>
+    private readonly List<DartThrowInput> _pending = [];
+    private bool _submitting;
     private bool _clearDartsOnNext;
     private List<CheckoutSuggestion>? _suggestions;
     private string? _status;
     private string? _tone;
 
     private CheckoutTrainingResult? _result;
+
+    /// <summary>Darts des laufenden Versuchs, die der Server schon gewertet hat (z. B. nach dem Fortsetzen).</summary>
+    private int CommittedInVisit => _clearDartsOnNext ? 0 : _darts.Count - _pending.Count;
+
+    /// <summary>Vorschau (Double-Out): Bust/Checkout sofort anzeigen, gewertet wird auf dem Server.</summary>
+    private X01VisitPreviewResult Preview => X01VisitPreview.Evaluate(
+        _remaining, true, X01InModeEnum.Straight, X01OutModeEnum.Double,
+        CommittedInVisit, _pending.Select(d => (d.Segment, d.Multiplier)));
+
+    private string? PreviewHint => _pending.Count == 0 ? null
+        : Preview.IsCheckout ? "Checkout!"
+        : Preview.IsBust ? "Bust"
+        : null;
+
+    private string? PreviewTone => Preview.IsCheckout ? "success" : Preview.IsBust ? "danger" : null;
+
+    private List<CheckoutSuggestion>? ShownSuggestions =>
+        _pending.Count == 0 ? _suggestions
+        : Preview.IsVisitFinished ? null
+        : CheckoutAdvisor.GetBestRoutes(Preview.Remaining, X01VisitPreview.DartsPerVisit - CommittedInVisit - _pending.Count);
 
     private bool IsValidTarget => _targetScore is >= 2 and <= 170;
 
@@ -143,6 +169,7 @@
         _throwNumber = training.NextThrowNumber;
         _dartsThrown = training.DartsThrown;
         _darts.Clear();
+        _pending.Clear();
         _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
         _clearDartsOnNext = false;
         _targetScore = training.TargetScore;
@@ -176,6 +203,7 @@
         _successful = 0;
         _dartsThrown = 0;
         _darts.Clear();
+        _pending.Clear();
         _clearDartsOnNext = false;
         _suggestions = null;
         _status = null;
@@ -183,7 +211,7 @@
         _phase = Phase.Playing;
     }
 
-    private async Task AddDartAsync(DartThrowInput dart)
+    private void AddDart(DartThrowInput dart)
     {
         if (_clearDartsOnNext)
         {
@@ -192,6 +220,70 @@
             _remaining = _targetScore;
         }
 
+        if (Preview.IsVisitFinished)
+        {
+            return;
+        }
+
+        _error = null;
+        _pending.Add(dart);
+        _darts.Add(dart);
+    }
+
+    private void UndoDart()
+    {
+        if (_pending.Count == 0)
+        {
+            return;
+        }
+
+        _pending.RemoveAt(_pending.Count - 1);
+        _darts.RemoveAt(_darts.Count - 1);
+    }
+
+    /// <summary>Schickt die gesammelten Darts nacheinander; der Server wertet jeden Dart wie bisher.</summary>
+    private async Task SubmitVisitAsync()
+    {
+        if (_pending.Count == 0 || _submitting)
+        {
+            return;
+        }
+
+        var darts = _pending.ToList();
+        _pending.Clear();
+        _darts.RemoveRange(_darts.Count - darts.Count, darts.Count);
+        _submitting = true;
+
+        try
+        {
+            for (var i = 0; i < darts.Count; i++)
+            {
+                // Server hat den Versuch früher beendet als die Vorschau: übrige Darts nicht in den nächsten schieben.
+                if (i > 0 && (_clearDartsOnNext || _phase != Phase.Playing))
+                {
+                    _error = $"Der Versuch war nach Dart {i} beendet – die übrigen Darts wurden nicht gewertet.";
+                    break;
+                }
+
+                await CommitDartAsync(darts[i]);
+
+                if (_error is not null)
+                {
+                    var rest = darts.Skip(i).ToList();
+                    _pending.AddRange(rest);
+                    _darts.AddRange(rest);
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task CommitDartAsync(DartThrowInput dart)
+    {
         _busy = true;
         _error = null;
 

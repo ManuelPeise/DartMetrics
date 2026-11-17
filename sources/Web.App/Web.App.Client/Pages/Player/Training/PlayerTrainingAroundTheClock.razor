@@ -47,7 +47,9 @@
                 </PlayerScoreboard>
                 <PlayerStatGrid Stats="LiveStats" />
             </div>
-            <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" Disabled="_busy" />
+            <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
+                          OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@IsVisitFull"
+                          Disabled="@(_busy || _submitting)" />
         </div>
         break;
 
@@ -83,7 +85,13 @@
     private int _dartsThrown;
     private int _hits;
     private readonly List<DartThrowInput> _darts = [];
+    /// <summary>Eingegebene, noch nicht gesendete Darts (Ende von _darts).</summary>
+    private readonly List<DartThrowInput> _pending = [];
+    private bool _submitting;
     private bool _clearDartsOnNext;
+
+    /// <summary>Drei Darts in der Aufnahme: weitere erst nach dem Senden.</summary>
+    private bool IsVisitFull => !_clearDartsOnNext && _darts.Count >= 3;
     private string? _status;
     private string? _tone;
 
@@ -123,6 +131,7 @@
         _throwNumber = training.NextThrowNumber;
         _dartsThrown = training.DartsThrown;
         _darts.Clear();
+        _pending.Clear();
         _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
         _clearDartsOnNext = false;
         _target = training.CurrentTarget;
@@ -154,13 +163,14 @@
         _dartsThrown = 0;
         _hits = 0;
         _darts.Clear();
+        _pending.Clear();
         _clearDartsOnNext = false;
         _status = "Los geht's mit der 1";
         _tone = null;
         _phase = Phase.Playing;
     }
 
-    private async Task AddDartAsync(DartThrowInput dart)
+    private void AddDart(DartThrowInput dart)
     {
         if (_clearDartsOnNext)
         {
@@ -168,6 +178,69 @@
             _clearDartsOnNext = false;
         }
 
+        if (IsVisitFull)
+        {
+            return;
+        }
+
+        _error = null;
+        _pending.Add(dart);
+        _darts.Add(dart);
+    }
+
+    private void UndoDart()
+    {
+        if (_pending.Count == 0)
+        {
+            return;
+        }
+
+        _pending.RemoveAt(_pending.Count - 1);
+        _darts.RemoveAt(_darts.Count - 1);
+    }
+
+    /// <summary>Schickt die gesammelten Darts nacheinander; der Server wertet jeden Dart wie bisher.</summary>
+    private async Task SubmitVisitAsync()
+    {
+        if (_pending.Count == 0 || _submitting)
+        {
+            return;
+        }
+
+        var darts = _pending.ToList();
+        _pending.Clear();
+        _darts.RemoveRange(_darts.Count - darts.Count, darts.Count);
+        _submitting = true;
+
+        try
+        {
+            for (var i = 0; i < darts.Count; i++)
+            {
+                // Training ist vor dem letzten Dart beendet (oder die Aufnahme ist schon zu Ende): Rest verwerfen.
+                if (i > 0 && (_clearDartsOnNext || _phase != Phase.Playing))
+                {
+                    break;
+                }
+
+                await CommitDartAsync(darts[i]);
+
+                if (_error is not null)
+                {
+                    var rest = darts.Skip(i).ToList();
+                    _pending.AddRange(rest);
+                    _darts.AddRange(rest);
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task CommitDartAsync(DartThrowInput dart)
+    {
         _busy = true;
         _error = null;
 

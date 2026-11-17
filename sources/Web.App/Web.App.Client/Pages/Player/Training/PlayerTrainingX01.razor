@@ -42,12 +42,14 @@
     case Phase.Playing:
         <div class="pa-play">
             <div class="pa-play__info">
-                <PlayerScoreboard Label="Rest" Value="@_remaining.ToString()" Status="@_status" Tone="@_tone">
-                    <CheckoutHint Suggestions="_suggestions" />
+                <PlayerScoreboard Label="Rest" Value="@Preview.Remaining.ToString()" Status="@_status" Tone="@_tone">
+                    <CheckoutHint Suggestions="ShownSuggestions" />
                 </PlayerScoreboard>
                 <PlayerStatGrid Stats="LiveStats" />
             </div>
-            <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" Disabled="_busy" />
+            <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
+                          OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@Preview.IsVisitFinished"
+                          SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(_busy || _submitting)" />
         </div>
         break;
 
@@ -101,12 +103,35 @@
     private int _legsCompleted;
     private int _numberOfLegs = X01SetRules.TrainingBestOfLegs;
     private readonly List<DartThrowInput> _darts = [];
+    /// <summary>Eingegebene, noch nicht gesendete Darts (Ende von _darts).</summary>
+    private readonly List<DartThrowInput> _pending = [];
+    private bool _submitting;
     private bool _clearDartsOnNext;
     private List<CheckoutSuggestion>? _suggestions;
     private string? _status;
     private string? _tone;
 
     private X01TrainingResult? _result;
+
+    /// <summary>Darts der laufenden Aufnahme, die der Server schon gewertet hat (z. B. nach dem Fortsetzen).</summary>
+    private int CommittedInVisit => _clearDartsOnNext ? 0 : _darts.Count - _pending.Count;
+
+    /// <summary>Vorschau der noch nicht gesendeten Darts: Bust/Checkout sofort anzeigen, gewertet wird auf dem Server.</summary>
+    private X01VisitPreviewResult Preview => X01VisitPreview.Evaluate(
+        _remaining, _opened, _inMode, _outMode, CommittedInVisit, _pending.Select(d => (d.Segment, d.Multiplier)));
+
+    private string? PreviewHint => _pending.Count == 0 ? null
+        : Preview.IsCheckout ? "Checkout!"
+        : Preview.IsBust ? "Bust"
+        : null;
+
+    private string? PreviewTone => Preview.IsCheckout ? "success" : Preview.IsBust ? "danger" : null;
+
+    /// <summary>Während der Eingabe im Browser neu berechnet, sonst die Empfehlung des Servers.</summary>
+    private List<CheckoutSuggestion>? ShownSuggestions =>
+        _pending.Count == 0 ? _suggestions
+        : Preview.IsVisitFinished || !Preview.IsOpened ? null
+        : CheckoutAdvisor.GetBestRoutes(Preview.Remaining, X01VisitPreview.DartsPerVisit - CommittedInVisit - _pending.Count, _outMode);
 
     private string Subtitle => _phase == Phase.Setup
         ? "Spiele einen Satz aus 5 Legs allein und verfolge deinen Average."
@@ -151,6 +176,7 @@
         _throwNumber = training.NextThrowNumber;
         _dartsThrown = training.DartsThrown;
         _darts.Clear();
+        _pending.Clear();
         _darts.AddRange(training.CurrentVisitDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier)));
         _clearDartsOnNext = false;
         _startingScore = training.StartingScore;
@@ -199,6 +225,7 @@
         _legsCompleted = 0;
         _numberOfLegs = X01SetRules.TrainingBestOfLegs;
         _darts.Clear();
+        _pending.Clear();
         _clearDartsOnNext = false;
         _suggestions = null;
         _status = _opened ? "Los geht's!" : "Zum Eröffnen ein Double treffen";
@@ -206,7 +233,7 @@
         _phase = Phase.Playing;
     }
 
-    private async Task AddDartAsync(DartThrowInput dart)
+    private void AddDart(DartThrowInput dart)
     {
         // Nach Ende einer Aufnahme bleiben deren Darts sichtbar, bis der nächste Dart kommt.
         if (_clearDartsOnNext)
@@ -215,6 +242,71 @@
             _clearDartsOnNext = false;
         }
 
+        if (Preview.IsVisitFinished)
+        {
+            return;
+        }
+
+        _error = null;
+        _pending.Add(dart);
+        _darts.Add(dart);
+    }
+
+    private void UndoDart()
+    {
+        if (_pending.Count == 0)
+        {
+            return;
+        }
+
+        _pending.RemoveAt(_pending.Count - 1);
+        _darts.RemoveAt(_darts.Count - 1);
+    }
+
+    /// <summary>Schickt die gesammelten Darts nacheinander; der Server wertet jeden Dart wie bisher.</summary>
+    private async Task SubmitVisitAsync()
+    {
+        if (_pending.Count == 0 || _submitting)
+        {
+            return;
+        }
+
+        var darts = _pending.ToList();
+        _pending.Clear();
+        _darts.RemoveRange(_darts.Count - darts.Count, darts.Count);
+        _submitting = true;
+
+        try
+        {
+            for (var i = 0; i < darts.Count; i++)
+            {
+                // Server hat die Aufnahme früher beendet als die Vorschau: übrige Darts nicht in die nächste Aufnahme schieben.
+                if (i > 0 && (_clearDartsOnNext || _phase != Phase.Playing))
+                {
+                    _error = $"Die Aufnahme war nach Dart {i} beendet – die übrigen Darts wurden nicht gewertet.";
+                    break;
+                }
+
+                await CommitDartAsync(darts[i]);
+
+                if (_error is not null)
+                {
+                    // Nicht gewertete Darts bleiben stehen und können korrigiert oder erneut gesendet werden.
+                    var rest = darts.Skip(i).ToList();
+                    _pending.AddRange(rest);
+                    _darts.AddRange(rest);
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task CommitDartAsync(DartThrowInput dart)
+    {
         _busy = true;
         _error = null;
 

@@ -1,5 +1,6 @@
 ﻿@page "/player/tournaments/match/{MatchId:int}"
 @using global::Shared.Enums.Tournament
+@using global::Shared.Models.Shared
 @using global::Shared.Models.Tournament
 @implements IDisposable
 @inject ITournamentApi TournamentApi
@@ -117,7 +118,7 @@ else
                     <PlayerScoreboard Label="Geplant" Value="–" Status="@(s.ScheduledAt is DateTime at ? $"Termin {at.ToLocalTime():g}" : "noch kein Termin")" />
                     break;
                 default:
-                    <CheckoutHint Suggestions="s.CheckoutSuggestions" />
+                    <CheckoutHint Suggestions="ShownSuggestions" />
                     break;
             }
         </div>
@@ -126,7 +127,9 @@ else
             @if (s.CanEnterDarts)
             {
                 <p class="pa-section__hint">Am Wurf: <strong>@(s.CurrentPlayer == 1 ? s.Home.DisplayName : s.Away.DisplayName)</strong></p>
-                <DartInputPad CurrentDarts="CurrentDarts" OnDart="AddDartAsync" OnUndo="UndoAsync" CanUndo="s.CanUndo" Disabled="_busy" />
+                <DartInputPad CurrentDarts="CurrentDarts" OnDart="AddDart" OnUndo="UndoAsync" CanUndo="@(_pending.Count > 0 || s.CanUndo)"
+                              OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@Preview.IsVisitFinished"
+                              SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(_busy || _submitting)" />
             }
             else if (s.Status == TournamentMatchStatusEnum.Running)
             {
@@ -155,8 +158,35 @@ else
     private TournamentLegItem? CurrentLeg =>
         _state?.Legs.FirstOrDefault(l => l.LegNumber == _state.LegNumber) ?? _state?.Legs.LastOrDefault();
 
+    /// <summary>Eingegebene, noch nicht gesendete Darts; gehen erst mit „Senden“ an den Server.</summary>
+    private readonly List<DartThrowInput> _pending = [];
+    private bool _submitting;
+
+    /// <summary>Vom Server gewertete Darts der laufenden Aufnahme plus die noch nicht gesendeten.</summary>
     private IReadOnlyList<DartThrowInput> CurrentDarts =>
-        _state?.CurrentVisit.Select(d => new DartThrowInput(d.Segment, d.Multiplier)).ToList() ?? [];
+        (_state?.CurrentVisit.Select(d => new DartThrowInput(d.Segment, d.Multiplier)) ?? Enumerable.Empty<DartThrowInput>()).Concat(_pending).ToList();
+
+    private TournamentMatchSide? ActiveSide => _state is null ? null : _state.CurrentPlayer == 1 ? _state.Home : _state.Away;
+
+    /// <summary>Vorschau der noch nicht gesendeten Darts: Bust/Checkout sofort anzeigen, gewertet wird auf dem Server.</summary>
+    private X01VisitPreviewResult Preview => _state is null || ActiveSide is null
+        ? default
+        : X01VisitPreview.Evaluate(ActiveSide.Remaining, ActiveSide.IsOpened, _state.InMode, _state.OutMode,
+            _state.CurrentVisit.Count, _pending.Select(d => (d.Segment, d.Multiplier)));
+
+    private string? PreviewHint => _pending.Count == 0 ? null
+        : Preview.IsCheckout ? "Checkout!"
+        : Preview.IsBust ? "Bust"
+        : null;
+
+    private string? PreviewTone => Preview.IsCheckout ? "success" : Preview.IsBust ? "danger" : null;
+
+    private List<CheckoutSuggestion>? ShownSuggestions =>
+        _state is null ? null
+        : _pending.Count == 0 ? _state.CheckoutSuggestions
+        : Preview.IsVisitFinished || !Preview.IsOpened ? null
+        : CheckoutAdvisor.GetBestRoutes(Preview.Remaining,
+            X01VisitPreview.DartsPerVisit - _state.CurrentVisit.Count - _pending.Count, _state.OutMode);
 
     private static List<TournamentVisitItem> ChalkRows(TournamentLegItem? leg, int player) =>
         leg?.Visits.Where(v => v.PlayerNumber == player).OrderBy(v => v.VisitNumber).ToList() ?? [];
@@ -229,7 +259,7 @@ else
 
     private async Task PollAsync()
     {
-        if (_busy || _state is null || _state.Status == TournamentMatchStatusEnum.Finished || _state.CanEnterDarts)
+        if (_busy || _submitting || _pending.Count > 0 || _state is null || _state.Status == TournamentMatchStatusEnum.Finished || _state.CanEnterDarts)
         {
             return;
         }
@@ -238,21 +268,84 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private Task AddDartAsync(DartThrowInput dart) =>
-        SendAsync(() => TournamentApi.AddDartAsync(MatchId, new AddTournamentDartModel
+    private void AddDart(DartThrowInput dart)
+    {
+        if (_state is null || Preview.IsVisitFinished)
         {
-            Segment = dart.Segment,
-            Multiplier = dart.Multiplier,
-            ConcurrencyStamp = _state!.ConcurrencyStamp
-        }));
+            return;
+        }
 
-    private Task UndoAsync() => SendAsync(() => TournamentApi.UndoDartAsync(MatchId, _state!.ConcurrencyStamp));
+        _error = null;
+        _pending.Add(dart);
+    }
 
-    private async Task SendAsync(Func<Task<ApiResult<TournamentMatchState>>> request)
+    /// <summary>Erst noch nicht gesendete Darts zurücknehmen, danach wie bisher den letzten gewerteten Dart auf dem Server.</summary>
+    private Task UndoAsync()
+    {
+        if (_pending.Count > 0)
+        {
+            _pending.RemoveAt(_pending.Count - 1);
+            return Task.CompletedTask;
+        }
+
+        return SendAsync(() => TournamentApi.UndoDartAsync(MatchId, _state!.ConcurrencyStamp));
+    }
+
+    /// <summary>Schickt die gesammelten Darts nacheinander; der Server wertet jeden Dart wie bisher.</summary>
+    private async Task SubmitVisitAsync()
+    {
+        if (_state is null || _pending.Count == 0 || _submitting)
+        {
+            return;
+        }
+
+        var darts = _pending.ToList();
+        _pending.Clear();
+        _submitting = true;
+
+        try
+        {
+            for (var i = 0; i < darts.Count; i++)
+            {
+                var player = _state!.CurrentPlayer;
+                var leg = _state.LegNumber;
+
+                var ok = await SendAsync(() => TournamentApi.AddDartAsync(MatchId, new AddTournamentDartModel
+                {
+                    Segment = darts[i].Segment,
+                    Multiplier = darts[i].Multiplier,
+                    ConcurrencyStamp = _state!.ConcurrencyStamp
+                }));
+
+                if (!ok)
+                {
+                    // Nicht gewertete Darts bleiben stehen und können korrigiert oder erneut gesendet werden.
+                    _pending.AddRange(darts.Skip(i));
+                    break;
+                }
+
+                var visitEnded = _state is null || !_state.CanEnterDarts || _state.CurrentPlayer != player
+                    || _state.LegNumber != leg || _state.CurrentVisit.Count == 0;
+
+                // Server hat die Aufnahme früher beendet als die Vorschau: übrige Darts nicht dem nächsten Wurf zuordnen.
+                if (visitEnded && i < darts.Count - 1)
+                {
+                    _error = $"Die Aufnahme war nach Dart {i + 1} beendet – die übrigen Darts wurden nicht gewertet.";
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task<bool> SendAsync(Func<Task<ApiResult<TournamentMatchState>>> request)
     {
         if (_state is null)
         {
-            return;
+            return false;
         }
 
         _busy = true;
@@ -274,6 +367,7 @@ else
         }
 
         _busy = false;
+        return result.IsSuccess;
     }
 
     private static string SideMeta(TournamentMatchSide side) =>

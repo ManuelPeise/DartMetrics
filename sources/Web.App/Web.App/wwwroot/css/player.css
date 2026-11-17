@@ -501,6 +501,28 @@ a.pa-card:hover {
 
 .pa-pad__key--undo { color: var(--pl-brass-strong); font-size: 1.3rem; }
 
+.pa-pad__submit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.pa-pad__submit-hint {
+    flex: 1;
+    color: var(--pl-ink-muted);
+    font-weight: 600;
+}
+
+    .pa-pad__submit-hint.is-success { color: var(--pl-green); }
+
+    .pa-pad__submit-hint.is-danger { color: var(--pl-red); }
+
+.pa-pad__submit {
+    flex: 1;
+    min-height: 52px;
+    font-size: 1.1rem;
+}
+
 @media (max-width: 767px) {
     .pa-pad { padding: 0.6rem; max-width: none; }
 

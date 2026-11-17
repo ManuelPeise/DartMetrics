@@ -44,13 +44,19 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 - Double/Triple gilt nur für den nächsten Dart. 25 ist Single, Bull = 25 × 2, kein Triple auf 25.
 - Kennt **keine Spielregeln**: Bust, Checkout und Aufnahmeende wertet die Seite aus.
 - Parameter: `CurrentDarts` (Anzeige der laufenden Aufnahme), `OnUndo`/`CanUndo` (optionale Rückgängig-Taste), `Disabled`, `ShowVisit`.
+- **Senden-Taste** mit `OnSubmit`/`CanSubmit`: Alle Spielseiten sammeln die Darts einer Aufnahme im Browser und schicken sie erst
+  mit „Senden“ ab, nie automatisch. `InputLocked` sperrt weitere Darts (3 Darts oder Aufnahme laut Vorschau zu Ende),
+  `SubmitHint`/`SubmitHintTone` zeigen das Ergebnis der Vorschau („Bust“, „Checkout!“).
+- Vorschau für X01-Seiten (Training, Checkout-Training, Bot-Spiel, Turnier): `X01VisitPreview` aus `Shared.Models` – erkennt
+  Bust/Checkout sofort, gewertet wird weiter auf dem Server. Trainings und Turnier senden die gesammelten Darts nacheinander an die
+  bestehenden Dart-Endpunkte; beendet der Server die Aufnahme früher, werden übrige Darts verworfen und gemeldet.
+- Noch nicht gesendete Darts gehen beim Neuladen der Seite verloren (der Server kennt sie nicht).
 
 ## Bot-Spiel (`/player/bots`)
 
 - Beim Öffnen wird ein laufendes Spiel fortgesetzt (`GetRunningDartBotGame`), sonst Gegnerwahl und Einstellungen.
-- Die API erwartet die **ganze Aufnahme**: Darts werden im Browser gesammelt (lokal rückgängig machbar) und nach dem 3. Dart
-  oder bei Rest ≤ 1 automatisch abgeschickt; für einen Checkout mit 1–2 Darts gibt es „Aufnahme abschicken“.
-- Der Rest während der Eingabe ist nur eine Vorschau (Summe); Bust, Checkout und Double-In wertet der Server.
+- Die API erwartet die **ganze Aufnahme**: Darts werden im Browser gesammelt (lokal rückgängig machbar) und mit „Senden“ abgeschickt.
+- Der Rest während der Eingabe ist eine Vorschau (`X01VisitPreview`, inkl. Double-In, Bust, Checkout); gewertet wird auf dem Server.
 - Die Antwort enthält bereits die Bot-Aufnahme(n); sie werden Dart für Dart mit Zielfeld angezeigt.
 - Checkout-Hinweis nach jedem eingegebenen Dart, im Browser berechnet (`CheckoutAdvisor` aus `Shared.Models`), ab dem Eröffnen.
 

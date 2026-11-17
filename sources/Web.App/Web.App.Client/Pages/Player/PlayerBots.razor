@@ -144,16 +144,9 @@
             </div>
 
             <div>
-                <DartInputPad CurrentDarts="_darts" OnDart="AddDartAsync" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
-                              Disabled="@(!CanThrow)" />
-                @if (_darts.Count > 0 && _darts.Count < 3)
-                {
-                    <div class="pa-visit-actions">
-                        <button type="button" class="pl-btn pl-btn--ghost" disabled="@(!CanThrow)" @onclick="SubmitVisitAsync">
-                            Aufnahme abschicken (Checkout/Bust)
-                        </button>
-                    </div>
-                }
+                <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
+                              OnSubmit="SubmitVisitAsync" CanSubmit="@(_darts.Count > 0)" InputLocked="@UserPreview.IsVisitFinished"
+                              SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(!CanThrow)" />
             </div>
         </div>
         break;
@@ -241,10 +234,25 @@
 
     private bool CanThrow => IsUserActive && !_busy;
 
-    /// <summary>Vorschau des Rests während der Eingabe (reine Summe; gewertet wird auf dem Server).</summary>
+    /// <summary>
+    /// Vorschau der eingegebenen, noch nicht gesendeten Darts (Double-In, Bust, Checkout); gewertet wird auf dem Server.
+    /// </summary>
+    private X01VisitPreviewResult UserPreview => _state is null
+        ? default
+        : X01VisitPreview.Evaluate(_state.UserRemaining, _state.IsUserOpened, _state.InMode, _state.OutMode, 0,
+            _darts.Select(d => (d.Segment, d.Multiplier)));
+
+    /// <summary>Rest während der Eingabe laut Vorschau.</summary>
     private int DisplayUserRemaining =>
         _shown is not null ? _shown.UserRemaining
-        : _state is null ? 0 : _state.IsUserOpened ? _state.UserRemaining - _darts.Sum(d => d.Score) : _state.UserRemaining;
+        : _state is null ? 0 : UserPreview.Remaining;
+
+    private string? PreviewHint => _darts.Count == 0 ? null
+        : UserPreview.IsCheckout ? "Checkout!"
+        : UserPreview.IsBust ? "Bust"
+        : null;
+
+    private string? PreviewTone => UserPreview.IsCheckout ? "success" : UserPreview.IsBust ? "danger" : null;
 
     /// <summary>
     /// Anzeige während der Bot-Animation: Der Server liefert den Stand nach der Bot-Aufnahme (ggf. schon im nächsten Leg).
@@ -259,7 +267,7 @@
     /// Vorschau-Rest mit den restlichen Darts der Aufnahme. Bei Double-In erst nach dem Eröffnen.
     /// </summary>
     private List<CheckoutSuggestion>? UserCheckout =>
-        _state is null || !_state.IsUserOpened || _darts.Count >= DartsPerVisit
+        _state is null || !UserPreview.IsOpened || UserPreview.IsVisitFinished
             ? null
             : CheckoutAdvisor.GetBestRoutes(DisplayUserRemaining, DartsPerVisit - _darts.Count, _state.OutMode);
 
@@ -370,20 +378,18 @@
         }
     }
 
-    private async Task AddDartAsync(DartThrowInput dart)
+    /// <summary>Darts sammeln; abgeschickt wird erst mit „Senden“ (auch bei Checkout oder Bust).</summary>
+    private void AddDart(DartThrowInput dart)
     {
+        if (_state is null || UserPreview.IsVisitFinished)
+        {
+            return;
+        }
+
         _darts.Add(dart);
         _botDarts.Clear();
         _botVisitResult = null;
-
-        // Drei Darts oder Aufnahme sicher zu Ende (Checkout oder Bust) -> automatisch abschicken.
-        // Double-Out: Rest ≤ 1; Straight-Out: Rest ≤ 0 (Rest 1 kann noch mit S1 gecheckt werden).
-        var lastPossibleRest = _state!.OutMode == X01OutModeEnum.Straight ? 0 : 1;
-
-        if (_darts.Count == DartsPerVisit || (_state.IsUserOpened && DisplayUserRemaining <= lastPossibleRest))
-        {
-            await SubmitVisitAsync();
-        }
+        _error = null;
     }
 
     private void UndoDart()

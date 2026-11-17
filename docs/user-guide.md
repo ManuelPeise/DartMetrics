@@ -30,7 +30,8 @@ Alle Spiele und Trainings nutzen dasselbe Eingabefeld, **ein Dart nach dem ander
 - **Double** oder **Triple** antippen und dann die Zahl: der Multiplikator gilt nur für den nächsten Dart.
 - **25** ist das Single-Bull, **Bull** (50) ist Double 25. Ein Triple auf 25 gibt es nicht.
 - **0** für einen Fehlwurf außerhalb der Scheibe.
-- Bust, Checkout und Ende der Aufnahme erkennt die App selbst.
+- Bust, Checkout und Ende der Aufnahme erkennt die App selbst und zeigt sie sofort an.
+- **Senden:** Die Darts einer Aufnahme werden erst mit **Senden** gewertet. Bis dahin kannst du mit ↶ korrigieren.
 - **Checkout-Hinweis:** Sobald dein Rest checkbar ist, zeigt die App den empfohlenen Weg, z. B. „T20 · T20 · Bull“. Er wird nach jedem Dart neu berechnet: wenigste Darts, beliebte Doubles (D20, D16, D8 …), einfache Felder vor Triples.
 - Ein angefangenes Training oder Bot-Spiel wird beim nächsten Öffnen fortgesetzt, auch nach einem Neuladen der Seite.
 
@@ -55,7 +56,7 @@ Unter **Gegen Bot spielen**:
 2. **Einstellungen:**
    - *Training* (immer Best of 5) oder *Match* (Best of 5, 7, 9 oder 13 Legs; zählt als Wettkampf)
    - 301 oder 501, wer im ersten Leg anwirft, Straight-/Double-In, Double-/Straight-Out
-3. **Spielen:** Du gibst deine Darts ein; nach dem 3. Dart wird die Aufnahme automatisch abgeschickt. Für einen Checkout oder Bust mit 1–2 Darts gibt es „Aufnahme abschicken“. Der Bot wirft sofort und zeigt, worauf er gezielt hat.
+3. **Spielen:** Du gibst deine Darts ein und schickst die Aufnahme mit **Senden** ab, auch bei einem Checkout oder Bust mit 1–2 Darts. Der Bot wirft sofort und zeigt, worauf er gezielt hat.
 4. **Ergebnis:** Nach dem Spiel ändern sich deine Elo und die des Bots. Der Bot sammelt Erfahrungspunkte und steigt im Level auf: Er wird mit jedem Spiel gegen Menschen besser.
 
 ## 5. Turniere
