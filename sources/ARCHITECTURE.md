@@ -113,6 +113,9 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | `ISessionStore` | `BlazorSessionStore` | [Web.Shared](Web.Shared/README.md) | S | `CreateAsync`, `GetAsync`, `UpdateAsync`, `DeleteAsync` (Token je Sitzung) |
 | `ITokenRefreshService` | `TokenRefreshService` | [Web.Shared](Web.Shared/README.md) | S | `RefreshIfNeededAsync`, `ForceRefreshAsync` |
 | `IAuthorizedApiClient` | `AuthorizedApiClient` | [Web.Shared](Web.Shared/README.md) | S | API-Aufrufe mit Token der Sitzung (`GetAsync`, `PostAsync`, `GetFromJsonAsync`, `PostAsJsonAsync`) |
+| – | `RemotePairingService` | [Web.App](Web.App/Web.App/README.md) | Si | Handy koppeln: `CreatePairingAsync`, `RedeemAsync`, `ReadToken` (Geräte-Token, an die Sitzung gebunden) |
+| – | `RemoteConnectionRegistry` | [Web.App](Web.App/Web.App/README.md) | Si | Aktive Spielseite und verbundene Handys je Benutzer (im Speicher) |
+| – | `RemoteInputHub` | [Web.App](Web.App/Web.App/README.md) | Hub | `/hubs/remote`: Tasten vom Handy an die Spielseite, Anzeigezustand an das Handy ([Protokoll](../docs/remote-input-protocol.md)) |
 
 ### Web-Seite – WebAssembly (registriert in `Web.App/Web.App.Client/Program.cs`)
 
@@ -128,6 +131,7 @@ Repositories sind keine eigenen DI-Services; sie werden von den UnitOfWorks erze
 | `ITrainingApi` | `TrainingApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Offenes Training, Start, Dart, Beenden, Ergebnis für X01, Around the Clock, Checkout, Segment |
 | `IBotGameApi` | `BotGameApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Bots, laufendes Spiel, Start, Aufnahme, Abbruch, Spielstand, Elo-Verlauf (DartBotGameController) |
 | `ITournamentApi` | `TournamentApi` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Turniere, Anmeldung, Liga, K.o., Match-Eingabe (TournamentController) |
+| – | `RemoteInputConnection` | [Web.App.Client](Web.App/Web.App.Client/README.md) | S | Hub-Verbindung der Spielseite: `AttachAsync`, `DetachAsync`, `PublishAsync`, `CreatePairingAsync` |
 
 ## Web-Bereiche
 

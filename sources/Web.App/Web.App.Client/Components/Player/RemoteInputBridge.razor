@@ -1,0 +1,119 @@
+@using global::Shared.Enums.Remote
+@using global::Shared.Models.Remote
+@using Web.App.Client.Services.Remote
+@implements IAsyncDisposable
+@inject RemoteInputConnection Remote
+
+@*
+    Verbindet die Spielseite mit gekoppelten Handys: „Handy verbinden“ zeigt einen QR-Code,
+    Tasten vom Handy laufen über dieselben Callbacks wie das DartInputPad, der Anzeigezustand (State)
+    geht bei jeder Änderung an die Handys. Keine Spielregeln: Sperren kommen aus State.
+*@
+<div class="pa-remote">
+    @if (Remote.Controllers.Count > 0)
+    {
+        <p class="pa-remote__status is-connected" role="status">
+            <span aria-hidden="true">●</span> Verbunden: @string.Join(", ", Remote.Controllers)
+        </p>
+    }
+
+    @if (_pairing is not null)
+    {
+        <div class="pa-remote__pairing">
+            <div class="pa-remote__qr" role="img" aria-label="QR-Code zum Koppeln des Handys">@((MarkupString)_pairing.QrSvg)</div>
+            <p class="pa-section__hint">Mit der Kamera des Handys scannen. Gültig bis @_pairing.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss"), nur einmal.</p>
+            <button type="button" class="pl-btn pl-btn--link" @onclick="() => _pairing = null">Schließen</button>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="pl-btn pl-btn--ghost pa-remote__connect" disabled="@_loading" @onclick="ShowPairingAsync">
+            @(_loading ? "QR-Code wird erstellt …" : Remote.Controllers.Count > 0 ? "Weiteres Handy verbinden" : "Handy verbinden")
+        </button>
+    }
+
+    @if (_error is not null)
+    {
+        <p class="pl-alert" role="alert">@_error</p>
+    }
+</div>
+
+@code {
+    /// <summary>Anzeigezustand für das Handy; von der Seite bei jedem Rendern neu gebaut.</summary>
+    [Parameter, EditorRequired] public RemoteDisplayState State { get; set; } = new();
+
+    [Parameter, EditorRequired] public EventCallback<DartThrowInput> OnDart { get; set; }
+
+    [Parameter] public EventCallback OnUndo { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnSubmit { get; set; }
+
+    private RemotePairingInfo? _pairing;
+    private bool _loading;
+    private bool _attached;
+    private string? _error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Remote.Changed += OnRemoteChanged;
+            await Remote.AttachAsync(HandleCommandAsync, PublishAsync);
+            _attached = true;
+        }
+
+        await PublishAsync();
+    }
+
+    private Task PublishAsync() => _attached ? Remote.PublishAsync(State) : Task.CompletedTask;
+
+    private void OnRemoteChanged()
+    {
+        // Handy verbunden: QR-Code ausblenden.
+        if (Remote.Controllers.Count > 0)
+        {
+            _pairing = null;
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleCommandAsync(RemoteCommand command) => InvokeAsync(async () =>
+    {
+        // Gleiche Sperren wie auf dem Eingabefeld der Seite.
+        switch (command.Type)
+        {
+            case RemoteCommandTypeEnum.Dart when State.CanInput && !State.InputLocked:
+                await OnDart.InvokeAsync(new DartThrowInput(command.Segment, command.Multiplier));
+                break;
+            case RemoteCommandTypeEnum.Undo when State.CanInput && State.CanUndo && OnUndo.HasDelegate:
+                await OnUndo.InvokeAsync();
+                break;
+            case RemoteCommandTypeEnum.Submit when State.CanInput && State.CanSubmit:
+                await OnSubmit.InvokeAsync();
+                break;
+            default:
+                // Gesperrt: aktuellen Stand erneut schicken, damit das Handy sich korrigiert.
+                await Remote.PublishAsync(State);
+                break;
+        }
+    });
+
+    private async Task ShowPairingAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await Remote.CreatePairingAsync();
+
+        _loading = false;
+        _pairing = result.Value;
+        _error = result.Error;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Remote.Changed -= OnRemoteChanged;
+        await Remote.DetachAsync();
+    }
+}

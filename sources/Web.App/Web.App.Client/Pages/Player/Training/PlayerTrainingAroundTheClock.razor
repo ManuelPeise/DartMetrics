@@ -1,4 +1,5 @@
 ﻿@page "/player/training/around-the-clock"
+@using global::Shared.Models.Remote
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
 
@@ -50,6 +51,7 @@
             <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
                           OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@IsVisitFull"
                           Disabled="@(_busy || _submitting)" />
+            <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
         </div>
         break;
 
@@ -92,6 +94,22 @@
 
     /// <summary>Drei Darts in der Aufnahme: weitere erst nach dem Senden.</summary>
     private bool IsVisitFull => !_clearDartsOnNext && _darts.Count >= 3;
+
+    /// <summary>Anzeige für ein gekoppeltes Handy.</summary>
+    private RemoteDisplayState RemoteDisplay => new()
+    {
+        Title = "Around the Clock",
+        Subtitle = $"Fortschritt {_target - 1} / {TargetCount}",
+        Players = [new RemotePlayerState { Name = "Ziel", Value = TargetLabel(_target), Detail = $"{_dartsThrown} Darts", IsActive = true }],
+        Darts = RemoteState.Darts(_darts),
+        VisitTotal = RemoteState.Total(_darts),
+        Status = _status,
+        StatusTone = _tone,
+        CanInput = !_busy && !_submitting,
+        InputLocked = IsVisitFull,
+        CanUndo = _pending.Count > 0,
+        CanSubmit = _pending.Count > 0
+    };
     private string? _status;
     private string? _tone;
 

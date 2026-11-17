@@ -6,6 +6,9 @@ Blazor-Host (Server). Liefert die WebAssembly-App aus, betreibt das BFF und den 
 
 - **Cookie-Anmeldung** (`Bundles/ServiceRegistration.cs`): Cookie `__Host-DartMetrics.Auth`, Token bleiben serverseitig in der Sitzung.
 - **BFF** (`Bundles/BffEndpoints.cs`): `/bff/user`, `/bff/login`, `/bff/logout`, `/bff/register`, `/bff/verify-email`, `/bff/resend-verification`, `/bff/forgot-password`, `/bff/reset-password` und Proxy `/bff/api/**` → API. CSRF-Header-Pflicht für alle `/bff`-Aufrufe.
+- **Handy als Eingabegerät** (`Remote/`): `POST /bff/remote/pairing` (QR-Code), `POST /remote/pair` (Code gegen Geräte-Token, Rate Limit),
+  SignalR-Hub `/hubs/remote` (Spielseite per Cookie, Handy per Geräte-Token, Schema `RemoteDevice`). Keine Spiellogik, keine Datenbank;
+  Token per Data Protection, an die Browser-Sitzung gebunden. Protokoll: [docs/remote-input-protocol.md](../../../docs/remote-input-protocol.md).
 - **Rate Limiting** (`Bundles/ServiceRegistration.cs`): anonyme Auth-Endpunkte 10 Anfragen/Minute je IP (`RateLimiting:Auth:*`), Antwort 429.
 - **Render-Modi** (`Components/App.razor`): `/admin` Interactive Server, `/Error`, `/impressum`, `/datenschutz` statisch (static SSR), alles andere Interactive WebAssembly (ohne Prerendering).
 - **Impressum / Datenschutz** (`Components/Pages/Legal`): Angaben aus `LegalOptions` (Abschnitt `Legal`, in Docker `LEGAL_*` aus der `.env`), nie aus dem Repository.

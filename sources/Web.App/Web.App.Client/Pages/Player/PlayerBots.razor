@@ -2,6 +2,7 @@
 @using global::Shared.Enums.Bot
 @using global::Shared.Enums.X01
 @using global::Shared.Models.Bot
+@using global::Shared.Models.Remote
 @using global::Shared.Models.Shared
 @inject IBotGameApi BotGameApi
 @inject IProfileApi ProfileApi
@@ -147,6 +148,7 @@
                 <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
                               OnSubmit="SubmitVisitAsync" CanSubmit="@(_darts.Count > 0)" InputLocked="@UserPreview.IsVisitFinished"
                               SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(!CanThrow)" />
+                <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
             </div>
         </div>
         break;
@@ -251,6 +253,43 @@
         : UserPreview.IsCheckout ? "Checkout!"
         : UserPreview.IsBust ? "Bust"
         : null;
+
+    /// <summary>Anzeige für ein gekoppeltes Handy (Bot-Darts erscheinen als Statuszeile).</summary>
+    private RemoteDisplayState RemoteDisplay => _state is null ? new() : new()
+    {
+        Title = HeaderTitle,
+        Subtitle = $"Legs {_shown?.UserLegs ?? _state.UserLegsWon} : {_shown?.BotLegs ?? _state.BotLegsWon} · Leg {_shown?.LegNumber ?? _state.CurrentLegNumber}",
+        Players =
+        [
+            new RemotePlayerState
+            {
+                Name = "Du",
+                Value = DisplayUserRemaining.ToString(),
+                Detail = _state.IsUserOpened ? $"Ø {UserAverage}" : "noch nicht eröffnet",
+                IsActive = IsUserActive
+            },
+            new RemotePlayerState
+            {
+                Name = _state.BotName,
+                Value = (_shown?.BotRemaining ?? _state.BotRemaining).ToString(),
+                Detail = _state.IsBotOpened ? "Bot" : "noch nicht eröffnet",
+                IsActive = _animating
+            }
+        ],
+        Darts = RemoteState.Darts(_darts),
+        VisitTotal = RemoteState.Total(_darts),
+        Checkout = IsUserActive ? RemoteState.Checkout(UserCheckout) : null,
+        Status = _botDarts.Count > 0
+            ? $"{_state.BotName}: {string.Join(" ", _botDarts.Select(d => new DartThrowInput(d.Segment, d.Multiplier).Label))} {_botVisitResult}".Trim()
+            : _status,
+        StatusTone = _botDarts.Count > 0 ? null : _tone,
+        Hint = PreviewHint,
+        HintTone = PreviewTone,
+        CanInput = CanThrow,
+        InputLocked = UserPreview.IsVisitFinished,
+        CanUndo = _darts.Count > 0,
+        CanSubmit = _darts.Count > 0
+    };
 
     private string? PreviewTone => UserPreview.IsCheckout ? "success" : UserPreview.IsBust ? "danger" : null;
 

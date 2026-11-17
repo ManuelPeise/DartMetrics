@@ -523,6 +523,94 @@ a.pa-card:hover {
     font-size: 1.1rem;
 }
 
+/* Handy als Eingabegerät (RemoteInputBridge) */
+.pa-remote {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 520px;
+    margin-top: 0.6rem;
+}
+
+.pa-remote__status {
+    margin: 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.9rem;
+}
+
+    .pa-remote__status.is-connected span { color: var(--pl-green); }
+
+.pa-remote__pairing {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    border: 1px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+    text-align: center;
+}
+
+.pa-remote__qr {
+    width: min(260px, 70vw);
+    line-height: 0;
+}
+
+    .pa-remote__qr svg { width: 100%; height: auto; }
+
+/* Handy-Seite /remote (RemoteLayout) */
+.pa-remote-app {
+    min-height: 100dvh;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    background: var(--pl-wood-950);
+    color: var(--pl-ink);
+}
+
+.pa-remote-app__screen {
+    display: grid;
+    gap: 0.6rem;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.pa-remote-app__message {
+    max-width: 520px;
+    margin: 20vh auto 0;
+    text-align: center;
+}
+
+.pa-remote-app__head { text-align: center; }
+
+.pa-remote-app__title {
+    margin: 0;
+    font-family: var(--pl-font-display);
+    font-size: 1.25rem;
+}
+
+.pa-remote-app__subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--pl-ink-muted);
+    font-size: 0.85rem;
+}
+
+.pa-remote-app__players {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+    gap: 0.5rem;
+}
+
+.pa-remote-app__status {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+}
+
+    .pa-remote-app__status.is-success { color: var(--pl-green); }
+
+    .pa-remote-app__status.is-danger { color: var(--pl-red); }
+
 @media (max-width: 767px) {
     .pa-pad { padding: 0.6rem; max-width: none; }
 

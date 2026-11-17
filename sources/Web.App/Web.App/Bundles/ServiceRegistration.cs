@@ -7,6 +7,7 @@ using Shared.Interfaces.Blazor.Authentication;
 using Shared.Models.Options.Blazor;
 using Web.Shared.Constants;
 using Web.Shared.DI;
+using Web.App.Remote;
 
 namespace Web.App.Bundles
 {
@@ -31,6 +32,12 @@ namespace Web.App.Bundles
 
             // Impressum / Datenschutz (Angaben aus der Konfiguration, nicht aus dem Repository)
             services.Configure<LegalOptions>(configuration.GetSection(LegalOptions.SectionName));
+
+            // Handy als Eingabegerät: Kopplung, Geräte-Token, Hub (siehe docs/remote-input-protocol.md)
+            services.Configure<RemoteInputOptions>(configuration.GetSection(RemoteInputOptions.SectionName));
+            services.AddSingleton<RemotePairingService>();
+            services.AddSingleton<RemoteConnectionRegistry>();
+            services.AddSignalR();
 
             // Session store, token refresh, API clients (Web.Shared)
             services.RegisterWebServices();
@@ -83,6 +90,7 @@ namespace Web.App.Bundles
                 options.DefaultChallengeScheme = WebServiceRegistration.Scheme;
                 options.DefaultSignInScheme = WebServiceRegistration.Scheme;
             })
+            .AddScheme<AuthenticationSchemeOptions, RemoteDeviceAuthenticationHandler>(RemoteDeviceAuthenticationHandler.SchemeName, _ => { })
             .AddCookie(WebServiceRegistration.Scheme, options =>
             {
                 options.Cookie.Name = "__Host-DartMetrics.Auth";
@@ -139,7 +147,10 @@ namespace Web.App.Bundles
             services.AddAuthorization();
         }
 
+        // Auch Hub und Handy-Endpunkte: Statuscode statt Umleitung auf die Login-Seite.
         private static bool IsBffRequest(HttpRequest request) =>
-            request.Path.StartsWithSegments("/bff");
+            request.Path.StartsWithSegments("/bff") ||
+            request.Path.StartsWithSegments("/hubs") ||
+            request.Path.StartsWithSegments("/remote");
     }
 }

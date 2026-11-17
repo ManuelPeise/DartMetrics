@@ -35,6 +35,16 @@ Alle Spiele und Trainings nutzen dasselbe Eingabefeld, **ein Dart nach dem ander
 - **Checkout-Hinweis:** Sobald dein Rest checkbar ist, zeigt die App den empfohlenen Weg, z. B. „T20 · T20 · Bull“. Er wird nach jedem Dart neu berechnet: wenigste Darts, beliebte Doubles (D20, D16, D8 …), einfache Felder vor Triples.
 - Ein angefangenes Training oder Bot-Spiel wird beim nächsten Öffnen fortgesetzt, auch nach einem Neuladen der Seite.
 
+### Handy als Eingabe
+
+Damit du nach dem Werfen nicht zum PC laufen musst, kannst du dein Handy als Eingabe nutzen:
+
+1. Auf der Spielseite im Browser **Handy verbinden** antippen – ein QR-Code erscheint (2 Minuten gültig, nur einmal).
+2. Mit der Kamera des Handys scannen und die Adresse öffnen. Eine App ist nicht nötig.
+3. Das Handy zeigt Spielstand und Eingabefeld; Darts eingeben und **Senden**. Der PC zeigt alles sofort an.
+
+Die Verbindung gilt, bis du dich im Browser abmeldest (höchstens 12 Stunden). Danach einfach neu scannen.
+
 ## 3. Trainings
 
 Unter **Training** gibt es vier Modi:

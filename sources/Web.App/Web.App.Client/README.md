@@ -52,6 +52,16 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
   bestehenden Dart-Endpunkte; beendet der Server die Aufnahme früher, werden übrige Darts verworfen und gemeldet.
 - Noch nicht gesendete Darts gehen beim Neuladen der Seite verloren (der Server kennt sie nicht).
 
+## Handy als Eingabegerät (`RemoteInputBridge`)
+
+- Steht auf jeder Spielseite unter dem `DartInputPad`: „Handy verbinden“ zeigt den QR-Code (`RemoteInputConnection.CreatePairingAsync`).
+- Tasten vom Handy rufen dieselben Callbacks wie das Eingabefeld (`OnDart`, `OnUndo`, `OnSubmit`); Sperren kommen aus `State`.
+- `State` (`RemoteDisplayState`) baut jede Seite in `RemoteDisplay` aus ihren eigenen Feldern; geschickt wird nur bei Änderung.
+- Neue Spielseite: Bridge einbauen und `RemoteDisplay` füllen – die Handy-Seite braucht dafür keine Änderung.
+- Handy-Seite `/remote` (`Pages/Remote/RemoteControl`, `RemoteLayout`, ohne Anmeldung): löst den Code aus dem QR-Code ein,
+  verbindet sich mit dem Geräte-Token, zeigt `State` und nutzt dasselbe `DartInputPad`; Wake Lock und Vibration über `js/remote.js`.
+  Protokoll: [docs/remote-input-protocol.md](../../../docs/remote-input-protocol.md).
+
 ## Bot-Spiel (`/player/bots`)
 
 - Beim Öffnen wird ein laufendes Spiel fortgesetzt (`GetRunningDartBotGame`), sonst Gegnerwahl und Einstellungen.

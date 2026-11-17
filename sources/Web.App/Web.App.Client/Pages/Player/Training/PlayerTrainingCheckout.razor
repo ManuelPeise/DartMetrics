@@ -1,5 +1,6 @@
 ﻿@page "/player/training/checkout"
 @using global::Shared.Enums.X01
+@using global::Shared.Models.Remote
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
@@ -54,6 +55,7 @@
             <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
                           OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@Preview.IsVisitFinished"
                           SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(_busy || _submitting)" />
+            <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
         </div>
         break;
 
@@ -125,6 +127,25 @@
         _pending.Count == 0 ? _suggestions
         : Preview.IsVisitFinished ? null
         : CheckoutAdvisor.GetBestRoutes(Preview.Remaining, X01VisitPreview.DartsPerVisit - CommittedInVisit - _pending.Count);
+
+    /// <summary>Anzeige für ein gekoppeltes Handy.</summary>
+    private RemoteDisplayState RemoteDisplay => new()
+    {
+        Title = "Checkout-Training",
+        Subtitle = $"Ziel {_targetScore} · Versuch {_attemptNumber}",
+        Players = [new RemotePlayerState { Name = "Rest", Value = Preview.Remaining.ToString(), Detail = $"{_successful} Checkouts", IsActive = true }],
+        Darts = RemoteState.Darts(_darts),
+        VisitTotal = RemoteState.Total(_darts),
+        Checkout = RemoteState.Checkout(ShownSuggestions),
+        Status = _status,
+        StatusTone = _tone,
+        Hint = PreviewHint,
+        HintTone = PreviewTone,
+        CanInput = !_busy && !_submitting,
+        InputLocked = Preview.IsVisitFinished,
+        CanUndo = _pending.Count > 0,
+        CanSubmit = _pending.Count > 0
+    };
 
     private bool IsValidTarget => _targetScore is >= 2 and <= 170;
 

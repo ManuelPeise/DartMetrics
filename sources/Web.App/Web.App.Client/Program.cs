@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Web.App.Client.Authentication;
 using Web.App.Client.Services;
 using Web.App.Client.Services.Api;
+using Web.App.Client.Services.Remote;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -28,5 +29,8 @@ builder.Services.AddScoped<ITournamentApi, TournamentApi>();
 builder.Services.AddScoped<ITrainingApi, TrainingApi>();
 builder.Services.AddScoped<IStatisticsApi, StatisticsApi>();
 builder.Services.AddScoped<IProgressApi, ProgressApi>();
+
+// Handy als Eingabegerät (Hub /hubs/remote)
+builder.Services.AddScoped<RemoteInputConnection>();
 
 await builder.Build().RunAsync();

@@ -47,7 +47,7 @@ namespace Web.App.Bundles
             bff.Map("/api/{**path}", ProxyAsync).RequireAuthorization();
         }
 
-        private static async ValueTask<object?> RequireCsrfHeader(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+        internal static async ValueTask<object?> RequireCsrfHeader(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
         {
             if (!context.HttpContext.Request.Headers.ContainsKey(BffHttpClient.CsrfHeaderName))
                 return Results.BadRequest("Missing CSRF header.");

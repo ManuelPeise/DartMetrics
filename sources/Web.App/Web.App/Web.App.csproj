@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\Web.Shared\Web.Shared.csproj" />
     <ProjectReference Include="..\Web.App.Client\Web.App.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    <PackageReference Include="QRCoder" />
   </ItemGroup>
 
   <ItemGroup>

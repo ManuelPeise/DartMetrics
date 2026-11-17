@@ -1,5 +1,6 @@
 ﻿@page "/player/tournaments/match/{MatchId:int}"
 @using global::Shared.Enums.Tournament
+@using global::Shared.Models.Remote
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Tournament
 @implements IDisposable
@@ -135,6 +136,11 @@ else
             {
                 <p class="pa-section__hint">@(s.CanUndo ? "Ein Bot wirft …" : "Live – der Stand lädt automatisch nach.")</p>
             }
+
+            @if (s.Status == TournamentMatchStatusEnum.Running)
+            {
+                <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoAsync" OnSubmit="SubmitVisitAsync" />
+            }
         </div>
     </div>
 }
@@ -165,6 +171,42 @@ else
     /// <summary>Vom Server gewertete Darts der laufenden Aufnahme plus die noch nicht gesendeten.</summary>
     private IReadOnlyList<DartThrowInput> CurrentDarts =>
         (_state?.CurrentVisit.Select(d => new DartThrowInput(d.Segment, d.Multiplier)) ?? Enumerable.Empty<DartThrowInput>()).Concat(_pending).ToList();
+
+    /// <summary>Anzeige für ein gekoppeltes Handy.</summary>
+    private RemoteDisplayState RemoteDisplay => _state is not { } s ? new() : new()
+    {
+        Title = $"{s.Home.DisplayName} – {s.Away.DisplayName}",
+        Subtitle = $"{s.TournamentName} · Legs {s.Home.LegsWon} : {s.Away.LegsWon} · Leg {s.LegNumber}",
+        Players =
+        [
+            new RemotePlayerState
+            {
+                Name = s.Home.DisplayName,
+                Value = (s.CurrentPlayer == 1 && _pending.Count > 0 ? Preview.Remaining : s.Home.Remaining).ToString(),
+                Detail = SideMeta(s.Home),
+                IsActive = s.CurrentPlayer == 1
+            },
+            new RemotePlayerState
+            {
+                Name = s.Away.DisplayName,
+                Value = (s.CurrentPlayer == 2 && _pending.Count > 0 ? Preview.Remaining : s.Away.Remaining).ToString(),
+                Detail = SideMeta(s.Away),
+                IsActive = s.CurrentPlayer == 2
+            }
+        ],
+        Darts = RemoteState.Darts(CurrentDarts),
+        VisitTotal = RemoteState.Total(CurrentDarts),
+        Checkout = RemoteState.Checkout(ShownSuggestions),
+        Status = _error,
+        StatusTone = _error is null ? null : "danger",
+        Hint = PreviewHint,
+        HintTone = PreviewTone,
+        CanInput = s.CanEnterDarts && !_busy && !_submitting,
+        InputLocked = Preview.IsVisitFinished,
+        CanUndo = _pending.Count > 0 || s.CanUndo,
+        CanSubmit = _pending.Count > 0,
+        IsFinished = s.Status == TournamentMatchStatusEnum.Finished
+    };
 
     private TournamentMatchSide? ActiveSide => _state is null ? null : _state.CurrentPlayer == 1 ? _state.Home : _state.Away;
 

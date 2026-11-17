@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Web.App.Bundles;
 using Web.App.Client.Routing;
 using Web.App.Components;
+using Web.App.Remote;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 
 app.MapBffEndpoints();
+
+app.MapRemoteEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
