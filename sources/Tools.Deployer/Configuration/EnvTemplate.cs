@@ -21,14 +21,7 @@ internal static partial class EnvTemplate
     // COMPOSE_FILE wird über die Umgebungsauswahl gesteuert (Produktion), nicht im Formular.
     private static readonly HashSet<string> IgnoredKeys = ["COMPOSE_FILE"];
 
-    /// <summary>Zusätzliche Einträge der .env.beta (stehen nicht in der .env.example).</summary>
-    public static IReadOnlyList<EnvField> BetaFields { get; } =
-    [
-        new("BETA_HTTPS_PORT", "Beta-Instanz",
-            "HTTPS-Port der Beta-Web-App auf diesem PC. WEB_APP_PORT sollte denselben Wert haben (Links in E-Mails).",
-            "7354", false),
-        new("BETA_HTTP_PORT", "Beta-Instanz", "HTTP-Port der Beta-Web-App (leitet auf HTTPS um).", "5223", false),
-    ];
+@@END
 
     /// <summary>KEY=Wert oder auskommentiert "# KEY=Wert".</summary>
     [GeneratedRegex(@"^\s*(#\s*)?([A-Z][A-Z0-9_]*)=(.*)$")]

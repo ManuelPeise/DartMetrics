@@ -10,10 +10,11 @@ Wer lieber die Konsole nimmt, kann die Skripte weiterhin direkt verwenden.
 
 | Bereich | Was passiert |
 |---|---|
-| **Umgebung** | *Entwicklung* (`.env`, mit `docker-compose.override.yml`), *Produktion* (`.env`, nur `docker-compose.yml`), *Beta* (`.env.beta`, parallele Instanz) |
+| **Umgebung** | *Entwicklung* (`.env`, mit `docker-compose.override.yml`), *Produktion* (`.env`, nur `docker-compose.yml`) |
+| **Instanz** | Der gewählte Lösungsordner ist die Instanz (Titelzeile, `COMPOSE_PROJECT_NAME` bzw. Ordnername). Für die Beta den Beta-Worktree als Ordner wählen, siehe [Instanzen](../README.md#instanzen-z-b-beta). |
 | **1 · Einstellungen** | Formular aus der `.env.example`: Abschnitte und Kommentare werden zu Gruppen und Hilfetexten. Passwörter sind verdeckt, „Erzeugen“ legt zufällige Werte an. Dieselben Prüfungen wie `deploy.ps1` (Pflichtfelder, `change-me`, `JWT_KEY` ≥ 32 Zeichen), dazu Ports und Zahlen. Gespeichert werden nur geänderte Zeilen, Kommentare bleiben erhalten. |
 | **2 · Deployment** | Aktionen, Schrittliste (aus den `==>`-Zeilen der Skripte), vollständiges Log, Abbrechen |
-| **Status** | Ampel je Container (inkl. Healthcheck), Links zu Web-App, Swagger, Mailpit, Lösungsordner und Backups. Startet bei Bedarf Docker Desktop. |
+| **Status** | Ampel je Dienst der Instanz (`docker compose ps`, inkl. Healthcheck), Links zu Web-App, Swagger, Mailpit, Lösungsordner und Backups. Startet bei Bedarf Docker Desktop. |
 
 ### Aktionen
 
@@ -21,10 +22,8 @@ Wer lieber die Konsole nimmt, kann die Skripte weiterhin direkt verwenden.
 |---|---|
 | Erstinstallation / Neuaufbau | `deploy\deploy.ps1` (`-Production`, `-NoCache`) |
 | Aktualisieren (neuer Code) | `deploy\update-containers.ps1` (`-Test`, `-Pull`, `-All`, `-NoCache`, `-SkipBackup`) |
-| Einstellungen übernehmen | `docker compose up -d --remove-orphans` – kein Rebuild, nur Container mit geänderter Konfiguration werden ersetzt |
-| Starten / Stoppen / Logs | `docker compose start` / `stop` / `logs --tail 150 api web` |
-| Beta bauen und starten | `deploy\deploy-beta.ps1` |
-| Beta zurücksetzen / entfernen | `deploy\deploy-beta.ps1 -Reset` / `-Remove` (mit Rückfrage) |
+| Starten / Einstellungen übernehmen | `deploy\switch-instance.ps1` (`-Production`) – stoppt andere Instanzen, kein Rebuild, nur Container mit geänderter Konfiguration werden ersetzt |
+| Stoppen / Logs | `docker compose stop` / `logs --tail 150 api web` |
 
 Für *Produktion* setzt die App `COMPOSE_FILE=docker-compose.yml` für den jeweiligen Aufruf – wie `deploy.ps1 -Production`.
 

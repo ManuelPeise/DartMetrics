@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Tools.Deployer.Deployment;
 
-/// <param name="Name">Containername, z. B. dartmetrics-api.</param>
+/// <param name="Name">Dienstname aus docker-compose.yml, z. B. api.</param>
 /// <param name="Status">running, exited, … oder "nicht vorhanden" / "unbekannt".</param>
 /// <param name="Health">healthy, starting, unhealthy oder leer (kein Healthcheck).</param>
 internal sealed record ContainerState(string Name, string Status, string Health);
@@ -32,27 +32,28 @@ internal static class DockerStatus
         }
     }
 
-    public static async Task<List<ContainerState>> GetContainersAsync(IReadOnlyList<string> names)
+    /// <summary>
+    /// Zustand der Dienste der Instanz im Lösungsordner (Compose-Projekt aus dessen .env), ohne feste Containernamen.
+    /// </summary>
+    public static async Task<List<ContainerState>> GetServicesAsync(
+        IReadOnlyList<string> names, string repositoryPath, IReadOnlyDictionary<string, string?> environment)
     {
         var states = names.ToDictionary(name => name, name => new ContainerState(name, Missing, ""));
         try
         {
-            // Fehlende Container liefern einen Fehler-Exit-Code, die vorhandenen stehen trotzdem in der Ausgabe.
             var (_, output) = await ProcessRunner.CaptureAsync(
                 "docker",
-                ["inspect", "--format", "{{.Name}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}", .. names],
-                Timeout);
+                ["compose", "ps", "-a", "--format", "{{.Service}}|{{.State}}|{{.Health}}"],
+                Timeout,
+                repositoryPath,
+                environment);
 
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var parts = line.Split('|');
-                if (parts.Length == 3)
+                if (parts.Length == 3 && states.ContainsKey(parts[0]))
                 {
-                    var name = parts[0].TrimStart('/');
-                    if (states.ContainsKey(name))
-                    {
-                        states[name] = new ContainerState(name, parts[1], parts[2]);
-                    }
+                    states[parts[0]] = new ContainerState(parts[0], parts[1], parts[2]);
                 }
             }
         }

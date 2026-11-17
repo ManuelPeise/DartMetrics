@@ -5,6 +5,8 @@
 .DESCRIPTION
     Für die Erstinstallation und für einen vollständigen Neuaufbau. Für reine Code-Updates reicht
     deploy/update-containers.ps1 (mit Datenbank-Backup).
+    Gilt für die Instanz dieses Ordners (COMPOSE_PROJECT_NAME in der .env, z. B. Beta-Worktree);
+    andere laufende DartMetrics-Instanzen werden vorher gestoppt (gleiche Ports).
       1. Voraussetzungen: Docker, .env (ohne Platzhalter), HTTPS-Zertifikat, lokale Schriften
       2. Images bauen: api, web
       3. Container starten und warten, bis API und Web-App laufen
@@ -24,6 +26,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+. (Join-Path $PSScriptRoot 'instance.ps1')
 
 function Step([string] $title) { Write-Host "`n==> $title" -ForegroundColor Cyan }
 function Fail([string] $message) { Write-Host "`n$message" -ForegroundColor Red; exit 1 }
@@ -81,6 +84,9 @@ if (-not (Get-ChildItem $fonts -Filter *.woff2 -ErrorAction SilentlyContinue)) {
 }
 Write-Host '    Schriften ok'
 
+$instance = Get-InstanceName $root
+Write-Host "    Instanz: $instance"
+
 # ---------- 2. Build ----------
 Step 'Images bauen (api, web)'
 $buildArgs = @('compose', 'build', '--pull')
@@ -90,6 +96,7 @@ if ($LASTEXITCODE -ne 0) { Fail 'Build fehlgeschlagen.' }
 
 # ---------- 3. Start ----------
 Step 'Container starten'
+Stop-OtherInstances $instance
 docker compose up -d --remove-orphans
 if ($LASTEXITCODE -ne 0) { Fail 'Start fehlgeschlagen.' }
 
@@ -97,8 +104,8 @@ Step "Warten auf API und Web-App (max. $TimeoutSeconds s)"
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 do {
     Start-Sleep -Seconds 3
-    $api = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' dartmetrics-api 2>$null
-    $web = docker inspect --format '{{.State.Status}}' dartmetrics-web 2>$null
+    $api = Get-ServiceState 'api'
+    $web = Get-ServiceState "web"
     Write-Host "    api: $api, web: $web"
 } while (($api -ne 'healthy' -or $web -ne 'running') -and (Get-Date) -lt $deadline)
 
@@ -111,7 +118,7 @@ if ($api -ne 'healthy' -or $web -ne 'running') {
 Step 'Status'
 docker compose ps
 
-Write-Host "`nFertig." -ForegroundColor Green
+Write-Host "`nFertig (Instanz $instance)." -ForegroundColor Green
 Write-Host '  Web-App  https://localhost:7254'
 if (-not $Production) {
     Write-Host '  Swagger  http://localhost:8080/swagger'

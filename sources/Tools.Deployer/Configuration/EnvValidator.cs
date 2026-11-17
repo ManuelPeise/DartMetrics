@@ -16,7 +16,7 @@ internal enum IssueSeverity
 
 internal sealed record EnvIssue(IssueSeverity Severity, string? Key, string Message);
 
-/// <summary>Dieselben Prüfungen wie deploy.ps1 / deploy-beta.ps1, nur schon beim Eingeben.</summary>
+/// <summary>Dieselben Prüfungen wie deploy.ps1, nur schon beim Eingeben.</summary>
 internal static class EnvValidator
 {
     public static readonly string[] RequiredKeys =
@@ -83,15 +83,7 @@ internal static class EnvValidator
             issues.Add(new(IssueSeverity.Warning, "LEGAL_NAME", "Impressum/Datenschutz (LEGAL_*) ist noch nicht ausgefüllt."));
         }
 
-        if (target.IsBeta)
-        {
-            var httpsPort = Get("BETA_HTTPS_PORT") is { Length: > 0 } port ? port : "7354";
-            if (Get("WEB_APP_PORT") != httpsPort)
-            {
-                issues.Add(new(IssueSeverity.Warning, "WEB_APP_PORT",
-                    $"WEB_APP_PORT passt nicht zu BETA_HTTPS_PORT ({httpsPort}): Links in E-Mails zeigen sonst auf die falsche Instanz."));
-            }
-        }
+@@END
 
         if (!File.Exists(Path.Combine(repositoryPath, "certs", "dartmetrics.pfx")))
         {

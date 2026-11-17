@@ -323,26 +323,14 @@ internal sealed class MainForm : Form
         editors.Clear();
 
         var templatePath = Path.Combine(repositoryPath, ".env.example");
-        var envPath = Path.Combine(repositoryPath, target.EnvFileName);
-        var mainEnvPath = Path.Combine(repositoryPath, ".env");
-
-        // Neue .env.beta: wie deploy-beta.ps1 aus der .env übernehmen (sonst aus der Vorlage).
-        var fallbackPath = target.IsBeta && File.Exists(mainEnvPath) ? mainEnvPath : templatePath;
+        var envPath = Path.Combine(repositoryPath, DeployTarget.EnvFileName);
+        var fallbackPath = templatePath;
         envFile = EnvFile.Load(envPath, fallbackPath);
         savedValues = envFile.Exists ? envFile.ReadValues() : new Dictionary<string, string>(StringComparer.Ordinal);
         var values = envFile.ReadValues();
 
         var fields = EnvTemplate.Parse(File.ReadAllLines(templatePath));
-        if (target.IsBeta)
-        {
-            fields.AddRange(EnvTemplate.BetaFields);
-            if (!envFile.Exists)
-            {
-                values["BETA_HTTPS_PORT"] = "7354";
-                values["BETA_HTTP_PORT"] = "5223";
-                values["WEB_APP_PORT"] = "7354";
-            }
-        }
+@@END
 
         var knownKeys = fields.Select(field => field.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var key in values.Keys.Where(key => !knownKeys.Contains(key) && key != "COMPOSE_FILE").Order())
@@ -379,7 +367,10 @@ internal sealed class MainForm : Form
 
         settingsFileLabel.Text = envFile.Exists
             ? $"Datei: {envPath}"
-            : $"{target.EnvFileName} gibt es noch nicht. Sie wird beim Speichern angelegt (Vorlage: {Path.GetFileName(fallbackPath)}).";
+            : $"{DeployTarget.EnvFileName} gibt es noch nicht. Sie wird beim Speichern angelegt (Vorlage: {Path.GetFileName(fallbackPath)}).";
+
+        // Welche Instanz dieser Ordner ist (Arbeitskopie, Beta-Worktree …): COMPOSE_PROJECT_NAME bzw. Ordnername.
+        Text = $"DartMetrics Deployment – Instanz {DeployTarget.InstanceName(savedValues, repositoryPath)}";
         isLoadingSettings = false;
         UpdateSettingsState();
     }
@@ -571,27 +562,7 @@ internal sealed class MainForm : Form
 
     private IEnumerable<DeployAction> GetActions()
     {
-        if (target.IsBeta)
-        {
-            yield return new("Beta bauen und starten",
-                "deploy-beta.ps1: prüft .env.beta, baut die Images (:beta) und startet die Beta-Instanz parallel zur normalen.",
-                () => RunScriptAsync("deploy-beta.ps1", NoCacheArgs()), true);
-            yield return new("Einstellungen übernehmen",
-                "Startet die Container mit der gespeicherten .env.beta neu (ohne Build). Geänderte Container werden ersetzt.",
-                () => RunComposeAsync(true, "up", "-d", "--remove-orphans"));
-            foreach (var action in CommonComposeActions())
-            {
-                yield return action;
-            }
-
-            yield return new("Beta zurücksetzen …",
-                "Löscht Container UND Datenbank der Beta und setzt sie neu auf (deploy-beta.ps1 -Reset).",
-                () => ConfirmAndRunScriptAsync("Beta-Instanz einschließlich ihrer Datenbank löschen und neu aufsetzen?", "deploy-beta.ps1", ["-Reset"], true));
-            yield return new("Beta entfernen …",
-                "Entfernt Container, Volumes (Datenbank) und Images der Beta (deploy-beta.ps1 -Remove).",
-                () => ConfirmAndRunScriptAsync("Beta-Instanz vollständig entfernen, einschließlich ihrer Datenbank?", "deploy-beta.ps1", ["-Remove"], false));
-            yield break;
-        }
+@@END
 
         yield return new("Erstinstallation / Neuaufbau",
             "deploy.ps1: prüft .env, Zertifikat und Schriften, baut die Images und startet alles. Für den ersten Start oder einen kompletten Neuaufbau.",
@@ -599,9 +570,9 @@ internal sealed class MainForm : Form
         yield return new("Aktualisieren (neuer Code)",
             "update-containers.ps1: sichert die Datenbank, baut API und Web-App neu und ersetzt die Container. Daten bleiben erhalten.",
             () => RunScriptAsync("update-containers.ps1", UpdateArgs()), true);
-        yield return new("Einstellungen übernehmen",
-            "Startet die Container mit der gespeicherten .env neu (ohne Build). Nur Container mit geänderter Konfiguration werden ersetzt.",
-            () => RunComposeAsync(true, "up", "-d", "--remove-orphans"));
+        yield return new("Starten / Einstellungen übernehmen",
+            "switch-instance.ps1: stoppt andere DartMetrics-Instanzen (gleiche Ports) und startet diese mit der gespeicherten .env (ohne Build). Nur Container mit geänderter Konfiguration werden ersetzt.",
+            () => RunScriptAsync("switch-instance.ps1", ProductionArgs()));
         foreach (var action in CommonComposeActions())
         {
             yield return action;
@@ -610,7 +581,6 @@ internal sealed class MainForm : Form
 
     private IEnumerable<DeployAction> CommonComposeActions()
     {
-        yield return new("Starten", "Startet die vorhandenen Container (docker compose start).", () => RunComposeAsync(false, "start"));
         yield return new("Stoppen", "Stoppt die Container. Daten bleiben erhalten (docker compose stop).", () => RunComposeAsync(false, "stop"));
         yield return new("Logs anzeigen", "Letzte 150 Zeilen von API und Web-App.", () => RunComposeAsync(false, "logs", "--tail", "150", "--no-color", "api", "web"));
     }
@@ -645,14 +615,11 @@ internal sealed class MainForm : Form
             actionButtons.Add(button);
         }
 
-        var updateOptions = !target.IsBeta;
-        testCheck.Visible = updateOptions;
-        pullCheck.Visible = updateOptions;
-        allCheck.Visible = updateOptions;
-        skipBackupCheck.Visible = updateOptions;
     }
 
     private List<string> NoCacheArgs() => noCacheCheck.Checked ? ["-NoCache"] : [];
+
+    private List<string> ProductionArgs() => target.IsProduction ? ["-Production"] : [];
 
     private List<string> DeployArgs()
     {
@@ -732,7 +699,7 @@ internal sealed class MainForm : Form
 
         if (envFile is not { Exists: true })
         {
-            MessageBox.Show(this, $"{target.EnvFileName} gibt es noch nicht. Bitte zuerst die Einstellungen ausfüllen und speichern.", Text,
+            MessageBox.Show(this, $"{DeployTarget.EnvFileName} gibt es noch nicht. Bitte zuerst die Einstellungen ausfüllen und speichern.", Text,
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             tabs.SelectedTab = settingsPage;
             return false;
@@ -927,8 +894,8 @@ internal sealed class MainForm : Form
             startDockerButton.Visible = !dockerRunning && File.Exists(DockerStatus.DesktopPath);
 
             var states = dockerRunning
-                ? await DockerStatus.GetContainersAsync(target.Containers)
-                : target.Containers.Select(name => new ContainerState(name, DockerStatus.Unknown, "")).ToList();
+                ? await DockerStatus.GetServicesAsync(target.Services, repositoryPath, target.ProcessEnvironment)
+                : target.Services.Select(name => new ContainerState(name, DockerStatus.Unknown, "")).ToList();
             if (!IsDisposed)
             {
                 UpdateContainerPanel(states);
@@ -959,7 +926,7 @@ internal sealed class MainForm : Form
         {
             var (text, color) = Describe(states[i]);
             var label = containerPanel.Controls[i];
-            label.Text = $"● {ShortName(states[i].Name)}: {text}";
+            label.Text = $"● {states[i].Name}: {text}";
             label.ForeColor = color;
         }
     }
@@ -976,8 +943,7 @@ internal sealed class MainForm : Form
         _ => (state.Status, IdleColor),
     };
 
-    private static string ShortName(string containerName)
-        => containerName.Replace("dartmetrics-beta-", "", StringComparison.Ordinal).Replace("dartmetrics-", "", StringComparison.Ordinal);
+@@END
 
     private void RebuildLinks()
     {

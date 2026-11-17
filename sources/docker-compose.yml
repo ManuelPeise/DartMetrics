@@ -1,5 +1,10 @@
 # DartMetrics - Basis für alle Umgebungen (Produktion, z. B. Raspberry Pi).
 #
+# Instanzen: Jeder Ordner (z. B. Arbeitskopie und Beta-Worktree) ist eine eigene Instanz mit eigenen Containern
+# und Volumes. Der Name kommt aus COMPOSE_PROJECT_NAME in der .env. Alle Instanzen nutzen dieselben Ports,
+# deshalb läuft immer nur eine (deploy/deploy, update-containers und switch-instance stoppen die anderen).
+# Keine festen container_name: Docker benennt die Container je Instanz (z. B. dartmetrics-beta-mysql-1).
+#
 #   Entwicklung (PC):  docker compose up -d
 #                      -> lädt automatisch docker-compose.override.yml (Ports, Mailpit, Swagger)
 #   Produktion (Pi):   COMPOSE_FILE=docker-compose.yml in der .env setzen, dann docker compose up -d
@@ -10,8 +15,9 @@
 services:
   mysql:
     image: mysql:8.4
-    container_name: mysql
     restart: unless-stopped
+    labels:
+      dartmetrics.instance: "true"
 
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD fehlt in .env}
@@ -37,9 +43,10 @@ services:
     build:
       context: .
       dockerfile: Web.Core/Dockerfile
-    image: dartmetrics-api:dev
-    container_name: dartmetrics-api
+    image: dartmetrics-api:${COMPOSE_PROJECT_NAME:-sources}
     restart: unless-stopped
+    labels:
+      dartmetrics.instance: "true"
 
     depends_on:
       mysql:
@@ -92,9 +99,10 @@ services:
     build:
       context: .
       dockerfile: Web.App/Dockerfile
-    image: dartmetrics-web:dev
-    container_name: dartmetrics-web
+    image: dartmetrics-web:${COMPOSE_PROJECT_NAME:-sources}
     restart: unless-stopped
+    labels:
+      dartmetrics.instance: "true"
 
     depends_on:
       api:

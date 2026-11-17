@@ -140,6 +140,7 @@ Shared.Interfaces / Shared.Models / Shared.Enums (von allen genutzt)
 - Vor dem Commit: Solution bauen (`dotnet build DartMetrics.slnx`) und Tests laufen lassen (`dotnet test DartMetrics.slnx`), bei Datenmodelländerungen Migration anlegen und prüfen.
 - Tests: `Logic.Bot.Tests` (xUnit, ohne Datenbank), `Web.App.Tests` (Handy-Eingabe, ohne Datenbank) und `Logic.Integration.Tests` (MySQL per Testcontainers, Docker nötig). Zufall über `IRandomSource` injizieren, nie `Random` direkt verwenden. Neue Abläufe mit Datenbank bekommen einen Integrationstest.
 - Deployment der API: `deploy/update-containers.ps1` bzw. `.sh` (sichert die DB nach `backups/`, baut die API neu, Daten bleiben; `-Test` führt vorher die Tests aus).
+- **Instanzen:** jeder Ordner (Arbeitskopie, Beta-Worktree) = eine Instanz (`COMPOSE_PROJECT_NAME`), alle mit denselben Ports, es läuft immer nur eine. In Compose-Dateien keine `container_name`, in Skripten Container nur über `docker compose` (Dienstname) ansprechen; gemeinsame Funktionen in `deploy/instance.ps1`/`.sh`.
 
 ## Bekannte offene Punkte
 

@@ -6,6 +6,8 @@
     - baut API (Web.Core) und Web-App aus dem aktuellen Quellcode neu
     - holt neue Versionen der fertigen Images (MySQL, Mailpit), wenn -Pull angegeben ist
     - ersetzt die laufenden Container; die Daten (Volume mysql_data) bleiben erhalten
+    - gilt für die Instanz dieses Ordners (COMPOSE_PROJECT_NAME in der .env); andere laufende
+      DartMetrics-Instanzen werden vorher gestoppt (gleiche Ports)
     - wartet, bis die API "healthy" ist, und zeigt Status + letzte Log-Zeilen
 
 .EXAMPLE
@@ -19,7 +21,7 @@
 .NOTES
     Vor dem Ersetzen wird die Datenbank nach backups\ gesichert (die API wendet Migrationen beim Start an).
     Es bleiben die letzten -KeepBackups Sicherungen. Wiederherstellen:
-      Get-Content backups\<datei>.sql | docker exec -i mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb'
+      Get-Content backups\<datei>.sql | docker compose exec -T mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb'
 #>
 [CmdletBinding()]
 param(
@@ -37,6 +39,7 @@ $ErrorActionPreference = 'Stop'
 # Immer im Lösungsordner arbeiten (dort liegen docker-compose.yml und .env)
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+. (Join-Path $PSScriptRoot 'instance.ps1')
 
 function Invoke-Step([string] $title, [scriptblock] $action) {
     Write-Host "`n==> $title" -ForegroundColor Cyan
@@ -50,6 +53,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Docker läuft nicht. Bitte Docker Desktop star
 
 if (-not (Test-Path (Join-Path $root '.env'))) { throw '.env fehlt im Lösungsordner.' }
 
+$instance = Get-InstanceName $root
+Write-Host "Instanz: $instance" -ForegroundColor Cyan
+
 # [string[]] erzwingt ein Array: sonst wird ein einzelnes 'api' zum String, und @services
 # splattet ihn zeichenweise ('a', 'p', 'i') -> "no such service: a".
 [string[]] $services = if ($All) { @() } else { @('api', 'web') }   # leer = alle Dienste
@@ -58,9 +64,16 @@ if ($Test) {
     Invoke-Step 'Tests ausführen' { dotnet test DartMetrics.slnx --nologo }
 }
 
+# Gleiche Ports: andere Instanzen stoppen, dann die eigene Datenbank starten (Backup vor den Migrationen).
+Write-Host "`n==> Andere Instanzen stoppen" -ForegroundColor Cyan
+Stop-OtherInstances $instance
+
+if (-not $SkipBackup -and (Get-ServiceState 'mysql')) {
+    Invoke-Step 'Datenbank dieser Instanz starten' { docker compose up -d --wait mysql }
+}
+
 if (-not $SkipBackup) {
-    $mysqlRunning = docker inspect --format '{{.State.Running}}' mysql 2>$null
-    if ($mysqlRunning -eq 'true') {
+    if ((Get-ServiceState 'mysql') -eq 'healthy') {
         $backupDir = Join-Path $root 'backups'
         New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
         $file = Join-Path $backupDir ("DartContextDb-{0}.sql" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
@@ -68,10 +81,10 @@ if (-not $SkipBackup) {
         # Dump im Container in eine Datei schreiben und dann kopieren: PowerShell-Umleitung (>)
         # würde die Ausgabe als Text neu kodieren. Passwort bleibt im Container, --hex-blob für Profilbilder.
         Invoke-Step 'Datenbank sichern' {
-            docker exec mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --hex-blob DartContextDb > /tmp/backup.sql'
+            docker compose exec -T mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --hex-blob DartContextDb > /tmp/backup.sql'
         }
-        Invoke-Step 'Backup kopieren' { docker cp mysql:/tmp/backup.sql $file }
-        docker exec mysql rm -f /tmp/backup.sql | Out-Null
+        Invoke-Step 'Backup kopieren' { docker compose cp mysql:/tmp/backup.sql $file }
+        docker compose exec -T mysql rm -f /tmp/backup.sql | Out-Null
         Write-Host ("    {0} ({1:N0} KB)" -f $file, ((Get-Item $file).Length / 1KB))
 
         Get-ChildItem $backupDir -Filter 'DartContextDb-*.sql' |
@@ -101,7 +114,7 @@ Write-Host "`n==> Warte auf API (max. $TimeoutSeconds s)" -ForegroundColor Cyan
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 do {
     Start-Sleep -Seconds 3
-    $state = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' dartmetrics-api 2>$null
+    $state = Get-ServiceState 'api'
     Write-Host "    api: $state"
 } while ($state -notin @('healthy', 'exited', 'dead') -and (Get-Date) -lt $deadline)
 
@@ -122,6 +135,6 @@ if ($state -ne 'healthy') {
     exit 1
 }
 
-Write-Host "`nFertig." -ForegroundColor Green
+Write-Host "`nFertig (Instanz $instance)." -ForegroundColor Green
 Write-Host '  API      http://localhost:8080/swagger'
 Write-Host '  Mailpit  http://localhost:8025'

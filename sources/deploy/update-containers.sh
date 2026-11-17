@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Baut die DartMetrics-Container neu und startet sie aktualisiert.
-# Die Daten (Volume mysql_data) bleiben erhalten.
+# Die Daten (Volume mysql_data) bleiben erhalten. Gilt für die Instanz dieses Ordners (COMPOSE_PROJECT_NAME
+# in der .env); andere laufende DartMetrics-Instanzen werden vorher gestoppt (gleiche Ports).
 #
 #   ./deploy/update-containers.sh             API und Web-App neu bauen + neu starten
 #   ./deploy/update-containers.sh --all       alle Dienste aktualisieren
@@ -11,7 +12,7 @@
 #
 # Vor dem Ersetzen wird die Datenbank nach backups/ gesichert (die API wendet Migrationen beim Start an).
 # Es bleiben die letzten $KEEP_BACKUPS Sicherungen. Wiederherstellen:
-#   docker exec -i mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb' < backups/<datei>.sql
+#   docker compose exec -T mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" DartContextDb' < backups/<datei>.sql
 set -euo pipefail
 
 ALL=0; PULL=0; NO_CACHE=""; TIMEOUT=120; RUN_TESTS=0; BACKUP=1; KEEP_BACKUPS=10
@@ -27,11 +28,14 @@ for arg in "$@"; do
 done
 
 cd "$(dirname "$0")/.."
+source deploy/instance.sh
 
 docker info >/dev/null 2>&1 || { echo "Docker läuft nicht." >&2; exit 1; }
 [ -f .env ] || { echo ".env fehlt im Lösungsordner." >&2; exit 1; }
 
 SERVICES=(); [ "$ALL" -eq 1 ] || SERVICES=(api web)
+INSTANCE="$(instance_name)"
+echo "Instanz: $INSTANCE"
 
 step() { printf '\n==> %s\n' "$1"; }
 
@@ -40,13 +44,22 @@ if [ "$RUN_TESTS" -eq 1 ]; then
   dotnet test DartMetrics.slnx --nologo
 fi
 
+# Gleiche Ports: andere Instanzen stoppen, dann die eigene Datenbank starten (Backup vor den Migrationen).
+step "Andere Instanzen stoppen"
+stop_other_instances "$INSTANCE"
+
+if [ "$BACKUP" -eq 1 ] && [ -n "$(service_state mysql)" ]; then
+  step "Datenbank dieser Instanz starten"
+  docker compose up -d --wait mysql
+fi
+
 if [ "$BACKUP" -eq 1 ]; then
-  if [ "$(docker inspect --format '{{.State.Running}}' mysql 2>/dev/null || true)" = "true" ]; then
+  if [ "$(service_state mysql)" = "healthy" ]; then
     step "Datenbank sichern"
     mkdir -p backups
     file="backups/DartContextDb-$(date +%Y%m%d-%H%M%S).sql"
     # Passwort bleibt im Container (Umgebungsvariable), --hex-blob für Profilbilder.
-    docker exec mysql sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --hex-blob DartContextDb' > "$file" \
+    docker compose exec -T mysql sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --hex-blob DartContextDb' > "$file" \
       || { rm -f "$file"; echo "Backup fehlgeschlagen - Abbruch (--skip-backup zum Überspringen)." >&2; exit 1; }
     echo "    $file ($(du -h "$file" | cut -f1))"
     ls -1t backups/DartContextDb-*.sql | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
@@ -70,7 +83,7 @@ step "Warte auf API (max. ${TIMEOUT} s)"
 state=""; end=$((SECONDS + TIMEOUT))
 while [ $SECONDS -lt $end ]; do
   sleep 3
-  state=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' dartmetrics-api 2>/dev/null || true)
+  state=$(service_state api)
   echo "    api: $state"
   case "$state" in healthy|exited|dead) break ;; esac
 done
@@ -93,6 +106,6 @@ if [ "$state" != "healthy" ]; then
 fi
 
 echo
-echo "Fertig."
+echo "Fertig (Instanz $INSTANCE)."
 echo "  API      http://localhost:8080/swagger"
 echo "  Mailpit  http://localhost:8025"
