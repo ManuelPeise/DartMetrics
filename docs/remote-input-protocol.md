@@ -71,6 +71,16 @@ Kodierung der Darts: Miss `0 × 0`, Segmente `1–20 × 1–3`, `25 × 1` (25), 
 | `inputLocked` | keine weiteren Darts (Aufnahme voll oder beendet) – Undo/Senden bleiben |
 | `canUndo`, `canSubmit` | Tasten aktiv |
 | `isFinished` | Spiel beendet |
+| `callId`, `callText` | Caller: `callText` einmal sprechen, wenn `callId` gegenüber dem letzten Zustand gestiegen ist |
+
+Ansagen (`RemoteState` im Client): Legbeginn „Game on! &lt;Name&gt;, throw fast!“ (wer anwirft), Aufnahme = Summe bzw.
+„One hundred and eighty!“, „No score“ (0 Punkte und Bust), Leg beendet „Game shot!“ (danach im laufenden Spiel wieder „Game on! …“).
+Spielende mit Checkout: Bot-Spiel und Turnier „Game shot and the match! &lt;Sieger&gt; wins!“, X01-Training
+„Game shot! Training complete. Well done, &lt;Name&gt;!“; Abbruch/Beenden ohne Ansage. Die Handy-Verbindung bleibt
+auf der Ergebnisansicht bestehen (`isFinished`).
+
+Die Handy-Seite zeigt: Spielstand (`players`, `subtitle`), Wurfeingabe (`DartInputPad`), Checkout-Vorschlag (`checkout`) und den Caller
+(Schalter „Caller an/aus“, Sprachausgabe des Browsers). Auf iOS beginnt die Sprachausgabe erst nach einer Berührung (z. B. Caller aus/an).
 
 Die Spielseite prüft dieselben Sperren noch einmal; ein gesperrter Befehl wird verworfen und der aktuelle Stand erneut geschickt.
 

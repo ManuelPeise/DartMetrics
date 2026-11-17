@@ -137,7 +137,7 @@ else
                 <p class="pa-section__hint">@(s.CanUndo ? "Ein Bot wirft …" : "Live – der Stand lädt automatisch nach.")</p>
             }
 
-            @if (s.Status == TournamentMatchStatusEnum.Running)
+            @if (s.Status is TournamentMatchStatusEnum.Running or TournamentMatchStatusEnum.Finished)
             {
                 <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoAsync" OnSubmit="SubmitVisitAsync" />
             }
@@ -205,8 +205,17 @@ else
         InputLocked = Preview.IsVisitFinished,
         CanUndo = _pending.Count > 0 || s.CanUndo,
         CanSubmit = _pending.Count > 0,
-        IsFinished = s.Status == TournamentMatchStatusEnum.Finished
+        IsFinished = s.Status == TournamentMatchStatusEnum.Finished,
+        CallId = _remoteCallId,
+        CallText = _remoteCallText
     };
+
+    /// <summary>Wer das laufende Leg anwirft.</summary>
+    private string? LegStarterName => _state is null ? null : _state.LegStarter == 2 ? _state.Away.DisplayName : _state.Home.DisplayName;
+
+    private bool _remoteCallsReady;
+    private int _remoteCallId;
+    private string? _remoteCallText;
 
     private TournamentMatchSide? ActiveSide => _state is null ? null : _state.CurrentPlayer == 1 ? _state.Home : _state.Away;
 
@@ -269,16 +278,34 @@ else
         // Nach einer Korrektur kann der Stand zurückgehen: dann nur merken.
         _lastCalled = finished.LastOrDefault().Key;
 
+        var calls = CallTexts(fresh);
+
+        // Ansage fürs Handy (unabhängig vom Caller am PC); beim ersten Laden nichts Altes ansagen –
+        // außer „Game on“, wenn das Match gerade erst beginnt.
+        if (!_remoteCallsReady && _state is { Status: TournamentMatchStatusEnum.Running } s && s.Legs.All(l => l.Visits.Count == 0))
+        {
+            calls = [RemoteState.LegStartCall(LegStarterName)];
+        }
+        else if (!_remoteCallsReady)
+        {
+            calls = [];
+        }
+
+        if (calls.Count > 0)
+        {
+            _remoteCallText = string.Join(" ", calls);
+            _remoteCallId++;
+        }
+
+        _remoteCallsReady = true;
+
         if (!_callerOn)
         {
             return;
         }
 
-        foreach (var (_, visit) in fresh)
+        foreach (var text in CallTexts(fresh))
         {
-            var scored = visit.ScoreBefore - visit.ScoreAfter;
-            var text = visit.IsCheckout ? "Game shot!" : visit.IsBust || scored == 0 ? "No score" : scored == 180 ? "One hundred and eighty!" : scored.ToString();
-
             try
             {
                 await JS.InvokeVoidAsync("dartCaller.say", text);
@@ -289,6 +316,33 @@ else
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// Ansagen der neu beendeten Aufnahmen: Summe, „Bust“, „No score“, „Game shot!“;
+    /// nach einem Checkout im laufenden Match zusätzlich der Start des nächsten Legs.
+    /// </summary>
+    private List<string> CallTexts(List<((int Leg, int Visit) Key, TournamentVisitItem Visit)> visits)
+    {
+        var texts = visits
+            .Select(v => RemoteState.CallText(v.Visit.ScoreBefore - v.Visit.ScoreAfter, v.Visit.IsBust, v.Visit.IsCheckout))
+            .ToList();
+
+        if (visits.Count > 0 && visits[^1].Visit.IsCheckout && _state is { } s)
+        {
+            if (s.Status == TournamentMatchStatusEnum.Finished)
+            {
+                // Matchgewinn statt „Game shot!“.
+                var winner = s.WinnerParticipantId == s.Away.ParticipantId ? s.Away.DisplayName : s.Home.DisplayName;
+                texts[^1] = RemoteState.MatchShotCall(winner);
+            }
+            else if (s.Status == TournamentMatchStatusEnum.Running)
+            {
+                texts.Add(RemoteState.LegStartCall(LegStarterName));
+            }
+        }
+
+        return texts;
     }
 
     private List<((int Leg, int Visit) Key, TournamentVisitItem Visit)> FinishedVisits() =>

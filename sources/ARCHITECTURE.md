@@ -31,6 +31,7 @@ Technische Gesamtübersicht. Setup und Deployment: [README.md](README.md) · Bed
 | `Logic.Statistics.Tests` | Unit-Tests des Statistik-Rechenkerns (ohne Datenbank) | [README](Logic.Statistics.Tests/README.md) |
 | `Logic.Tournament.Tests` | Unit-Tests der Turnier-Logik (ohne Datenbank) | [README](Logic.Tournament.Tests/README.md) |
 | `Logic.Integration.Tests` | Integrationstests gegen MySQL 8.4 (Testcontainers) | [README](Logic.Integration.Tests/README.md) |
+| `Web.App.Tests` | Unit-Tests der Handy-Eingabe (Kopplung, Geräte-Anmeldung, Hub-Regeln), ohne Datenbank | [README](Web.App.Tests/README.md) |
 | **Daten** | | |
 | `Data.DartContext` | EF Core (MySQL): Entities, Konfigurationen, Migrationen, Seeds | [README](Data.DartContext/README.md) |
 | **Gemeinsam** | | |

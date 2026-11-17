@@ -144,8 +144,13 @@
         CanInput = !_busy && !_submitting,
         InputLocked = Preview.IsVisitFinished,
         CanUndo = _pending.Count > 0,
-        CanSubmit = _pending.Count > 0
+        CanSubmit = _pending.Count > 0,
+        CallId = _callId,
+        CallText = _callText
     };
+
+    private int _callId;
+    private string? _callText;
 
     private bool IsValidTarget => _targetScore is >= 2 and <= 170;
 
@@ -271,6 +276,14 @@
         }
 
         var darts = _pending.ToList();
+
+        // Ansage fürs Handy, sobald die Aufnahme laut Vorschau zu Ende ist.
+        if (Preview.IsVisitFinished)
+        {
+            _callText = RemoteState.CallText(_remaining - Preview.Remaining, Preview.IsBust, Preview.IsCheckout);
+            _callId++;
+        }
+
         _pending.Clear();
         _darts.RemoveRange(_darts.Count - darts.Count, darts.Count);
         _submitting = true;

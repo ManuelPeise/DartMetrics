@@ -6,6 +6,7 @@
 @using global::Shared.Models.Shared
 @inject IBotGameApi BotGameApi
 @inject IProfileApi ProfileApi
+@inject PlayerProfileState Profile
 
 <PageTitle>Gegen Bot spielen – DartMetrics</PageTitle>
 
@@ -148,7 +149,6 @@
                 <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
                               OnSubmit="SubmitVisitAsync" CanSubmit="@(_darts.Count > 0)" InputLocked="@UserPreview.IsVisitFinished"
                               SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(!CanThrow)" />
-                <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
             </div>
         </div>
         break;
@@ -176,6 +176,12 @@
             </div>
         </div>
         break;
+}
+
+@* Außerhalb des switch, damit die Handy-Verbindung beim Wechsel Spiel → Ergebnis bestehen bleibt (Schlussansage). *@
+@if (_phase is Phase.Playing or Phase.Result && _state is not null)
+{
+    <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
 }
 
 @code {
@@ -288,8 +294,31 @@
         CanInput = CanThrow,
         InputLocked = UserPreview.IsVisitFinished,
         CanUndo = _darts.Count > 0,
-        CanSubmit = _darts.Count > 0
+        CanSubmit = _darts.Count > 0,
+        IsFinished = _phase == Phase.Result,
+        CallId = _callId,
+        CallText = _callText
     };
+
+    private int _callId;
+    private string? _callText;
+    private string? _playerName;
+
+    /// <summary>
+    /// Wer das neue Leg anwirft: Hat der Bot im neuen Leg schon geworfen, war er es; sonst ist der Mensch am Zug.
+    /// </summary>
+    private string? LegStarterName(DartBotGameState state)
+    {
+        var firstVisit = state.CurrentLegVisits.OrderBy(v => v.TurnNumber).FirstOrDefault();
+        return firstVisit is { IsBot: true } || (firstVisit is null && !state.IsUserTurn) ? state.BotName : _playerName;
+    }
+
+    /// <summary>Ansage fürs Handy (Caller); das Handy spricht jede neue Ansage einmal.</summary>
+    private void Announce(string text)
+    {
+        _callText = text;
+        _callId++;
+    }
 
     private string? PreviewTone => UserPreview.IsCheckout ? "success" : UserPreview.IsBust ? "danger" : null;
 
@@ -327,6 +356,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _playerName = RemoteState.PlayerName(await Profile.EnsureLoadedAsync());
+
         // Laufendes Spiel fortsetzen, sonst Gegnerwahl.
         var running = await BotGameApi.GetRunningGameAsync();
 
@@ -410,6 +441,8 @@
         var botVisit = state.CurrentLegVisits.LastOrDefault(v => v.IsBot);
         _state = state;
         _phase = Phase.Playing;
+        // Hat der Bot schon geworfen, hat er angeworfen.
+        Announce(RemoteState.LegStartCall(botVisit is not null ? state.BotName : _playerName));
 
         if (botVisit is not null)
         {
@@ -447,6 +480,7 @@
         }
 
         var previous = _state;
+        var call = RemoteState.CallText(previous.UserRemaining - UserPreview.Remaining, UserPreview.IsBust, UserPreview.IsCheckout);
 
         _busy = true;
         _error = null;
@@ -468,6 +502,9 @@
 
         var state = result.Value!;
         _darts.Clear();
+        Announce(state.Status == DartBotGameStatusEnum.Finished && state.IsUserWinner == true
+            ? RemoteState.MatchShotCall(_playerName)
+            : call);
 
         // Eigene Aufnahme für den Average (gewertete Punkte laut Server).
         var userVisit = FindNewVisits(previous, state, isBot: false).LastOrDefault();
@@ -480,6 +517,12 @@
         var botVisits = FindNewVisits(previous, state, isBot: true);
         var legChanged = state.CurrentLegNumber != previous.CurrentLegNumber;
         var userCheckedOut = state.UserLegsWon > previous.UserLegsWon;
+
+        // Caller: nach dem eigenen Checkout gleich den Start des nächsten Legs ansagen.
+        if (userCheckedOut && state.Status == DartBotGameStatusEnum.Running)
+        {
+            _callText = $"{_callText} {RemoteState.LegStartCall(LegStarterName(state))}";
+        }
 
         // Leg-Ergebnis erst nach der Bot-Animation zeigen, sonst steht „Bot gewinnt“ vor dem ersten Bot-Dart.
         if (botVisits.Count == 0 || userCheckedOut)
@@ -505,6 +548,16 @@
         if (botVisits.Count > 0 && !userCheckedOut)
         {
             ShowLegMessage(previous, state, userVisit);
+
+            // Bot hat das Leg beendet: Start des nächsten Legs ansagen.
+            if (legChanged && state.Status == DartBotGameStatusEnum.Running)
+            {
+                // Kurze Pause, damit „Game shot!“ des Bots vorher beim Handy ankommt.
+                StateHasChanged();
+                await Task.Delay(BotDartDelayMs);
+                Announce(RemoteState.LegStartCall(LegStarterName(state)));
+            }
+
             StateHasChanged();
         }
 
@@ -557,6 +610,9 @@
         }
 
         _botVisitResult = visit.IsCheckout ? "Checkout!" : visit.IsBust ? "Bust" : $"= {visit.ScoreBefore - visit.ScoreAfter}";
+        Announce(visit.IsCheckout && _state is { Status: DartBotGameStatusEnum.Finished, IsUserWinner: false }
+            ? RemoteState.MatchShotCall(_state.BotName)
+            : $"{_state?.BotName}: {RemoteState.CallText(visit.ScoreBefore - visit.ScoreAfter, visit.IsBust, visit.IsCheckout)}");
         _animating = false;
         _shown = null;
         StateHasChanged();

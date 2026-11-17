@@ -87,6 +87,12 @@ namespace Shared.Models.Remote
 
         /// <summary>Spiel beendet: das Handy zeigt nur noch das Ergebnis.</summary>
         public bool IsFinished { get; set; }
+
+        /// <summary>Zählt bei jeder neuen Ansage hoch; das Handy spricht CallText einmal je neuer Id.</summary>
+        public int CallId { get; set; }
+
+        /// <summary>Ansage der zuletzt beendeten Aufnahme(n): Summe, „No score“, „Game shot!“.</summary>
+        public string? CallText { get; set; }
     }
 
     /// <summary>Ein Dart der Anzeige (Kodierung wie DartThrowInput).</summary>

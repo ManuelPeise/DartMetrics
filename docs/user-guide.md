@@ -41,7 +41,8 @@ Damit du nach dem Werfen nicht zum PC laufen musst, kannst du dein Handy als Ein
 
 1. Auf der Spielseite im Browser **Handy verbinden** antippen – ein QR-Code erscheint (2 Minuten gültig, nur einmal).
 2. Mit der Kamera des Handys scannen und die Adresse öffnen. Eine App ist nicht nötig.
-3. Das Handy zeigt Spielstand und Eingabefeld; Darts eingeben und **Senden**. Der PC zeigt alles sofort an.
+3. Das Handy zeigt Spielstand, Eingabefeld und Checkout-Vorschlag; Darts eingeben und **Senden**. Der PC zeigt alles sofort an.
+4. **Caller:** Das Handy sagt jedes Leg an („Game on! Max, throw fast!“ mit dem Namen dessen, der anwirft) und jede beendete Aufnahme („60“, „No score“, „Game shot!“), am Ende „Game shot and the match! Max wins!“ (im Training „Training complete“); abschaltbar über „Caller an/aus“.
 
 Die Verbindung gilt, bis du dich im Browser abmeldest (höchstens 12 Stunden). Danach einfach neu scannen.
 

@@ -4,6 +4,7 @@
 @using global::Shared.Models.Shared
 @using global::Shared.Models.Training
 @inject ITrainingApi TrainingApi
+@inject PlayerProfileState Profile
 
 <PageTitle>X01-Training – DartMetrics</PageTitle>
 
@@ -51,7 +52,6 @@
             <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_pending.Count > 0)"
                           OnSubmit="SubmitVisitAsync" CanSubmit="@(_pending.Count > 0)" InputLocked="@Preview.IsVisitFinished"
                           SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(_busy || _submitting)" />
-            <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
         </div>
         break;
 
@@ -67,6 +67,12 @@
             </div>
         </div>
         break;
+}
+
+@* Außerhalb des switch, damit die Handy-Verbindung beim Wechsel Spiel → Ergebnis bestehen bleibt (Schlussansage). *@
+@if (_phase is Phase.Playing or Phase.Result)
+{
+    <RemoteInputBridge State="RemoteDisplay" OnDart="AddDart" OnUndo="UndoDart" OnSubmit="SubmitVisitAsync" />
 }
 
 @code {
@@ -151,8 +157,21 @@
         CanInput = !_busy && !_submitting,
         InputLocked = Preview.IsVisitFinished,
         CanUndo = _pending.Count > 0,
-        CanSubmit = _pending.Count > 0
+        CanSubmit = _pending.Count > 0,
+        IsFinished = _phase == Phase.Result,
+        CallId = _callId,
+        CallText = _callText
     };
+
+    private int _callId;
+    private string? _callText;
+    private string? _playerName;
+
+    private void Announce(string text)
+    {
+        _callText = text;
+        _callId++;
+    }
 
     private string Subtitle => _phase == Phase.Setup
         ? "Spiele einen Satz aus 5 Legs allein und verfolge deinen Average."
@@ -185,6 +204,8 @@
     // Offenes Training nach Reload oder Navigation fortsetzen, sonst Einstellungen zeigen.
     protected override async Task OnInitializedAsync()
     {
+        _playerName = RemoteState.PlayerName(await Profile.EnsureLoadedAsync());
+
         var running = await TrainingApi.GetRunningX01Async();
 
         if (!running.IsSuccess || running.Value is not { } training)
@@ -250,6 +271,7 @@
         _clearDartsOnNext = false;
         _suggestions = null;
         _status = _opened ? "Los geht's!" : "Zum Eröffnen ein Double treffen";
+        Announce(RemoteState.LegStartCall(_playerName));
         _tone = null;
         _phase = Phase.Playing;
     }
@@ -293,6 +315,14 @@
         }
 
         var darts = _pending.ToList();
+
+        // Ansage fürs Handy, sobald die Aufnahme laut Vorschau zu Ende ist.
+        if (Preview.IsVisitFinished)
+        {
+            _callText = RemoteState.CallText(_remaining - Preview.Remaining, Preview.IsBust, Preview.IsCheckout);
+            _callId++;
+        }
+
         _pending.Clear();
         _darts.RemoveRange(_darts.Count - darts.Count, darts.Count);
         _submitting = true;
@@ -363,6 +393,7 @@
 
         if (value.IsSetFinished)
         {
+            Announce(RemoteState.TrainingCompleteCall(_playerName));
             await LoadResultAsync();
             return;
         }
@@ -371,6 +402,8 @@
         {
             // Nächstes Leg im Satz: wieder beim Startwert.
             _status = $"Leg {_leg} gecheckt – weiter mit Leg {_leg + 1} von {_numberOfLegs}";
+            // „Game shot!“ kommt aus der Ansage der Aufnahme, dazu der Start des nächsten Legs.
+            _callText = $"{_callText} {RemoteState.LegStartCall(_playerName)}".Trim();
             _tone = "success";
             _leg++;
             _remaining = _startingScore;

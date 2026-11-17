@@ -13,6 +13,7 @@
     Handy als Eingabegerät, ohne Anmeldung: Der QR-Code der Spielseite öffnet /remote?code=…,
     der einmalige Code wird gegen einen Geräte-Token getauscht (nur in diesem Tab gespeichert).
     Die Seite kennt keine Spielregeln: Sie zeigt den Zustand der Spielseite und schickt Tasten.
+    Inhalt: Spielstand, Wurfeingabe, Checkout-Vorschlag, Caller (Ansage jeder beendeten Aufnahme).
 *@
 
 <PageTitle>DartMetrics – Eingabe</PageTitle>
@@ -42,11 +43,15 @@
             else
             {
                 <header class="pa-remote-app__head">
-                    <p class="pa-remote-app__title">@_state.Title</p>
-                    @if (!string.IsNullOrEmpty(_state.Subtitle))
-                    {
-                        <p class="pa-remote-app__subtitle">@_state.Subtitle</p>
-                    }
+                    <div>
+                        <p class="pa-remote-app__title">@_state.Title</p>
+                        @if (!string.IsNullOrEmpty(_state.Subtitle))
+                        {
+                            <p class="pa-remote-app__subtitle">@_state.Subtitle</p>
+                        }
+                    </div>
+                    <button type="button" class="pl-btn pl-btn--link" aria-pressed="@(_callerOn ? "true" : "false")"
+                            @onclick="ToggleCallerAsync">Caller @(_callerOn ? "an" : "aus")</button>
                 </header>
 
                 <div class="pa-remote-app__players">
@@ -66,11 +71,6 @@
                 @if (!string.IsNullOrEmpty(_state.Checkout))
                 {
                     <p class="pa-checkout-hint"><span>Checkout</span> <strong>@_state.Checkout</strong></p>
-                }
-
-                @if (!string.IsNullOrEmpty(_state.Status))
-                {
-                    <p class="pa-remote-app__status @(string.IsNullOrEmpty(_state.StatusTone) ? "" : $"is-{_state.StatusTone}")" aria-live="polite">@_state.Status</p>
                 }
 
                 @if (!_state.IsFinished)
@@ -103,6 +103,8 @@
     private HubConnection? _connection;
     private RemoteDisplayState? _state;
     private bool _disposed;
+    private bool _callerOn = true;
+    private int? _lastCallId;
     private bool _retried;
 
     private bool IsOnline => _connection?.State == HubConnectionState.Connected;
@@ -174,10 +176,11 @@
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.On<RemoteDisplayState>(RemoteHubMethods.State, state => InvokeAsync(() =>
+        _connection.On<RemoteDisplayState>(RemoteHubMethods.State, state => InvokeAsync(async () =>
         {
             _state = state;
             StateHasChanged();
+            await CallAsync(state);
         }));
 
         _connection.On(RemoteHubMethods.DisplayGone, () => InvokeAsync(() =>
@@ -252,6 +255,46 @@
         }
 
         StateHasChanged();
+    }
+
+    /// <summary>Neue Ansage einmal sprechen; beim ersten Zustand (Verbinden, Seitenwechsel) nichts Altes ansagen.</summary>
+    private async Task CallAsync(RemoteDisplayState state)
+    {
+        var isNew = _lastCallId is { } last && state.CallId > last;
+
+        // Neue Spielseite beginnt wieder bei 0.
+        _lastCallId = state.CallId;
+
+        if (!isNew || !_callerOn || string.IsNullOrEmpty(state.CallText))
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("dartCaller.say", state.CallText);
+        }
+        catch (JSException)
+        {
+            // Ohne Sprachausgabe einfach stumm.
+        }
+    }
+
+    private async Task ToggleCallerAsync()
+    {
+        _callerOn = !_callerOn;
+
+        // iOS gibt die Sprachausgabe erst nach einer Berührung frei: beim Einschalten kurz bestätigen.
+        if (_callerOn)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dartCaller.say", "Caller on");
+            }
+            catch (JSException)
+            {
+            }
+        }
     }
 
     private Task SendDartAsync(DartThrowInput dart) =>

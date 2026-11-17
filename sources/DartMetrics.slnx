@@ -27,6 +27,7 @@
     <Project Path="Logic.Integration.Tests/Logic.Integration.Tests.csproj" />
     <Project Path="Logic.Statistics.Tests/Logic.Statistics.Tests.csproj" />
     <Project Path="Logic.Tournament.Tests/Logic.Tournament.Tests.csproj" />
+    <Project Path="Web.App.Tests/Web.App.Tests.csproj" />
   </Folder>
   <Folder Name="/04 Data/">
     <Project Path="Data.DartContext/Data.DartContext.csproj" Id="d8d659d5-2abb-4846-87dd-9ca774ffd5a5" />

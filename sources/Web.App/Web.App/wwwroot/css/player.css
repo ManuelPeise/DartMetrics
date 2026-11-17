@@ -580,7 +580,12 @@ a.pa-card:hover {
     text-align: center;
 }
 
-.pa-remote-app__head { text-align: center; }
+.pa-remote-app__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
 
 .pa-remote-app__title {
     margin: 0;

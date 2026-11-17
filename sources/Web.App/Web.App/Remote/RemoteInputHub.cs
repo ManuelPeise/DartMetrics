@@ -155,7 +155,7 @@ namespace Web.App.Remote
         }
 
         /// <summary>Gleiche Kodierung wie DartRulesBase: Miss 0×0, 1–20 × 1–3, 25 × 1–2.</summary>
-        private static bool IsValid(RemoteCommand command) => command.Type switch
+        internal static bool IsValid(RemoteCommand command) => command.Type switch
         {
             RemoteCommandTypeEnum.Dart => command.Segment switch
             {
