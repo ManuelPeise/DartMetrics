@@ -67,14 +67,9 @@ internal static class ProcessRunner
     }
 
     /// <summary>Kurzer Aufruf mit gesammelter Ausgabe (Status-Abfragen). Bei Zeitüberschreitung: Exit-Code -1.</summary>
-    public static async Task<(int ExitCode, string Output)> CaptureAsync(
-        string fileName,
-        IEnumerable<string> arguments,
-        TimeSpan timeout,
-        string? workingDirectory = null,
-        IReadOnlyDictionary<string, string?>? environment = null)
+    public static async Task<(int ExitCode, string Output)> CaptureAsync(string fileName, IEnumerable<string> arguments, TimeSpan timeout)
     {
-        using var process = new Process { StartInfo = CreateStartInfo(fileName, arguments, workingDirectory, environment) };
+        using var process = new Process { StartInfo = CreateStartInfo(fileName, arguments, null, null) };
         using var cancellation = new CancellationTokenSource(timeout);
         process.Start();
         var outputTask = process.StandardOutput.ReadToEndAsync(cancellation.Token);

@@ -57,41 +57,8 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 | --- | --- |
 | `deploy/deploy` | Erstinstallation bzw. kompletter Neuaufbau: prüft `.env`, Zertifikat und Schriften (legt fehlende an), baut alle Images, startet, wartet auf API/Web-App |
 | `deploy/update-containers` | Code-Update: Datenbank-Backup, API, Web-App und Trainer-Worker neu bauen und ersetzen. |
-| `deploy/switch-instance` | Instanz dieses Ordners starten (ohne Neubau), andere Instanzen stoppen. |
 | `deploy/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
 | `deploy/download-fonts` | Schriften einmalig lokal ablegen. |
-| `deploy/instance` | Gemeinsame Funktionen der Skripte (Instanzname, andere Instanzen stoppen, Dienststatus). |
-
-Alle Skripte gelten für die **Instanz des Ordners**, in dem sie liegen, und sprechen die Container über
-`docker compose` an (keine festen Containernamen).
-
-### Instanzen (z. B. Beta)
-
-Jeder Ordner mit eigener `.env` ist eine eigene Instanz mit allen Containern (MySQL, API, Web-App, Mailpit) und eigenen
-Volumes, also eigener Datenbank. Der Name steht in `COMPOSE_PROJECT_NAME` der `.env` (ohne Angabe: Ordnername, bisher
-`sources`). Alle Instanzen nutzen **dieselben Ports** (7254, 5123 …), deshalb läuft immer nur eine:
-`deploy`, `update-containers` und `switch-instance` stoppen andere laufende DartMetrics-Instanzen vorher (nur stoppen,
-Daten bleiben).
-
-Beta einrichten: eigener Ordner als `git worktree` des Beta-Branches. Er bleibt eingefroren, während `master` weitergeht.
-
-```
-cd D:\WorkBench\DartMetrics
-git worktree add ..\DartMetrics-beta beta/version-v0.0.1
-copy sources\.env ..\DartMetrics-beta\sources\.env        # dann COMPOSE_PROJECT_NAME=dartmetrics-beta setzen
-copy sources\certs\dartmetrics.pfx ..\DartMetrics-beta\sources\certs\
-..\DartMetrics-beta\sources\deploy\deploy.ps1             # baut und startet die Beta, stoppt die andere Instanz
-```
-
-- Neuer Beta-Stand: im Beta-Worktree mergen (`git merge master`), dann `deploy\update-containers.ps1` (mit Backup).
-- Wechseln ohne Neubau: `deploy\switch-instance.ps1` im Ordner der gewünschten Instanz.
-- Mit `COMPOSE_PROJECT_NAME=dartmetrics-beta` wird die bestehende Beta-Datenbank (Volume `dartmetrics-beta_mysql_data`) weiterverwendet.
-- Die Arbeitskopie ohne `COMPOSE_PROJECT_NAME` (bzw. mit `sources`) behält ihre bisherigen Volumes (`sources_mysql_data` …).
-  Vorher mit `docker volume ls` prüfen, wie die Volumes heißen, und den Namen passend setzen.
-
-**Umstellung von festen Containernamen (einmalig):** Container aus der Zeit vor den Instanzen (`mysql`, `mailpit`,
-`dartmetrics-api`, `dartmetrics-web`, `dartmetrics-beta-*`) einmal entfernen, die Volumes bleiben erhalten:
-`docker compose down` in der Arbeitskopie bzw. `docker compose -p dartmetrics-beta down` für die alte Beta.
 
 
 ## Eigene Instanz betreiben

@@ -5,7 +5,6 @@ internal static class FieldTexts
 {
     private static readonly Dictionary<string, string> DisplayNames = new(StringComparer.Ordinal)
     {
-        ["COMPOSE_PROJECT_NAME"] = "Name der Instanz",
         ["MYSQL_ROOT_PASSWORD"] = "MySQL Root-Passwort",
         ["MYSQL_PASSWORD"] = "MySQL App-Passwort",
         ["JWT_KEY"] = "JWT-Schlüssel",
@@ -32,7 +31,6 @@ internal static class FieldTexts
         ["LEGAL_PHONE"] = "Telefon",
         ["RETENTION_UNVERIFIED_DAYS"] = "Unbestätigte Konten löschen nach (Tagen)",
         ["RETENTION_LOG_DAYS"] = "Log-Einträge löschen nach (Tagen)",
-@@END
 
     };
 

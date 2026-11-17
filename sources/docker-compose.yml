@@ -1,10 +1,5 @@
 # DartMetrics - Basis für alle Umgebungen (Produktion, z. B. Raspberry Pi).
 #
-# Instanzen: Jeder Ordner (z. B. Arbeitskopie und Beta-Worktree) ist eine eigene Instanz mit eigenen Containern
-# und Volumes. Der Name kommt aus COMPOSE_PROJECT_NAME in der .env. Alle Instanzen nutzen dieselben Ports,
-# deshalb läuft immer nur eine (deploy/deploy, update-containers und switch-instance stoppen die anderen).
-# Keine festen container_name: Docker benennt die Container je Instanz (z. B. dartmetrics-beta-mysql-1).
-#
 #   Entwicklung (PC):  docker compose up -d
 #                      -> lädt automatisch docker-compose.override.yml (Ports, Mailpit, Swagger)
 #   Produktion (Pi):   COMPOSE_FILE=docker-compose.yml in der .env setzen, dann docker compose up -d
@@ -15,9 +10,8 @@
 services:
   mysql:
     image: mysql:8.4
+    container_name: mysql
     restart: unless-stopped
-    labels:
-      dartmetrics.instance: "true"
 
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD fehlt in .env}
@@ -43,10 +37,9 @@ services:
     build:
       context: .
       dockerfile: Web.Core/Dockerfile
-    image: dartmetrics-api:${COMPOSE_PROJECT_NAME:-sources}
+    image: dartmetrics-api:dev
+    container_name: dartmetrics-api
     restart: unless-stopped
-    labels:
-      dartmetrics.instance: "true"
 
     depends_on:
       mysql:
@@ -99,10 +92,9 @@ services:
     build:
       context: .
       dockerfile: Web.App/Dockerfile
-    image: dartmetrics-web:${COMPOSE_PROJECT_NAME:-sources}
+    image: dartmetrics-web:dev
+    container_name: dartmetrics-web
     restart: unless-stopped
-    labels:
-      dartmetrics.instance: "true"
 
     depends_on:
       api:
@@ -129,6 +121,10 @@ services:
 
       # Hinter einem Reverse Proxy / Tunnel (Caddy, Cloudflare Tunnel) auf true setzen
       ForwardedHeaders__Enabled: ${FORWARDED_HEADERS_ENABLED:-false}
+
+      # Handy als Eingabe: Adresse im QR-Code, unter der das Handy die Web-App erreicht (z. B. https://192.168.0.42:7254).
+      # Leer = Adresse aus der Anfrage des PC-Browsers (falsch, wenn dieser über localhost geöffnet ist).
+      RemoteInput__PublicBaseUrl: ${REMOTE_PUBLIC_BASE_URL:-}
 
       # Brute-Force-Schutz für Login, Registrierung, Passwort-Reset (Anfragen je IP und Zeitfenster)
       RateLimiting__Auth__PermitLimit: ${RATE_LIMIT_AUTH_PERMITS:-10}

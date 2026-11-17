@@ -323,14 +323,13 @@ internal sealed class MainForm : Form
         editors.Clear();
 
         var templatePath = Path.Combine(repositoryPath, ".env.example");
-        var envPath = Path.Combine(repositoryPath, DeployTarget.EnvFileName);
+        var envPath = Path.Combine(repositoryPath, target.EnvFileName);
         var fallbackPath = templatePath;
         envFile = EnvFile.Load(envPath, fallbackPath);
         savedValues = envFile.Exists ? envFile.ReadValues() : new Dictionary<string, string>(StringComparer.Ordinal);
         var values = envFile.ReadValues();
 
         var fields = EnvTemplate.Parse(File.ReadAllLines(templatePath));
-@@END
 
         var knownKeys = fields.Select(field => field.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var key in values.Keys.Where(key => !knownKeys.Contains(key) && key != "COMPOSE_FILE").Order())
@@ -367,10 +366,7 @@ internal sealed class MainForm : Form
 
         settingsFileLabel.Text = envFile.Exists
             ? $"Datei: {envPath}"
-            : $"{DeployTarget.EnvFileName} gibt es noch nicht. Sie wird beim Speichern angelegt (Vorlage: {Path.GetFileName(fallbackPath)}).";
-
-        // Welche Instanz dieser Ordner ist (Arbeitskopie, Beta-Worktree …): COMPOSE_PROJECT_NAME bzw. Ordnername.
-        Text = $"DartMetrics Deployment – Instanz {DeployTarget.InstanceName(savedValues, repositoryPath)}";
+            : $"{target.EnvFileName} gibt es noch nicht. Sie wird beim Speichern angelegt (Vorlage: {Path.GetFileName(fallbackPath)}).";
         isLoadingSettings = false;
         UpdateSettingsState();
     }
@@ -562,7 +558,6 @@ internal sealed class MainForm : Form
 
     private IEnumerable<DeployAction> GetActions()
     {
-@@END
 
         yield return new("Erstinstallation / Neuaufbau",
             "deploy.ps1: prüft .env, Zertifikat und Schriften, baut die Images und startet alles. Für den ersten Start oder einen kompletten Neuaufbau.",
@@ -570,9 +565,9 @@ internal sealed class MainForm : Form
         yield return new("Aktualisieren (neuer Code)",
             "update-containers.ps1: sichert die Datenbank, baut API und Web-App neu und ersetzt die Container. Daten bleiben erhalten.",
             () => RunScriptAsync("update-containers.ps1", UpdateArgs()), true);
-        yield return new("Starten / Einstellungen übernehmen",
-            "switch-instance.ps1: stoppt andere DartMetrics-Instanzen (gleiche Ports) und startet diese mit der gespeicherten .env (ohne Build). Nur Container mit geänderter Konfiguration werden ersetzt.",
-            () => RunScriptAsync("switch-instance.ps1", ProductionArgs()));
+        yield return new("Einstellungen übernehmen",
+            "Startet die Container mit der gespeicherten .env neu (ohne Build). Nur Container mit geänderter Konfiguration werden ersetzt.",
+            () => RunComposeAsync(true, "up", "-d", "--remove-orphans"));
         foreach (var action in CommonComposeActions())
         {
             yield return action;
@@ -581,6 +576,7 @@ internal sealed class MainForm : Form
 
     private IEnumerable<DeployAction> CommonComposeActions()
     {
+        yield return new("Starten", "Startet die vorhandenen Container (docker compose start).", () => RunComposeAsync(false, "start"));
         yield return new("Stoppen", "Stoppt die Container. Daten bleiben erhalten (docker compose stop).", () => RunComposeAsync(false, "stop"));
         yield return new("Logs anzeigen", "Letzte 150 Zeilen von API und Web-App.", () => RunComposeAsync(false, "logs", "--tail", "150", "--no-color", "api", "web"));
     }
@@ -618,8 +614,6 @@ internal sealed class MainForm : Form
     }
 
     private List<string> NoCacheArgs() => noCacheCheck.Checked ? ["-NoCache"] : [];
-
-    private List<string> ProductionArgs() => target.IsProduction ? ["-Production"] : [];
 
     private List<string> DeployArgs()
     {
@@ -699,7 +693,7 @@ internal sealed class MainForm : Form
 
         if (envFile is not { Exists: true })
         {
-            MessageBox.Show(this, $"{DeployTarget.EnvFileName} gibt es noch nicht. Bitte zuerst die Einstellungen ausfüllen und speichern.", Text,
+            MessageBox.Show(this, $"{target.EnvFileName} gibt es noch nicht. Bitte zuerst die Einstellungen ausfüllen und speichern.", Text,
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             tabs.SelectedTab = settingsPage;
             return false;
@@ -894,8 +888,8 @@ internal sealed class MainForm : Form
             startDockerButton.Visible = !dockerRunning && File.Exists(DockerStatus.DesktopPath);
 
             var states = dockerRunning
-                ? await DockerStatus.GetServicesAsync(target.Services, repositoryPath, target.ProcessEnvironment)
-                : target.Services.Select(name => new ContainerState(name, DockerStatus.Unknown, "")).ToList();
+                ? await DockerStatus.GetContainersAsync(target.Containers)
+                : target.Containers.Select(name => new ContainerState(name, DockerStatus.Unknown, "")).ToList();
             if (!IsDisposed)
             {
                 UpdateContainerPanel(states);
@@ -926,7 +920,7 @@ internal sealed class MainForm : Form
         {
             var (text, color) = Describe(states[i]);
             var label = containerPanel.Controls[i];
-            label.Text = $"● {states[i].Name}: {text}";
+            label.Text = $"● {ShortName(states[i].Name)}: {text}";
             label.ForeColor = color;
         }
     }
@@ -943,7 +937,8 @@ internal sealed class MainForm : Form
         _ => (state.Status, IdleColor),
     };
 
-@@END
+    private static string ShortName(string containerName)
+        => containerName.Replace("dartmetrics-", "", StringComparison.Ordinal);
 
     private void RebuildLinks()
     {

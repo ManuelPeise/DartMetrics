@@ -85,8 +85,9 @@ Desktop.ini
 *.sqlite
 *.sqlite3
 
-# Docker local overrides
-docker-compose.override.yml
+# docker-compose.override.yml gehört ins Repository: Entwicklungs-Standard (Mailpit, lokale Ports, Swagger),
+# den docker compose automatisch lädt. Persönliche Anpassungen in docker-compose.local.yml (COMPOSE_FILE).
+docker-compose.local.yml
 
 # Generated files
 Generated/

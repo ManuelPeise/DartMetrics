@@ -83,7 +83,6 @@ internal static class EnvValidator
             issues.Add(new(IssueSeverity.Warning, "LEGAL_NAME", "Impressum/Datenschutz (LEGAL_*) ist noch nicht ausgefüllt."));
         }
 
-@@END
 
         if (!File.Exists(Path.Combine(repositoryPath, "certs", "dartmetrics.pfx")))
         {

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Komplettes Deployment von DartMetrics in Docker (z. B. Raspberry Pi): Prüfungen, Build, Start, Health-Check.
 # Für reine Code-Updates reicht deploy/update-containers.sh (mit Datenbank-Backup).
-# Gilt für die Instanz dieses Ordners (COMPOSE_PROJECT_NAME in der .env); andere laufende Instanzen werden gestoppt.
 #
 #   ./deploy/deploy.sh                 Entwicklung (lädt docker-compose.override.yml)
 #   ./deploy/deploy.sh --production    nur docker-compose.yml: keine offenen DB/API-Ports, kein Mailpit
@@ -18,7 +17,6 @@ for arg in "$@"; do
 done
 
 cd "$(dirname "$0")/.."
-source deploy/instance.sh
 step() { echo; echo "==> $1"; }
 fail() { echo; echo "$1" >&2; exit 1; }
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | sed 's/^"//; s/"$//'; }
@@ -66,24 +64,20 @@ if ! ls Web.App/Web.App/wwwroot/fonts/*.woff2 >/dev/null 2>&1; then
 fi
 echo "    Schriften ok"
 
-INSTANCE="$(instance_name)"
-echo "    Instanz: $INSTANCE"
-
 # ---------- 2. Build ----------
 step "Images bauen (api, web)"
 docker compose build --pull $NO_CACHE api web
 
 # ---------- 3. Start ----------
 step "Container starten"
-stop_other_instances "$INSTANCE"
 docker compose up -d --remove-orphans
 
 step "Warten auf API und Web-App (max. ${TIMEOUT} s)"
 deadline=$(( $(date +%s) + TIMEOUT ))
 while :; do
   sleep 3
-  api=$(service_state api)
-  web=$(service_state web)
+  api=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' dartmetrics-api 2>/dev/null || true)
+  web=$(docker inspect --format '{{.State.Status}}' dartmetrics-web 2>/dev/null || true)
   echo "    api: $api, web: $web"
   [ "$api" = "healthy" ] && [ "$web" = "running" ] && break
   if [ "$(date +%s)" -ge "$deadline" ]; then
@@ -96,7 +90,7 @@ done
 step "Status"
 docker compose ps
 echo
-echo "Fertig (Instanz $INSTANCE)."
+echo "Fertig."
 echo "  Web-App  https://localhost:7254"
 if [ "$PRODUCTION" -eq 0 ]; then
   echo "  Swagger  http://localhost:8080/swagger"

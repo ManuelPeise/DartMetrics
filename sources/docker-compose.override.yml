@@ -1,0 +1,39 @@
+# Entwicklung: wird von "docker compose" automatisch zusätzlich zu docker-compose.yml geladen.
+# Für die Produktion (Pi) NICHT laden: COMPOSE_FILE=docker-compose.yml in der .env setzen.
+
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:3306:3306"   # für Tools.BotTrainer, EF-Migrationen und DB-Tools vom PC; nur lokal, nicht im LAN
+
+  # SMTP catcher for development: every mail sent by the API ends up here.
+  # Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8025:8025"   # Web UI
+      - "127.0.0.1:1025:1025"   # SMTP
+
+    # No SMTP authentication: Mailpit accepts every mail without login (development only).
+    environment:
+      MP_MAX_MESSAGES: "500"
+
+  api:
+    depends_on:
+      mailpit:
+        condition: service_started
+
+    ports:
+      - "127.0.0.1:8080:8080"   # Swagger: http://localhost:8080/swagger
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
+
+      Email__SmtpServer: mailpit
+      Email__Port: "1025"
+      Email__Username: ""
+      Email__Password: ""
+      Email__EnableSsl: "false"

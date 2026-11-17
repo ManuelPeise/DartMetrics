@@ -21,7 +21,6 @@ internal static partial class EnvTemplate
     // COMPOSE_FILE wird über die Umgebungsauswahl gesteuert (Produktion), nicht im Formular.
     private static readonly HashSet<string> IgnoredKeys = ["COMPOSE_FILE"];
 
-@@END
 
     /// <summary>KEY=Wert oder auskommentiert "# KEY=Wert".</summary>
     [GeneratedRegex(@"^\s*(#\s*)?([A-Z][A-Z0-9_]*)=(.*)$")]
