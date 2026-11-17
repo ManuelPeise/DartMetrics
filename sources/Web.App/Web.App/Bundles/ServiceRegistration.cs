@@ -22,7 +22,10 @@ namespace Web.App.Bundles
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
-            // TODO production: persist the keys (PersistKeysToFileSystem / Redis), otherwise every restart logs out all users.
+            // Keys: under Linux/Docker ASP.NET Core stores them in ~/.aspnet/DataProtection-Keys, mounted as volume
+            // "web_dataprotection" (see Dockerfile / docker-compose.yml) - they survive restarts.
+            // Note: a restart still logs out all users (and disconnects paired phones), because the session store
+            // uses the in-memory distributed cache (Web.Shared). Persistent sessions would need e.g. Redis.
             services.AddDataProtection()
                 .SetApplicationName(ApplicationName);
 
