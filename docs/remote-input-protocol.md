@@ -15,7 +15,8 @@ Modelle: `Shared.Models/Remote/RemoteInputModels.cs`, Enum `Shared.Enums/Remote/
 
 ## 1. Kopplung (pro Anmeldung, ohne Datenbank)
 
-1. Spielseite → „Handy verbinden“ → `POST /bff/remote/pairing` (Cookie + `X-CSRF`).
+1. Spielseite → „TV-Ansicht“ (`RemoteTvView`): Solange kein Handy verbunden ist, holt sie per `POST /bff/remote/pairing`
+   (Cookie + `X-CSRF`) einen Code und erneuert ihn kurz vor Ablauf automatisch.
    Antwort `RemotePairingInfo`: einmaliger Code (Standard 120 s gültig) und QR-Code mit der Adresse
    `https://<host>/remote?code=<code>`. Der QR-Code enthält **keinen Token und keine Sitzungsdaten**.
 2. Die Kamera des Handys öffnet die Adresse; die Seite `/remote` entfernt den Code aus der Adresszeile und ruft auf:
@@ -38,6 +39,9 @@ Modelle: `Shared.Models/Remote/RemoteInputModels.cs`, Enum `Shared.Enums/Remote/
 - URL: `<server>/hubs/remote`, Token als `Authorization: Bearer <deviceToken>` oder Query `access_token=<deviceToken>`
   (.NET-Client: `options.AccessTokenProvider`).
 - Nach dem Verbinden: `RegisterController()` aufrufen (auch nach jedem Reconnect).
+- Verbindung: Server pingt alle 5 s, Clients merken einen Abbruch nach 15 s (`RemoteHubTimeouts`) und verbinden sofort neu
+  (`RemoteRetryPolicy`: 0 s, 0,5 s, 1 s, 2 s, dann alle 3 s, erst nach 10 Minuten aufgeben). Wird die Handy-Seite wieder
+  sichtbar (Bildschirm an), prüft sie die Verbindung sofort (`RegisterController` mit 3 s Frist, sonst Neuaufbau).
 - Die Seite hält den Bildschirm wach (Screen Wake Lock, Chrome / Safari ab 16.4) und vibriert kurz beim Senden (nur Android).
 
 ### Handy → Hub
@@ -62,7 +66,7 @@ Kodierung der Darts: Miss `0 × 0`, Segmente `1–20 × 1–3`, `25 × 1` (25), 
 | Feld | Anzeige |
 |---|---|
 | `title`, `subtitle` | Kopfzeile |
-| `players[]` (`name`, `value`, `detail`, `isActive`) | Spielstand; `value` = Rest bzw. Ziel, aktiver Spieler hervorgehoben |
+| `players[]` (`name`, `value`, `average`, `legs`, `detail`, `isActive`) | Spielstand; `value` = Rest bzw. Ziel, `average` = 3-Dart-Average, aktiver Spieler hervorgehoben |
 | `darts[]`, `visitTotal` | laufende Aufnahme (gewertete und noch nicht gesendete Darts) |
 | `checkout` | Checkout-Weg, z. B. „T20 · T20 · Bull“ |
 | `status`, `statusTone` | Statuszeile (`success` / `danger`) |

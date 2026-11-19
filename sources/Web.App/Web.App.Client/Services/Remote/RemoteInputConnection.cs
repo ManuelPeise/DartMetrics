@@ -48,7 +48,9 @@ namespace Web.App.Client.Services.Remote
                 {
                     _connection = new HubConnectionBuilder()
                         .WithUrl(_navigation.ToAbsoluteUri(RemoteHubMethods.HubPath))
-                        .WithAutomaticReconnect()
+                        .WithAutomaticReconnect(new RemoteRetryPolicy())
+                        .WithKeepAliveInterval(RemoteHubTimeouts.KeepAlive)
+                        .WithServerTimeout(RemoteHubTimeouts.ServerTimeout)
                         .Build();
 
                     _connection.On<RemoteCommand>(RemoteHubMethods.Command, command => _onCommand?.Invoke(command) ?? Task.CompletedTask);
@@ -119,6 +121,22 @@ namespace Web.App.Client.Services.Remote
         /// <summary>Schickt den Zustand an die Handys, nur wenn er sich geändert hat.</summary>
         public async Task PublishAsync(RemoteDisplayState state)
         {
+            // Wiederverbinden hat aufgegeben (z. B. PC lange im Ruhezustand): bei der nächsten Änderung neu starten.
+            if (_onCommand is not null && _connection?.State == HubConnectionState.Disconnected)
+            {
+                try
+                {
+                    await _connection.StartAsync();
+                    await _connection.InvokeAsync(RemoteHubMethods.RegisterDisplay);
+                    _lastPublished = null;
+                    Changed?.Invoke();
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+            }
+
             if (!IsConnected || _onCommand is null)
             {
                 return;

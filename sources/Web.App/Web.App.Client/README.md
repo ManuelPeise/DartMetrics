@@ -54,7 +54,10 @@ Styles: `public.css` (Palette `--pl-*`, Buttons, Formulare) und `player.css` (Sp
 
 ## Handy als Eingabegerät (`RemoteInputBridge`)
 
-- Steht auf jeder Spielseite unter dem `DartInputPad`: „Handy verbinden“ zeigt den QR-Code (`RemoteInputConnection.CreatePairingAsync`).
+- Steht auf jeder Spielseite unter dem `DartInputPad`: Schaltfläche **„TV-Ansicht“** öffnet `RemoteTvView` (Vollbild für den
+  Fernseher am PC: Spielstand mit Average und Legs, Aufnahme, Checkout; QR-Code, solange kein Handy verbunden ist, wird vor Ablauf
+  automatisch erneuert). Esc oder ✕ schließt sie.
+- Wiederverbinden: `RemoteRetryPolicy` (sofort, dann schnell, alle 3 s bis 10 Minuten) und `RemoteHubTimeouts` für Spielseite und Handy.
 - Tasten vom Handy rufen dieselben Callbacks wie das Eingabefeld (`OnDart`, `OnUndo`, `OnSubmit`); Sperren kommen aus `State`.
 - `State` (`RemoteDisplayState`) baut jede Seite in `RemoteDisplay` aus ihren eigenen Feldern; geschickt wird nur bei Änderung.
 - Neue Spielseite: Bridge einbauen und `RemoteDisplay` füllen – die Handy-Seite braucht dafür keine Änderung.

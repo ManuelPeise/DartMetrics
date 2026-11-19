@@ -146,7 +146,18 @@
     {
         Title = "X01-Training",
         Subtitle = $"{Subtitle} · Leg {_leg} / {_numberOfLegs}",
-        Players = [new RemotePlayerState { Name = "Rest", Value = Preview.Remaining.ToString(), Detail = $"Aufnahme {_visitNumber}", IsActive = true }],
+        Players =
+        [
+            new RemotePlayerState
+            {
+                Name = _playerName ?? "Rest",
+                Value = Preview.Remaining.ToString(),
+                Detail = _opened ? $"Aufnahme {_visitNumber}" : "noch nicht eröffnet",
+                Average = AverageText,
+                Legs = $"{_legsCompleted} / {_numberOfLegs}",
+                IsActive = true
+            }
+        ],
         Darts = RemoteState.Darts(_darts),
         VisitTotal = RemoteState.Total(_darts),
         Checkout = RemoteState.Checkout(ShownSuggestions),
@@ -177,13 +188,18 @@
         ? "Spiele einen Satz aus 5 Legs allein und verfolge deinen Average."
         : $"{_startingScore} · {(_inMode == X01InModeEnum.Double ? "Double-In" : "Straight-In")} · {(_outMode == X01OutModeEnum.Straight ? "Straight-Out" : "Double-Out")}";
 
+    /// <summary>3-Dart-Average: gecheckte Legs voll + laufendes Leg.</summary>
+    private string AverageText => _dartsThrown == 0
+        ? "–"
+        : $"{(_legsCompleted * _startingScore + _startingScore - _remaining) * 3.0 / _dartsThrown:0.0}";
+
     private IReadOnlyList<PlayerStat> LiveStats =>
     [
         new("Leg", $"{_leg} / {_numberOfLegs}"),
         new("Aufnahme", _visitNumber.ToString()),
         new("Darts", _dartsThrown.ToString()),
         // Punkte = gecheckte Legs voll + laufendes Leg.
-        new("Average", _dartsThrown == 0 ? "–" : $"{(_legsCompleted * _startingScore + _startingScore - _remaining) * 3.0 / _dartsThrown:0.0}"),
+        new("Average", AverageText),
         new("Busts", _busts.ToString())
     ];
 

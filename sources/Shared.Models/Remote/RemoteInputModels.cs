@@ -110,8 +110,14 @@ namespace Shared.Models.Remote
         /// <summary>Hauptwert: Rest (X01), Ziel (Around the Clock, Segment) …</summary>
         public string Value { get; set; } = "";
 
-        /// <summary>Zusatz, z. B. „Legs 2 · Ø 54,3“.</summary>
+        /// <summary>Zusatz, z. B. „noch nicht eröffnet“.</summary>
         public string? Detail { get; set; }
+
+        /// <summary>3-Dart-Average, fertig formatiert (z. B. „54,3“); leer, wo es keinen gibt.</summary>
+        public string? Average { get; set; }
+
+        /// <summary>Gewonnene Legs bzw. Fortschritt (z. B. „2“ oder „2 / 5“); leer, wo es keine gibt.</summary>
+        public string? Legs { get; set; }
 
         public bool IsActive { get; set; }
     }

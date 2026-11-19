@@ -35,6 +35,26 @@ window.dartRemote = (function () {
                 lock = null;
             }
         },
+        // Handy-Seite wieder sichtbar (Bildschirm an, App zurück): .NET prüft die Verbindung sofort.
+        onVisible: function (dotNetRef) {
+            document.addEventListener("visibilitychange", function () {
+                if (document.visibilityState === "visible") {
+                    dotNetRef.invokeMethodAsync("OnVisibleAsync");
+                }
+            });
+        },
+        // TV-Ansicht der Spielseite: Vollbild (nur nach einem Klick erlaubt), Esc beendet es auch.
+        enterFullscreen: function () {
+            const element = document.documentElement;
+            if (!document.fullscreenElement && element.requestFullscreen) {
+                return element.requestFullscreen().catch(function () { });
+            }
+        },
+        exitFullscreen: function () {
+            if (document.fullscreenElement && document.exitFullscreen) {
+                return document.exitFullscreen().catch(function () { });
+            }
+        },
         vibrate: function (ms) {
             if ("vibrate" in navigator) {
                 navigator.vibrate(ms);

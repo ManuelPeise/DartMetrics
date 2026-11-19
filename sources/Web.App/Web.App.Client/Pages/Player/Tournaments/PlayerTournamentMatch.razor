@@ -183,14 +183,18 @@ else
             {
                 Name = s.Home.DisplayName,
                 Value = (s.CurrentPlayer == 1 && _pending.Count > 0 ? Preview.Remaining : s.Home.Remaining).ToString(),
-                Detail = SideMeta(s.Home),
+                Detail = s.Home.IsOpened ? (s.Home.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot" : null) : "noch nicht eröffnet",
+                Average = $"{s.Home.Average:0.0}",
+                Legs = s.Home.LegsWon.ToString(),
                 IsActive = s.CurrentPlayer == 1
             },
             new RemotePlayerState
             {
                 Name = s.Away.DisplayName,
                 Value = (s.CurrentPlayer == 2 && _pending.Count > 0 ? Preview.Remaining : s.Away.Remaining).ToString(),
-                Detail = SideMeta(s.Away),
+                Detail = s.Away.IsOpened ? (s.Away.ParticipantType == TournamentParticipantTypeEnum.Bot ? "Bot" : null) : "noch nicht eröffnet",
+                Average = $"{s.Away.Average:0.0}",
+                Legs = s.Away.LegsWon.ToString(),
                 IsActive = s.CurrentPlayer == 2
             }
         ],

@@ -1,0 +1,203 @@
+@using global::Shared.Models.Remote
+@using Web.App.Client.Services.Remote
+@implements IAsyncDisposable
+@inject RemoteInputConnection Remote
+@inject IJSRuntime JS
+
+@*
+    TV-Screen: Vollbildanzeige der Spielseite für den Fernseher am PC (HDMI / zweiter Bildschirm).
+    Zeigt Spielstand mit Average und Legs, die laufende Aufnahme und den Checkout-Weg – alles aus demselben
+    Anzeigezustand, den auch das Handy bekommt. Solange kein Handy verbunden ist, steht hier der QR-Code
+    (wird vor Ablauf automatisch erneuert). Eingegeben wird auf dem Handy.
+*@
+<div class="pa-tv" role="dialog" aria-modal="true" aria-label="TV-Ansicht" @onkeydown="OnKeyDown" tabindex="-1" @ref="_root">
+    <header class="pa-tv__head">
+        <div>
+            <p class="pa-tv__title">@State.Title</p>
+            @if (!string.IsNullOrEmpty(State.Subtitle))
+            {
+                <p class="pa-tv__subtitle">@State.Subtitle</p>
+            }
+        </div>
+        <div class="pa-tv__head-actions">
+            @if (Remote.Controllers.Count > 0)
+            {
+                <span class="pa-tv__chip is-connected"><span aria-hidden="true">●</span> @string.Join(", ", Remote.Controllers)</span>
+            }
+            else if (!Remote.IsConnected)
+            {
+                <span class="pa-tv__chip is-offline">Verbindung wird aufgebaut …</span>
+            }
+            <button type="button" class="pa-tv__close" aria-label="TV-Ansicht schließen" @onclick="CloseAsync">✕</button>
+        </div>
+    </header>
+
+    <div class="pa-tv__body @(ShowQr ? "has-qr" : "")">
+        <section class="pa-tv__players" aria-label="Spielstand">
+            @foreach (var player in State.Players)
+            {
+                <div class="pa-tv__player @(player.IsActive ? "is-active" : "")">
+                    <p class="pa-tv__name">@player.Name</p>
+                    <p class="pa-tv__score">@player.Value</p>
+                    <dl class="pa-tv__stats">
+                        @if (!string.IsNullOrEmpty(player.Average))
+                        {
+                            <div><dt>Ø</dt><dd>@player.Average</dd></div>
+                        }
+                        @if (!string.IsNullOrEmpty(player.Legs))
+                        {
+                            <div><dt>Legs</dt><dd>@player.Legs</dd></div>
+                        }
+                    </dl>
+                    @if (!string.IsNullOrEmpty(player.Detail))
+                    {
+                        <p class="pa-tv__detail">@player.Detail</p>
+                    }
+                </div>
+            }
+        </section>
+
+        @if (ShowQr)
+        {
+            <aside class="pa-tv__pairing" aria-label="Handy koppeln">
+                @if (_pairing is not null)
+                {
+                    <div class="pa-tv__qr" role="img" aria-label="QR-Code zum Koppeln des Handys">@((MarkupString)_pairing.QrSvg)</div>
+                    <p>Mit der Handy-Kamera scannen</p>
+                }
+                else
+                {
+                    <p>@(_pairingError ?? "QR-Code wird erstellt …")</p>
+                }
+            </aside>
+        }
+    </div>
+
+    <footer class="pa-tv__visit" aria-live="polite">
+        <div class="pa-tv__darts">
+            @for (var i = 0; i < 3; i++)
+            {
+                var dart = i < State.Darts.Count ? State.Darts[i] : null;
+                <span class="pa-tv__dart @(dart is null ? "is-empty" : "")">
+                    @(dart is null ? "" : new DartThrowInput(dart.Segment, dart.Multiplier).Label)
+                </span>
+            }
+            <span class="pa-tv__total">@State.VisitTotal</span>
+        </div>
+
+        <div class="pa-tv__info">
+            @if (!string.IsNullOrEmpty(State.Hint))
+            {
+                <p class="pa-tv__hint @(string.IsNullOrEmpty(State.HintTone) ? "" : $"is-{State.HintTone}")">@State.Hint</p>
+            }
+            else if (!string.IsNullOrEmpty(State.Status))
+            {
+                <p class="pa-tv__hint @(string.IsNullOrEmpty(State.StatusTone) ? "" : $"is-{State.StatusTone}")">@State.Status</p>
+            }
+            @if (!string.IsNullOrEmpty(State.Checkout))
+            {
+                <p class="pa-tv__checkout"><span>Checkout</span> @State.Checkout</p>
+            }
+        </div>
+    </footer>
+</div>
+
+@code {
+    /// <summary>Gleicher Anzeigezustand wie für das Handy.</summary>
+    [Parameter, EditorRequired] public RemoteDisplayState State { get; set; } = new();
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference _root;
+    private RemotePairingInfo? _pairing;
+    private string? _pairingError;
+    private Timer? _timer;
+    private bool _refreshing;
+    private bool _disposed;
+
+    private bool ShowQr => Remote.Controllers.Count == 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        Remote.Changed += OnRemoteChanged;
+
+        try
+        {
+            await _root.FocusAsync();
+            await JS.InvokeVoidAsync("dartRemote.enterFullscreen");
+            await JS.InvokeVoidAsync("dartRemote.keepAwake");
+        }
+        catch (JSException)
+        {
+            // Vollbild/Wachhalten nicht erlaubt: Ansicht funktioniert trotzdem.
+        }
+
+        // QR-Code prüfen und vor Ablauf erneuern (Code gilt kurz und nur einmal).
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshPairingAsync), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+    }
+
+    private void OnRemoteChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task RefreshPairingAsync()
+    {
+        if (_disposed || _refreshing || !ShowQr)
+        {
+            return;
+        }
+
+        if (_pairing is not null && _pairing.ExpiresAtUtc > DateTime.UtcNow.AddSeconds(15))
+        {
+            return;
+        }
+
+        _refreshing = true;
+        var result = await Remote.CreatePairingAsync();
+        _refreshing = false;
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        _pairing = result.Value;
+        _pairingError = result.IsSuccess ? null : "QR-Code konnte nicht erstellt werden – Verbindung zum Server prüfen.";
+        StateHasChanged();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await CloseAsync();
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("dartRemote.exitFullscreen");
+        }
+        catch (JSException)
+        {
+        }
+
+        await OnClose.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        Remote.Changed -= OnRemoteChanged;
+
+        if (_timer is not null)
+        {
+            await _timer.DisposeAsync();
+        }
+    }
+}

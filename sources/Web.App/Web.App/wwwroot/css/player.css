@@ -540,23 +540,218 @@ a.pa-card:hover {
 
     .pa-remote__status.is-connected span { color: var(--pl-green); }
 
-.pa-remote__pairing {
+
+/* TV-Ansicht (RemoteTvView): Vollbild für den Fernseher, aus mehreren Metern lesbar */
+.pa-tv {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
     display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 2vh;
+    padding: 3vh 3vw;
+    box-sizing: border-box;
+    background: var(--pl-wood-950);
+    color: var(--pl-ink);
+    outline: none;
+}
+
+.pa-tv__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2vw;
+}
+
+.pa-tv__title {
+    margin: 0;
+    font-family: var(--pl-font-display);
+    font-size: clamp(1.4rem, 3vw, 3rem);
+}
+
+.pa-tv__subtitle {
+    margin: 0.3vh 0 0;
+    color: var(--pl-ink-muted);
+    font-size: clamp(1rem, 1.6vw, 1.6rem);
+}
+
+.pa-tv__head-actions {
+    display: flex;
+    align-items: center;
+    gap: 1vw;
+}
+
+.pa-tv__chip {
+    padding: 0.4em 0.9em;
+    border: 1px solid var(--pl-line);
+    border-radius: 999px;
+    font-size: clamp(0.9rem, 1.2vw, 1.3rem);
+}
+
+    .pa-tv__chip.is-connected span { color: var(--pl-green); }
+
+    .pa-tv__chip.is-offline { color: var(--pl-brass-strong); }
+
+.pa-tv__close {
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid var(--pl-line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--pl-ink-muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.pa-tv__body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3vw;
+    min-height: 0;
+}
+
+    .pa-tv__body.has-qr { grid-template-columns: 1fr minmax(240px, 28vw); }
+
+.pa-tv__players {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 2vw;
+    min-height: 0;
+}
+
+.pa-tv__player {
+    display: grid;
+    align-content: center;
     justify-items: center;
-    gap: 0.5rem;
-    padding: 0.9rem;
+    padding: 2vh 2vw;
+    border: 2px solid var(--pl-line);
+    border-radius: var(--pl-radius);
+    background: var(--pa-surface);
+    text-align: center;
+    transition: border-color var(--pa-transition), box-shadow var(--pa-transition);
+}
+
+    .pa-tv__player.is-active {
+        border-color: var(--pl-brass);
+        box-shadow: 0 0 0 4px rgba(209, 164, 95, 0.25);
+    }
+
+.pa-tv__name {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 3.2rem);
+    font-weight: 600;
+}
+
+.pa-tv__score {
+    margin: 0;
+    font-family: var(--pl-font-display);
+    font-size: clamp(5rem, 16vw, 18rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--pl-brass-strong);
+}
+
+.pa-tv__stats {
+    display: flex;
+    gap: 3vw;
+    margin: 1.5vh 0 0;
+    font-size: clamp(1.2rem, 2.4vw, 2.6rem);
+}
+
+    .pa-tv__stats div { display: flex; gap: 0.4em; }
+
+    .pa-tv__stats dt { color: var(--pl-ink-muted); }
+
+    .pa-tv__stats dd { margin: 0; font-weight: 700; }
+
+.pa-tv__detail {
+    margin: 1vh 0 0;
+    color: var(--pl-ink-muted);
+    font-size: clamp(1rem, 1.6vw, 1.8rem);
+}
+
+.pa-tv__pairing {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1.5vh;
+    padding: 2vh 2vw;
     border: 1px solid var(--pl-line);
     border-radius: var(--pl-radius);
     background: var(--pa-surface);
     text-align: center;
+    font-size: clamp(1rem, 1.6vw, 1.8rem);
 }
 
-.pa-remote__qr {
-    width: min(260px, 70vw);
+.pa-tv__qr {
+    width: min(100%, 50vh);
     line-height: 0;
 }
 
-    .pa-remote__qr svg { width: 100%; height: auto; }
+    .pa-tv__qr svg { width: 100%; height: auto; }
+
+.pa-tv__visit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3vw;
+}
+
+.pa-tv__darts {
+    display: flex;
+    gap: 1vw;
+}
+
+.pa-tv__dart,
+.pa-tv__total {
+    display: grid;
+    place-items: center;
+    min-width: 8vw;
+    min-height: 10vh;
+    padding: 0 1vw;
+    border: 2px solid var(--pl-line);
+    border-radius: var(--pa-radius-sm);
+    font-family: var(--pl-font-display);
+    font-size: clamp(1.8rem, 4vw, 4.5rem);
+    font-weight: 700;
+}
+
+    .pa-tv__dart.is-empty { border-style: dashed; }
+
+.pa-tv__total {
+    background: rgba(209, 164, 95, 0.14);
+    color: var(--pl-brass-strong);
+}
+
+.pa-tv__info {
+    display: grid;
+    justify-items: end;
+    gap: 1vh;
+    text-align: right;
+}
+
+.pa-tv__hint {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 3.4rem);
+    font-weight: 700;
+}
+
+    .pa-tv__hint.is-success { color: var(--pl-green); }
+
+    .pa-tv__hint.is-danger { color: var(--pl-red); }
+
+.pa-tv__checkout {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 3.4rem);
+    font-weight: 700;
+}
+
+    .pa-tv__checkout span {
+        margin-right: 0.5em;
+        color: var(--pl-ink-muted);
+        font-weight: 400;
+    }
 
 /* Handy-Seite /remote (RemoteLayout) */
 .pa-remote-app {

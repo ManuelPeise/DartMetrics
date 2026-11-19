@@ -16,6 +16,14 @@ namespace Web.App.Client.Components.Player
         public static string LegStartCall(string? starter) =>
             string.IsNullOrWhiteSpace(starter) ? "Game on! Throw fast!" : $"Game on! {starter}, throw fast!";
 
+        /// <summary>Kurzzeile unter dem Rest: „Legs 2 · Ø 54.3 · noch nicht eröffnet“.</summary>
+        public static string Meta(RemotePlayerState player) => string.Join(" · ", new[]
+        {
+            string.IsNullOrEmpty(player.Legs) ? null : $"Legs {player.Legs}",
+            string.IsNullOrEmpty(player.Average) ? null : $"Ø {player.Average}",
+            player.Detail
+        }.Where(part => !string.IsNullOrEmpty(part)));
+
         /// <summary>Spielende mit Checkout (Bot-Spiel, Turnier).</summary>
         public static string MatchShotCall(string? winner) =>
             string.IsNullOrWhiteSpace(winner) ? "Game shot and the match!" : $"Game shot and the match! {winner} wins!";

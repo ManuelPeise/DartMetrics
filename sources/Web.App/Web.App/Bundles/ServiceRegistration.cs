@@ -40,7 +40,9 @@ namespace Web.App.Bundles
             services.Configure<RemoteInputOptions>(configuration.GetSection(RemoteInputOptions.SectionName));
             services.AddSingleton<RemotePairingService>();
             services.AddSingleton<RemoteConnectionRegistry>();
-            services.AddSignalR();
+            // Server pingt alle 5 s: Handy und Spielseite merken Abbrüche nach 15 s (RemoteHubTimeouts) und verbinden neu.
+            // ClientTimeoutInterval bleibt beim Standard (30 s): ein Browser-Tab im Hintergrund pingt seltener.
+            services.AddSignalR(options => options.KeepAliveInterval = TimeSpan.FromSeconds(5));
 
             // Session store, token refresh, API clients (Web.Shared)
             services.RegisterWebServices();

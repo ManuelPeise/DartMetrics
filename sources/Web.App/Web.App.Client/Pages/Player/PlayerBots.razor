@@ -230,6 +230,8 @@
 
     private int _userDarts;
     private int _userScored;
+    private int _botDartsThrown;
+    private int _botScored;
 
     private string HeaderTitle => _phase is Phase.Playing or Phase.Result && _state is not null
         ? $"Du gegen {_state.BotName}" : "Gegen Bot spielen";
@@ -271,7 +273,9 @@
             {
                 Name = "Du",
                 Value = DisplayUserRemaining.ToString(),
-                Detail = _state.IsUserOpened ? $"Ø {UserAverage}" : "noch nicht eröffnet",
+                Detail = _state.IsUserOpened ? null : "noch nicht eröffnet",
+                Average = UserAverage,
+                Legs = (_shown?.UserLegs ?? _state.UserLegsWon).ToString(),
                 IsActive = IsUserActive
             },
             new RemotePlayerState
@@ -279,7 +283,9 @@
                 Name = _state.BotName,
                 Value = (_shown?.BotRemaining ?? _state.BotRemaining).ToString(),
                 Detail = _state.IsBotOpened ? "Bot" : "noch nicht eröffnet",
-                IsActive = _animating
+                Average = BotAverage,
+                Legs = (_shown?.BotLegs ?? _state.BotLegsWon).ToString(),
+                IsActive = _animating || (!IsUserActive && _state.Status == DartBotGameStatusEnum.Running)
             }
         ],
         Darts = RemoteState.Darts(_darts),
@@ -340,6 +346,15 @@
             : CheckoutAdvisor.GetBestRoutes(DisplayUserRemaining, DartsPerVisit - _darts.Count, _state.OutMode);
 
     private string UserAverage => _userDarts == 0 ? "–" : $"{_userScored * 3.0 / _userDarts:0.0}";
+
+    /// <summary>Average des Bots in dieser Sitzung (wie beim Menschen aus den gewerteten Punkten laut Server).</summary>
+    private string BotAverage => _botDartsThrown == 0 ? "–" : $"{_botScored * 3.0 / _botDartsThrown:0.0}";
+
+    private void CountBotVisit(DartBotVisitSummary visit)
+    {
+        _botDartsThrown += visit.DartsUsed;
+        _botScored += visit.ScoreBefore - visit.ScoreAfter;
+    }
 
     private string StatusValue => _state is null ? "" : $"{_state.UserLegsWon} : {_state.BotLegsWon}";
 
@@ -433,12 +448,18 @@
 
         _userDarts = 0;
         _userScored = 0;
+        _botDartsThrown = 0;
+        _botScored = 0;
         _status = null;
 
         var state = result.Value!;
 
         // Hat der Bot den Anwurf, hat er bereits geworfen: Aufnahme zeigen.
         var botVisit = state.CurrentLegVisits.LastOrDefault(v => v.IsBot);
+        if (botVisit is not null)
+        {
+            CountBotVisit(botVisit);
+        }
         _state = state;
         _phase = Phase.Playing;
         // Hat der Bot schon geworfen, hat er angeworfen.
@@ -515,6 +536,7 @@
         }
 
         var botVisits = FindNewVisits(previous, state, isBot: true);
+        botVisits.ForEach(CountBotVisit);
         var legChanged = state.CurrentLegNumber != previous.CurrentLegNumber;
         var userCheckedOut = state.UserLegsWon > previous.UserLegsWon;
 
