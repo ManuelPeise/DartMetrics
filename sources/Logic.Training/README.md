@@ -15,6 +15,10 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 - Darts strikt der Reihe nach (Aufnahme/Versuch und Dart-Nummer werden geprüft).
 - Checkout-Training: Versuch = bis zu 3 Darts auf den Zielwert, endet mit Checkout, Bust oder dem 3. Dart; immer Double-Out.
 - Regeln aus `Logic.Shared/Rules`. Checkout-Wege für die Anzeige aus `CheckoutAdvisor` (`Shared.Models/Shared`): bester Weg zuerst, nach jedem Dart neu; nach Aufnahme-Ende, Bust oder einem beendeten Checkout-Versuch schon für die nächste Aufnahme (3 Darts).
+- Around the Clock: Ziele 1–20, dann 25 (Bull zählt auch), dann Bull; Regeln nur in `Logic.Shared/Rules/AroundTheClockRules` (auch für die Statistik).
+- Start: noch offene Trainings derselben Art werden beendet (`FinishOpenSessionsAsync`), es bleibt höchstens eins offen.
+- Prüfungen beim Start: Checkout-Zielwert 2–170 und mit 3 Darts checkbar; Segment-Ziel kein Fehlwurf, 1–100 Aufnahmen.
+- Fehler: ungültige Eingabe oder Reihenfolge → `ArgumentException` (400), Training schon beendet → `BusinessRuleException` (409).
 - DI: `AddTrainingServices()` registriert alle vier Services.
 
 ## Fortsetzen nach Reload

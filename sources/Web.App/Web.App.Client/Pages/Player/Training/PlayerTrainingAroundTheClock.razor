@@ -10,7 +10,7 @@
     <Actions>
         @if (_phase == Phase.Playing)
         {
-            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@(_busy || _submitting)" @onclick="FinishAsync">Beenden</button>
         }
         else
         {

@@ -21,6 +21,7 @@ Prüfen, was Unit-Tests nicht können: SQL-Übersetzung, Constraints, Migratione
 | `Bot/BotGameFlowTests` | Ganzes Spiel bis zum Sieg des Bots; XP und Elo (Bot und Spieler) genau einmal; Fortsetzen; Abbruch ohne Elo; Elo-Verlauf |
 | `Bot/BotConcurrencyTests` | Zwei Anfragen ändern denselben Bot → Konflikt, Merge, keine XP verloren |
 | `Training/TrainingResumeTests` | Fortsetzen aller vier Trainings (Position, Rest, Treffer, Double-In), beendete werden nicht angeboten |
+| `Training/TrainingRulesTests` | Neuer Start beendet offenes Training; Fehlercodes (400/409); unmöglicher Checkout-Zielwert, ungültiges Segment-Ziel; Bull zählt für „25“ |
 | `Statistics/PlayerStatisticsTests` | Nur beendete Trainings zählen; Average stimmt mit der Ergebnisseite überein; leerer Zeitraum |
 | `Tournament/LeagueFlowTests` | Liga mit Spielern und Bots starten (Spielplan Hin- und Rückrunde, Spielfrei), Spieltag terminieren; Rechte GameMaster/Player, private Liga nur Besitzer und Bots; Grenzen; CHECK auf Teilnehmerart |
 | `Tournament/KnockoutFlowTests` | Baum mit Freilosen, Weiterrücken bis zum Sieger (idempotent), Setzliste Top 4 aus abgeschlossener Liga, Quell-Liga muss fertig sein, Satzlängen je Runde |

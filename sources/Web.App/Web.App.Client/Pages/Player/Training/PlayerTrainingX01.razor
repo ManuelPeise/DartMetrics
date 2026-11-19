@@ -12,7 +12,7 @@
     <Actions>
         @if (_phase == Phase.Playing)
         {
-            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@(_busy || _submitting)" @onclick="FinishAsync">Beenden</button>
         }
         else
         {
@@ -165,7 +165,7 @@
         StatusTone = _tone,
         Hint = PreviewHint,
         HintTone = PreviewTone,
-        CanInput = !_busy && !_submitting,
+        CanInput = _phase == Phase.Playing && !_busy && !_submitting,
         InputLocked = Preview.IsVisitFinished,
         CanUndo = _pending.Count > 0,
         CanSubmit = _pending.Count > 0,

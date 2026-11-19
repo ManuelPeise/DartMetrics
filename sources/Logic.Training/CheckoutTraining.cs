@@ -37,6 +37,12 @@ namespace Logic.Training
                     throw new ArgumentException("Invalid checkout target score.");
                 }
 
+                // 159, 162, 163, 165, 166, 168, 169: mit drei Darts Double-Out nicht zu checken.
+                if (CheckoutAdvisor.GetBestRoutes(model.TargetScore, DartsPerAttempt).Count == 0)
+                {
+                    throw new ArgumentException($"{model.TargetScore} cannot be checked out with {DartsPerAttempt} darts.");
+                }
+
                 var session = new TrainingSessionEntity
                 {
                     UserId = currentUser.UserId,
@@ -48,6 +54,7 @@ namespace Logic.Training
                     }
                 };
 
+                await FinishOpenSessionsAsync(currentUser.UserId, TrainingTypeEnum.CheckoutTraining);
                 await UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository.AddAsync(session);
                 await UnitOfWork.SaveChangesAsync();
 
@@ -119,7 +126,7 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new ArgumentException("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
                 if (!IsValidSegment(model.Segment) || !IsValidMultiplier(model.Segment, model.Multiplier))
@@ -199,7 +206,7 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new ArgumentException($"Training with id {trainingId} is already finished.");
+                    throw new BusinessRuleException($"Training with id {trainingId} is already finished.");
                 }
 
                 training.TrainingSession.FinishedAt = DateTime.UtcNow;

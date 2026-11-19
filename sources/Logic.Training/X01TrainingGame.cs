@@ -87,7 +87,7 @@ namespace Logic.Training
 
                 if (model.StartingScore is not (ThreeZeroOneScore or FiveZeroOneScore))
                 {
-                    throw new Exception($"Starting score must be {ThreeZeroOneScore} or {FiveZeroOneScore}.");
+                    throw new ArgumentException($"Starting score must be {ThreeZeroOneScore} or {FiveZeroOneScore}.");
                 }
 
                 if (!Enum.IsDefined(model.InMode) || !Enum.IsDefined(model.OutMode))
@@ -110,6 +110,7 @@ namespace Logic.Training
                     }
                 };
 
+                await FinishOpenSessionsAsync(currentUser.UserId, TrainingTypeEnum.X01Training);
                 await UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository.AddAsync(trainingSession);
                 await UnitOfWork.SaveChangesAsync();
 
@@ -133,17 +134,17 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new Exception("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
                 if (model.VisitNumber < 1)
                 {
-                    throw new Exception("Invalid visit number.");
+                    throw new ArgumentException("Invalid visit number.");
                 }
 
                 if (model.ThrowNumber is < 1 or > 3)
                 {
-                    throw new Exception("Invalid throw number.");
+                    throw new ArgumentException("Invalid throw number.");
                 }
 
                 var visit = training.Visits
@@ -157,7 +158,7 @@ namespace Logic.Training
 
                     if (model.VisitNumber != (lastVisit?.VisitNumber ?? 0) + 1 ||
                         model.ThrowNumber != 1)
-                        throw new Exception("Invalid visit or throw sequence.");
+                        throw new ArgumentException("Invalid visit or throw sequence.");
 
                     // Nach einem Checkout beginnt das nächste Leg wieder beim Startwert.
                     var lastLegFinished = lastVisit is not null && IsLegCheckout(lastVisit);
@@ -177,18 +178,18 @@ namespace Logic.Training
 
                 if (visit.IsBust || visit.ScoreAfter == 0)
                 {
-                    throw new Exception("This visit is already completed.");
+                    throw new BusinessRuleException("This visit is already completed.");
                 }
 
                 if (model.ThrowNumber != visit.Throws.Count + 1)
                 {
-                    throw new Exception("Throws must be added in sequence.");
+                    throw new ArgumentException("Throws must be added in sequence.");
                 }
 
                 if (!_rules.IsValidSegment(model.Segment) ||
                     !_rules.IsValidMultiplier(model.Segment, model.Multiplier))
                 {
-                    throw new Exception("Invalid dart throw.");
+                    throw new ArgumentException("Invalid dart throw.");
                 }
 
                 var score = _rules.CalculateScore(model.Segment, model.Multiplier);
@@ -275,7 +276,7 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new Exception("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
                 training.TrainingSession.FinishedAt = DateTime.UtcNow;

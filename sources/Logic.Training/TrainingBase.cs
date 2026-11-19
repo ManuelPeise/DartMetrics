@@ -26,7 +26,7 @@ namespace Logic.Training
 
             if (currentUser == null || currentUser.UserId == 0)
             {
-                throw new Exception("Current user not found.");
+                throw new UnauthorizedAccessException("Current user not found.");
             }
         }
 
@@ -86,6 +86,22 @@ namespace Logic.Training
                 asNoTracking: true);
 
             return sessions.OrderByDescending(s => s.StartedAt).ThenByDescending(s => s.Id).FirstOrDefault()?.Id;
+        }
+
+        /// <summary>
+        /// Vor dem Start eines neuen Trainings: noch offene Trainings derselben Art beenden (z. B. aus einem zweiten
+        /// Tab oder Gerät), damit keine Sessions für immer offen bleiben. Gespeichert wird mit dem neuen Training.
+        /// </summary>
+        protected async Task FinishOpenSessionsAsync(int userId, TrainingTypeEnum trainingType)
+        {
+            var open = await UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository.GetWhereAsync(
+                s => s.UserId == userId && s.TrainingType == trainingType && s.FinishedAt == null);
+
+            var now = DateTime.UtcNow;
+            foreach (var session in open)
+            {
+                session.FinishedAt = now;
+            }
         }
 
         protected static List<TrainingDart> ToDarts(IEnumerable<(int Segment, int Multiplier)> darts) =>

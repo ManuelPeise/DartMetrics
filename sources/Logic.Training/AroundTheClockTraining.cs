@@ -7,6 +7,7 @@ using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
 using Shared.Interfaces.UnitsOfWork;
 using Shared.Models.Training;
+using Shared.Models.Shared;
 
 namespace Logic.Training
 {
@@ -83,6 +84,7 @@ namespace Logic.Training
                     AroundTheClockTraining = new AroundTheClockTrainingEntity()
                 };
 
+                await FinishOpenSessionsAsync(currentUser.UserId, TrainingTypeEnum.AroundTheClockTraining);
                 await UnitOfWork.DartTrainingUnitOfWork
                     .TrainingSessionRepository
                     .AddAsync(trainingSession);
@@ -110,23 +112,23 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt != null)
                 {
-                    throw new Exception("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
 
                 if (model.VisitNumber < 1)
-                    throw new Exception("Invalid visit number.");
+                    throw new ArgumentException("Invalid visit number.");
 
                 if (model.ThrowNumber < 1 || model.ThrowNumber > 3)
                 {
-                    throw new Exception("Invalid throw number.");
+                    throw new ArgumentException("Invalid throw number.");
                 }
 
 
                 if (!_rules.IsValidSegment(model.Segment) ||
                     !_rules.IsValidMultiplier(model.Segment, model.Multiplier))
                 {
-                    throw new Exception("Invalid dart throw.");
+                    throw new ArgumentException("Invalid dart throw.");
                 }
 
                 var orderedVisits = training.Visits
@@ -140,7 +142,7 @@ namespace Logic.Training
                 if (lastVisit == null)
                 {
                     if (model.VisitNumber != 1 || model.ThrowNumber != 1)
-                        throw new Exception("Invalid first throw.");
+                        throw new ArgumentException("Invalid first throw.");
 
                     visit = new AroundTheClockTrainingVisitEntity
                     {
@@ -156,14 +158,14 @@ namespace Logic.Training
                         .LastOrDefault();
 
                     if (lastThrow == null || model.ThrowNumber != lastThrow.ThrowNumber + 1)
-                        throw new Exception("Invalid throw sequence.");
+                        throw new ArgumentException("Invalid throw sequence.");
 
                     visit = lastVisit;
                 }
                 else if (model.VisitNumber == lastVisit.VisitNumber + 1)
                 {
                     if (lastVisit.Throws.Count != 3 || model.ThrowNumber != 1)
-                        throw new Exception("The previous visit is not completed.");
+                        throw new ArgumentException("The previous visit is not completed.");
 
                     visit = new AroundTheClockTrainingVisitEntity
                     {
@@ -174,13 +176,13 @@ namespace Logic.Training
                 }
                 else
                 {
-                    throw new Exception("Invalid visit sequence.");
+                    throw new ArgumentException("Invalid visit sequence.");
                 }
 
                 var previousTarget = GetCurrentTarget(training);
 
                 if (previousTarget == 23)
-                    throw new Exception("Training is already completed.");
+                    throw new BusinessRuleException("Training is already completed.");
 
                 var isHit = IsTargetHit(
                     previousTarget,
@@ -234,7 +236,7 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt != null)
                 {
-                    throw new Exception("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
                 training.TrainingSession.FinishedAt = DateTime.UtcNow;
@@ -357,30 +359,10 @@ namespace Logic.Training
             return currentTarget;
         }
 
-        private bool IsTargetHit(int target, int segment, int multiplier)
-        {
-            if (target >= 1 && target <= 20)
-                return segment == target;
+        // Regeln nur noch an einer Stelle (Logic.Shared/Rules/AroundTheClockRules, auch für die Statistik).
+        private bool IsTargetHit(int target, int segment, int multiplier) => _rules.IsTargetHit(target, segment, multiplier);
 
-            if (target == 21)
-                return segment == 25 && multiplier == 1;
-
-            if (target == 22)
-                return segment == 25 && multiplier == 2;
-
-            return false;
-        }
-
-        private int GetNextTarget(int currentTarget)
-        {
-            if (currentTarget >= 1 && currentTarget < 22)
-                return currentTarget + 1;
-
-            if (currentTarget == 22)
-                return 23;
-
-            return 23;
-        }
+        private int GetNextTarget(int currentTarget) => _rules.NextTarget(currentTarget);
 
 
     }

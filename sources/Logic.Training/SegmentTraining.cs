@@ -6,12 +6,16 @@ using Shared.Interfaces.Logger;
 using Shared.Interfaces.Training;
 using Shared.Interfaces.UnitsOfWork;
 using Shared.Models.Training;
+using Shared.Models.Shared;
 
 namespace Logic.Training
 {
     public class SegmentTraining : TrainingBase, ISegmentTraining
     {
         private const int MaxThrows = 3;
+
+        /// <summary>Obergrenze für die Anzahl Aufnahmen (der Client bietet 5, 10, 20 an).</summary>
+        private const int MaxVisits = 100;
 
         public SegmentTraining(
             IUnitOfWork unitOfWork,
@@ -26,7 +30,11 @@ namespace Logic.Training
             {
                 EnsureCurrentUserIsValid(out var currentUser);
 
-                if (!IsValidSegment(model.TargetSegment) || !IsValidMultiplier(model.TargetSegment, model.TargetMultiplier) || model.NumberOfVisits <= 0)
+                // Ziel wie die CHECK-Regel der Tabelle: 1–20 × 1–3 oder 25 × 1–2, ein Fehlwurf (0) ist kein Ziel.
+                if (model.TargetSegment == 0 ||
+                    !IsValidSegment(model.TargetSegment) ||
+                    !IsValidMultiplier(model.TargetSegment, model.TargetMultiplier) ||
+                    model.NumberOfVisits is <= 0 or > MaxVisits)
                 {
                     throw new ArgumentException("Invalid target segment, multiplier, or number of visits.");
                 }
@@ -45,6 +53,7 @@ namespace Logic.Training
                 };
 
 
+                await FinishOpenSessionsAsync(currentUser.UserId, TrainingTypeEnum.SegmentTraining);
                 await UnitOfWork.DartTrainingUnitOfWork.TrainingSessionRepository.AddAsync(session);
 
                 await UnitOfWork.SaveChangesAsync();
@@ -110,7 +119,7 @@ namespace Logic.Training
 
                 if (training.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new ArgumentException("Training is already finished.");
+                    throw new BusinessRuleException("Training is already finished.");
                 }
 
                 if (model.VisitNumber < 1 || model.VisitNumber > training.NumberOfVisits)
@@ -197,7 +206,7 @@ namespace Logic.Training
 
                 if (trainingsEntity.TrainingSession.FinishedAt.HasValue)
                 {
-                    throw new InvalidOperationException($"Training with id: {trainingId} is already finished.");
+                    throw new BusinessRuleException($"Training with id: {trainingId} is already finished.");
                 }
 
                 trainingsEntity.TrainingSession.FinishedAt = DateTime.UtcNow;

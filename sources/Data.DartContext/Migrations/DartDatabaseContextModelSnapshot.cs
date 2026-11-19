@@ -1182,7 +1182,8 @@ namespace Data.DartContext.Migrations
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("TrainingSessionId")
                         .HasColumnType("int");
@@ -1191,14 +1192,15 @@ namespace Data.DartContext.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TrainingSessionId")
                         .IsUnique();
 
-                    b.ToTable("AroundTheClockTrainings");
+                    b.ToTable("AroundTheClockTrainings", (string)null);
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingThrowEntity", b =>
@@ -1215,7 +1217,8 @@ namespace Data.DartContext.Migrations
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("Multiplier")
                         .HasColumnType("int");
@@ -1233,13 +1236,22 @@ namespace Data.DartContext.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AroundTheClockTrainingVisitId");
+                    b.HasIndex("AroundTheClockTrainingVisitId", "ThrowNumber")
+                        .IsUnique();
 
-                    b.ToTable("AroundTheClockTrainingThrows");
+                    b.ToTable("AroundTheClockTrainingThrows", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AroundTheClockTrainingThrow_Score", "`Score` = `Segment` * `Multiplier`");
+
+                            t.HasCheckConstraint("CK_AroundTheClockTrainingThrow_SegmentMultiplier", "((`Segment` BETWEEN 1 AND 20 AND `Multiplier` BETWEEN 1 AND 3) OR (`Segment` = 25 AND `Multiplier` BETWEEN 1 AND 2) OR (`Segment` = 0 AND `Multiplier` = 0))");
+
+                            t.HasCheckConstraint("CK_AroundTheClockTrainingThrow_ThrowNumber", "`ThrowNumber` BETWEEN 1 AND 3");
+                        });
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.AroundTheClockTrainingVisitEntity", b =>
@@ -1256,22 +1268,28 @@ namespace Data.DartContext.Migrations
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("VisitNumber")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AroundTheClockTrainingId");
+                    b.HasIndex("AroundTheClockTrainingId", "VisitNumber")
+                        .IsUnique();
 
-                    b.ToTable("AroundTheClockTrainingVisits");
+                    b.ToTable("AroundTheClockTrainingVisits", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AroundTheClockTrainingVisit_VisitNumber", "`VisitNumber` > 0");
+                        });
                 });
 
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>

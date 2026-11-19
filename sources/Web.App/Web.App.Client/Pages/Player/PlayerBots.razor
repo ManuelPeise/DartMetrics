@@ -147,7 +147,7 @@
 
             <div>
                 <DartInputPad CurrentDarts="_darts" OnDart="AddDart" OnUndo="UndoDart" CanUndo="@(_darts.Count > 0)"
-                              OnSubmit="SubmitVisitAsync" CanSubmit="@(_darts.Count > 0)" InputLocked="@UserPreview.IsVisitFinished"
+                              OnSubmit="SubmitVisitAsync" CanSubmit="@CanSubmitVisit" InputLocked="@UserPreview.IsVisitFinished"
                               SubmitHint="@PreviewHint" SubmitHintTone="@PreviewTone" Disabled="@(!CanThrow)" />
             </div>
         </div>
@@ -300,7 +300,7 @@
         CanInput = CanThrow,
         InputLocked = UserPreview.IsVisitFinished,
         CanUndo = _darts.Count > 0,
-        CanSubmit = _darts.Count > 0,
+        CanSubmit = CanSubmitVisit,
         IsFinished = _phase == Phase.Result,
         CallId = _callId,
         CallText = _callText
@@ -325,6 +325,9 @@
         _callText = text;
         _callId++;
     }
+
+    /// <summary>Die Bot-API erwartet die ganze Aufnahme: 3 Darts oder vorher beendet (Checkout/Bust).</summary>
+    private bool CanSubmitVisit => _darts.Count > 0 && UserPreview.IsVisitFinished;
 
     private string? PreviewTone => UserPreview.IsCheckout ? "success" : UserPreview.IsBust ? "danger" : null;
 

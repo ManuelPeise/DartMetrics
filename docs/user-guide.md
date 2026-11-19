@@ -56,7 +56,7 @@ Unter **Training** gibt es vier Modi:
 | **X01** | 301 oder 501 allein, ein Satz aus 5 Legs; Straight- oder Double-In, Double- oder Straight-Out | 3-Dart-Average, Checkouts, Busts |
 | **Checkout** | Immer wieder denselben Zielwert auschecken (40, 81, 100, 121 oder 170); ein Versuch = bis zu 3 Darts, Double-Out | Checkout-Quote |
 | **Segment** | Ein Feld (Single, Double oder Triple einer Zahl oder Bull) über 5, 10 oder 20 Aufnahmen treffen | Trefferquote, Ø Treffer und Punkte je Aufnahme |
-| **Around the Clock** | Die Segmente der Reihe nach treffen | Trefferquote, Darts bis zum Ziel |
+| **Around the Clock** | Die Segmente 1–20 der Reihe nach treffen, dann 25 (Bull zählt auch) und zum Schluss das Bull | Trefferquote, Darts bis zum Ziel |
 
 „Beenden“ schließt ein Training vorzeitig ab; das Ergebnis zählt trotzdem.
 

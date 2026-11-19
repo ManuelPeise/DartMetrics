@@ -12,7 +12,7 @@
     <Actions>
         @if (_phase == Phase.Playing)
         {
-            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@(_busy || _submitting)" @onclick="FinishAsync">Beenden</button>
         }
         else
         {
@@ -35,6 +35,10 @@
                 <label for="checkout-target">Eigener Zielwert (2–170)</label>
                 <input id="checkout-target" class="pl-input" type="number" min="2" max="170" inputmode="numeric"
                        value="@_targetScore" @onchange="OnTargetChanged" />
+                @if (_targetScore is >= 2 and <= 170 && !IsValidTarget)
+                {
+                    <p class="pa-section__hint">@_targetScore lässt sich mit drei Darts nicht checken – bitte einen anderen Wert wählen.</p>
+                }
             </div>
             <div class="pa-setup__actions">
                 <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || !IsValidTarget)" @onclick="StartAsync">
@@ -152,7 +156,8 @@
     private int _callId;
     private string? _callText;
 
-    private bool IsValidTarget => _targetScore is >= 2 and <= 170;
+    /// <summary>2–170 und mit drei Darts Double-Out checkbar (nicht 159, 162, 163, 165, 166, 168, 169).</summary>
+    private bool IsValidTarget => _targetScore is >= 2 and <= 170 && CheckoutAdvisor.GetBestRoutes(_targetScore, 3).Count > 0;
 
     private IReadOnlyList<PlayerStat> LiveStats =>
     [
