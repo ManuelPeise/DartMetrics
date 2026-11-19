@@ -59,6 +59,7 @@ docker compose up -d                  # MySQL, Mailpit, API, Web-App
 | `deploy/update-containers` | Code-Update: Datenbank-Backup, API, Web-App und Trainer-Worker neu bauen und ersetzen. |
 | `deploy/backup-db` (`.sh`) | Tägliches Datenbank-Backup per Cron, mit Rotation. |
 | `deploy/download-fonts` | Schriften einmalig lokal ablegen. |
+| `deploy/create-local-cert` (`.ps1`) | Eigenes HTTPS-Zertifikat mit lokaler CA für `localhost`, Rechnername und LAN-IPs – keine Browser-Warnung auf PC und Handy (Handy-Eingabe). CA-Datei `certs/dartmetrics-ca.cer` einmalig aufs Handy. |
 
 
 ## Eigene Instanz betreiben
