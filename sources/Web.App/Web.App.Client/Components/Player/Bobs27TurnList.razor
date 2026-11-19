@@ -1,0 +1,26 @@
+﻿@using global::Shared.Models.Training
+
+@* Letzte Züge einer Bob's-27-Partie, neueste zuerst: Spieler, Ziel, Treffer, Stand davor → danach. *@
+@if (State.RecentTurns.Count > 0)
+{
+    <ol class="pa-bobs-turns" aria-label="Letzte Züge">
+        @foreach (var turn in State.RecentTurns)
+        {
+            <li class="@(turn.IsBust ? "is-bust" : "")">
+                @if (State.Players.Count > 1)
+                {
+                    <span class="pa-bobs-turns__who">@Name(turn.PlayerNumber)</span>
+                }
+                <span class="pa-bobs-turns__target">@turn.TargetLabel</span>
+                <span>@(turn.Hits == 0 ? "kein Treffer" : turn.Hits == 1 ? "1 Treffer" : $"{turn.Hits} Treffer")</span>
+                <span class="pa-bobs-turns__score">@turn.ScoreBefore → @turn.ScoreAfter@(turn.IsBust ? " · raus" : "")</span>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    [Parameter, EditorRequired] public Bobs27TrainingState State { get; set; } = new();
+
+    private string Name(int number) => State.Players.FirstOrDefault(p => p.Number == number)?.Name ?? $"Spieler {number}";
+}

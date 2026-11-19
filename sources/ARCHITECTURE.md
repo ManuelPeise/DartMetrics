@@ -83,6 +83,7 @@ Alle per DI registrierten Services. Lebensdauer: **S** = Scoped, **Si** = Single
 | `ICheckoutTraining` | `CheckoutTraining` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
 | `IX01TrainingGame` | `X01TrainingGame` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
 | `IAroundTheClockTraining` | `AroundTheClockTraining` | [Logic.Training](Logic.Training/README.md) | S | wie oben |
+| `IBobs27Training` | `Bobs27Training` | [Logic.Training](Logic.Training/README.md) | S | `GetRunningTrainingAsync`, `StartTrainingAsync`, `AddTurnAsync`, `UndoLastTurnAsync`, `FinishTrainingAsync`, `GetTrainingAsync` (je mit vollständigem Stand) |
 | `IRandomSource` | `DefaultRandomSource` | [Logic.Bot](Logic.Bot/README.md) | Si | `NextDouble` (austauschbar für Tests) |
 | `IThrowSimulator` | `ThrowSimulator` | [Logic.Bot](Logic.Bot/README.md) | Si | `DrawVisitForm`, `Throw` |
 | `ITargetSelector` | `RuleBasedTargetSelector` | [Logic.Bot](Logic.Bot/README.md) | Si | `SelectTarget` |
@@ -151,7 +152,7 @@ Details: [Service.Api](Service.Api/README.md). Route jeweils `api/<Controller>/<
 |---|---|---|
 | `UserAuthentication`, `Registration` | `IUserAuthentication`, `IUserRegistration` | anonym / angemeldet |
 | `Profile` | `IUserProfileService` | angemeldet |
-| `SegmentTraining`, `CheckoutTraining`, `X01TrainingGame`, `AroundTheClockTraining` | Trainings-Services | angemeldet |
+| `SegmentTraining`, `CheckoutTraining`, `X01TrainingGame`, `AroundTheClockTraining`, `Bobs27Training` | Trainings-Services | Player |
 | `DartBotGame` | `IDartBotGameService` | Player |
 | `Tournament` | `ITournamentQueryService`, `ITournamentRegistrationService`, `ILeagueService`, `IKnockoutService`, `ITournamentMatchService` | GameMaster, Player (Rechte je Turnier im Service) |
 | `PlayerStatistics` | `IPlayerStatisticsService` | Player |

@@ -23,5 +23,7 @@ namespace Data.DartContext.Entities.Training
         public AroundTheClockTrainingEntity? AroundTheClockTraining { get; set; }
 
         public TrainingGameEntity? TrainingGame { get; set; }
+
+        public Bobs27TrainingEntity? Bobs27Training { get; set; }
     }
 }

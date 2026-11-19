@@ -9,6 +9,7 @@ namespace Web.App.Client.Services.Api
         private const string AroundTheClock = "AroundTheClockTraining/";
         private const string Checkout = "CheckoutTraining/";
         private const string Segment = "SegmentTraining/";
+        private const string Bobs27 = "Bobs27Training/";
 
         private readonly ApiClient _api;
 
@@ -55,6 +56,25 @@ namespace Web.App.Client.Services.Api
 
         public Task<ApiResult<AroundTheClockTrainingResult>> GetAroundTheClockResultAsync(int trainingId, CancellationToken ct = default) =>
             ApiResponse.ReadAsync<AroundTheClockTrainingResult>(_api.GetAsync($"{AroundTheClock}GetResult?trainingId={trainingId}", ct), ct);
+
+        // Bob's 27
+        public Task<ApiResult<Bobs27TrainingState?>> GetRunningBobs27Async(CancellationToken ct = default) =>
+            ApiResponse.ReadOptionalAsync<Bobs27TrainingState>(_api.GetAsync(Bobs27 + "GetRunningBobs27Training", ct), ct);
+
+        public Task<ApiResult<Bobs27TrainingState>> StartBobs27Async(StartBobs27TrainingModel model, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<Bobs27TrainingState>(_api.PostAsJsonAsync(Bobs27 + "StartBobs27Training", model, ct), ct);
+
+        public Task<ApiResult<Bobs27TrainingState>> AddBobs27TurnAsync(Bobs27TrainingTurnModel model, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<Bobs27TrainingState>(_api.PostAsJsonAsync(Bobs27 + "AddBobs27TrainingTurn", model, ct), ct);
+
+        public Task<ApiResult<Bobs27TrainingState>> UndoBobs27TurnAsync(Bobs27TrainingUndoModel model, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<Bobs27TrainingState>(_api.PostAsJsonAsync(Bobs27 + "UndoBobs27TrainingTurn", model, ct), ct);
+
+        public Task<ApiResult<bool>> FinishBobs27Async(int trainingId, CancellationToken ct = default) =>
+            ApiResponse.ExecuteAsync(_api.PostAsJsonAsync(Bobs27 + "FinishBobs27Training", new TrainingSessionRequestModel { TrainingId = trainingId }, ct), ct);
+
+        public Task<ApiResult<Bobs27TrainingState>> GetBobs27Async(int trainingId, CancellationToken ct = default) =>
+            ApiResponse.ReadAsync<Bobs27TrainingState>(_api.GetAsync($"{Bobs27}GetBobs27Training?trainingId={trainingId}", ct), ct);
 
         // Checkout
         public Task<ApiResult<int>> StartCheckoutAsync(StartCheckoutTrainingModel model, CancellationToken ct = default) =>

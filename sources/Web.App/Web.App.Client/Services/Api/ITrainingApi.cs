@@ -26,6 +26,14 @@ namespace Web.App.Client.Services.Api
         Task<ApiResult<bool>> FinishAroundTheClockAsync(int trainingId, CancellationToken cancellationToken = default);
         Task<ApiResult<AroundTheClockTrainingResult>> GetAroundTheClockResultAsync(int trainingId, CancellationToken cancellationToken = default);
 
+        // Bob's 27 (jede Aktion liefert den vollständigen Stand)
+        Task<ApiResult<Bobs27TrainingState?>> GetRunningBobs27Async(CancellationToken cancellationToken = default);
+        Task<ApiResult<Bobs27TrainingState>> StartBobs27Async(StartBobs27TrainingModel model, CancellationToken cancellationToken = default);
+        Task<ApiResult<Bobs27TrainingState>> AddBobs27TurnAsync(Bobs27TrainingTurnModel model, CancellationToken cancellationToken = default);
+        Task<ApiResult<Bobs27TrainingState>> UndoBobs27TurnAsync(Bobs27TrainingUndoModel model, CancellationToken cancellationToken = default);
+        Task<ApiResult<bool>> FinishBobs27Async(int trainingId, CancellationToken cancellationToken = default);
+        Task<ApiResult<Bobs27TrainingState>> GetBobs27Async(int trainingId, CancellationToken cancellationToken = default);
+
         // Checkout
         Task<ApiResult<int>> StartCheckoutAsync(StartCheckoutTrainingModel model, CancellationToken cancellationToken = default);
         Task<ApiResult<CheckoutTrainingThrowResult>> AddCheckoutThrowAsync(CheckoutTrainingThrow model, CancellationToken cancellationToken = default);

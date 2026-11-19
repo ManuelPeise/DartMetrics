@@ -23,6 +23,10 @@ namespace Shared.Interfaces.UnitsOfWork
         IRepositoryBase<AroundTheClockTrainingVisitEntity> AroundTheClockTrainingVisitRepository { get; }
         IRepositoryBase<AroundTheClockTrainingThrowEntity> AroundTheClockTrainingThrowRepository { get; }
 
+        // Bob's 27
+        IRepositoryBase<Bobs27TrainingEntity> Bobs27TrainingRepository { get; }
+        IRepositoryBase<Bobs27TrainingTurnEntity> Bobs27TrainingTurnRepository { get; }
+
         // Training games
         IRepositoryBase<TrainingGameEntity> TrainingGameRepository { get; }
         IRepositoryBase<TrainingGameThrowEntity> TrainingGameThrowRepository { get; }

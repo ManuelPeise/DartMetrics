@@ -82,6 +82,16 @@ namespace Logic.Shared.Users
                 }
             }
 
+            // Bob's 27: Namen sind personenbezogen (auch die der Gäste, die der Benutzer eingetragen hat).
+            var bobs27Trainings = await _unitOfWork.DartTrainingUnitOfWork.Bobs27TrainingRepository.GetWhereAsync(
+                t => t.TrainingSession.UserId == user.Id,
+                include: q => q.Include(t => t.Players));
+
+            foreach (var player in bobs27Trainings.SelectMany(t => t.Players))
+            {
+                player.Name = player.PlayerNumber == 1 ? DeletedDisplayName : $"Gast {player.PlayerNumber}";
+            }
+
             await _unitOfWork.SaveChangesAsync();
 
             // Turniere: abmelden bzw. anonymisieren, offene Matches kampflos für den Gegner (eigene Speicherung).

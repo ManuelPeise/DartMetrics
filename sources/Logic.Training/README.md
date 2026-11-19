@@ -8,6 +8,7 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 | `CheckoutTraining` | Checkouts von einem Startwert |
 | `X01TrainingGame` | 301/501 allein spielen, ein Satz aus 5 Legs (Straight-/Double-In, Double-/Straight-Out); nach jedem Checkout startet das nächste Leg beim Startwert |
 | `AroundTheClockTraining` | Segmente der Reihe nach |
+| `Bobs27Training` | Bob's 27: D1 … D20 und Bull, Start mit 27 Punkten, 1–8 Spieler am selben Gerät, Eingabe = Treffer je Zug (0–3), Undo, Anfänger-Modus |
 
 - `TrainingBase`: aktueller Benutzer, Laden eigener Trainings (`LoadSegmentTraining`, `LoadCheckoutTraining`, `LoadX01Training`, `LoadAroundTheClockTraining`), Wurfprüfung.
 - **`TrainingId` ist immer die Id der `TrainingSession`** (Rückgabe von `Start…`). Geladen wird über `TrainingSessionId` und den Benutzer der Session.
@@ -19,7 +20,8 @@ Trainingsmodi des Spielers. Jede Trainingseinheit ist eine `TrainingSessionEntit
 - Start: noch offene Trainings derselben Art werden beendet (`FinishOpenSessionsAsync`), es bleibt höchstens eins offen.
 - Prüfungen beim Start: Checkout-Zielwert 2–170 und mit 3 Darts checkbar; Segment-Ziel kein Fehlwurf, 1–100 Aufnahmen.
 - Fehler: ungültige Eingabe oder Reihenfolge → `ArgumentException` (400), Training schon beendet → `BusinessRuleException` (409).
-- DI: `AddTrainingServices()` registriert alle vier Services.
+- Bob's 27: Regeln und Ablauf in `Logic.Shared/Rules/Bobs27Rules` und `Bobs27Game` (Wertung, Ausscheiden bei ≤ 0, Reihenfolge, Sieger; Tests `Logic.Bot.Tests/Rules/Bobs27Tests`). Gespeichert werden nur die Züge (`Bobs27TrainingTurnEntity`), der Stand wird jedes Mal nachgespielt. Doppelt gesendete Züge (gleiche `TurnNumber`) → 409. Undo nimmt den letzten Zug zurück, auch direkt nach dem Spielende (nicht nach „Beenden“). Spieler 1 ist der Benutzer, Gäste nur mit Namen (beim Anonymisieren ersetzt).
+- DI: `AddTrainingServices()` registriert alle fünf Services.
 
 ## Fortsetzen nach Reload
 

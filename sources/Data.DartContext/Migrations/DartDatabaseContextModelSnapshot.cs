@@ -1292,6 +1292,151 @@ namespace Data.DartContext.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsBeginnerMode")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("TrainingSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainingSessionId")
+                        .IsUnique();
+
+                    b.ToTable("Bobs27Trainings", (string)null);
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingPlayerEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("Bobs27TrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<int>("PlayerNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Bobs27TrainingId", "PlayerNumber")
+                        .IsUnique();
+
+                    b.ToTable("Bobs27TrainingPlayers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Bobs27TrainingPlayer_PlayerNumber", "`PlayerNumber` BETWEEN 1 AND 8");
+                        });
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingTurnEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("Bobs27TrainingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Hits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsBust")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("PlayerNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreBefore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TurnNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Bobs27TrainingId", "TurnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Bobs27TrainingId", "PlayerNumber", "Round")
+                        .IsUnique();
+
+                    b.ToTable("Bobs27TrainingTurns", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Bobs27TrainingTurn_Hits", "`Hits` BETWEEN 0 AND 3");
+
+                            t.HasCheckConstraint("CK_Bobs27TrainingTurn_PlayerNumber", "`PlayerNumber` BETWEEN 1 AND 8");
+
+                            t.HasCheckConstraint("CK_Bobs27TrainingTurn_Round", "`Round` BETWEEN 1 AND 21");
+
+                            t.HasCheckConstraint("CK_Bobs27TrainingTurn_Score", "`ScoreAfter` = `ScoreBefore` + IF(`Hits` > 0, `Hits`, -1) * IF(`Round` = 21, 50, `Round` * 2)");
+
+                            t.HasCheckConstraint("CK_Bobs27TrainingTurn_TurnNumber", "`TurnNumber` > 0");
+                        });
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -2362,6 +2507,39 @@ namespace Data.DartContext.Migrations
                     b.Navigation("AroundTheClockTraining");
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.TrainingSessionEntity", "TrainingSession")
+                        .WithOne("Bobs27Training")
+                        .HasForeignKey("Data.DartContext.Entities.Training.Bobs27TrainingEntity", "TrainingSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TrainingSession");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingPlayerEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.Bobs27TrainingEntity", "Bobs27Training")
+                        .WithMany("Players")
+                        .HasForeignKey("Bobs27TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bobs27Training");
+                });
+
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingTurnEntity", b =>
+                {
+                    b.HasOne("Data.DartContext.Entities.Training.Bobs27TrainingEntity", "Bobs27Training")
+                        .WithMany("Turns")
+                        .HasForeignKey("Bobs27TrainingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bobs27Training");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.HasOne("Data.DartContext.Entities.Training.CheckoutTrainingEntity", "CheckoutTraining")
@@ -2584,6 +2762,13 @@ namespace Data.DartContext.Migrations
                     b.Navigation("Throws");
                 });
 
+            modelBuilder.Entity("Data.DartContext.Entities.Training.Bobs27TrainingEntity", b =>
+                {
+                    b.Navigation("Players");
+
+                    b.Navigation("Turns");
+                });
+
             modelBuilder.Entity("Data.DartContext.Entities.Training.CheckoutTrainingAttemptEntity", b =>
                 {
                     b.Navigation("Throws");
@@ -2612,6 +2797,8 @@ namespace Data.DartContext.Migrations
             modelBuilder.Entity("Data.DartContext.Entities.Training.TrainingSessionEntity", b =>
                 {
                     b.Navigation("AroundTheClockTraining");
+
+                    b.Navigation("Bobs27Training");
 
                     b.Navigation("CheckoutTraining");
 

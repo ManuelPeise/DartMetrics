@@ -39,6 +39,11 @@ namespace Data.DartContext
         public DbSet<AroundTheClockTrainingVisitEntity> AroundTheClockTrainingVisits => Set<AroundTheClockTrainingVisitEntity>();
         public DbSet<AroundTheClockTrainingThrowEntity> AroundTheClockTrainingThrows => Set<AroundTheClockTrainingThrowEntity>();
 
+        // Bob's 27
+        public DbSet<Bobs27TrainingEntity> Bobs27Trainings => Set<Bobs27TrainingEntity>();
+        public DbSet<Bobs27TrainingPlayerEntity> Bobs27TrainingPlayers => Set<Bobs27TrainingPlayerEntity>();
+        public DbSet<Bobs27TrainingTurnEntity> Bobs27TrainingTurns => Set<Bobs27TrainingTurnEntity>();
+
         // DartBot
         public DbSet<DartBotEntity> DartBots => Set<DartBotEntity>();
         public DbSet<DartBotProfileVersionEntity> DartBotProfileVersions => Set<DartBotProfileVersionEntity>();

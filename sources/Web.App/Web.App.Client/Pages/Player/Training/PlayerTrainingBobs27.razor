@@ -1,0 +1,291 @@
+﻿@page "/player/training/bobs27"
+@using global::Shared.Models.Training
+@inject ITrainingApi TrainingApi
+@inject PlayerProfileState Profile
+
+@*
+    Bob's 27: Doubles-Training D1 … D20 und Bull, Start mit 27 Punkten, 1–8 Spieler am selben Gerät.
+    Je Zug wird nur die Anzahl Treffer (0–3) eingegeben. Gewertet und weitergeschaltet wird auf dem Server
+    (Bobs27Rules/Bobs27Game); die Seite zeigt nur den Stand und die Vorschau „was bringt welcher Knopf“.
+*@
+
+<PageTitle>Bob's 27 – DartMetrics</PageTitle>
+
+<PlayerPageHeader Eyebrow="Training" Title="Bob's 27" Subtitle="@Subtitle">
+    <Actions>
+        @if (_state is { IsFinished: false })
+        {
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="FinishAsync">Beenden</button>
+        }
+        else
+        {
+            <a href="player/training" class="pl-btn pl-btn--link">← Alle Trainings</a>
+        }
+    </Actions>
+</PlayerPageHeader>
+
+@if (_error is not null)
+{
+    <PlayerErrorState Text="@_error" />
+}
+
+@if (_loading)
+{
+    <PlayerLoadingState />
+}
+else if (_state is null)
+{
+    <div class="pa-setup">
+        <fieldset class="pa-choice">
+            <legend class="pa-choice__label">Spieler (Reihenfolge = Wurfreihenfolge)</legend>
+            <div class="pa-bobs-players">
+                @for (var i = 0; i < _names.Count; i++)
+                {
+                    var index = i;
+                    <div class="pa-bobs-players__row">
+                        <input class="pl-input" maxlength="40" aria-label="@($"Name Spieler {index + 1}")"
+                               value="@_names[index]" @onchange="e => _names[index] = e.Value?.ToString() ?? string.Empty" />
+                        @if (index > 0)
+                        {
+                            <button type="button" class="pl-btn pl-btn--link" aria-label="@($"Spieler {index + 1} entfernen")"
+                                    @onclick="() => _names.RemoveAt(index)">Entfernen</button>
+                        }
+                    </div>
+                }
+            </div>
+            @if (_names.Count < MaxPlayers)
+            {
+                <button type="button" class="pl-btn pl-btn--ghost" @onclick="AddPlayer">+ Mitspieler</button>
+            }
+        </fieldset>
+
+        <PlayerChoiceGroup Label="Modus" Options="ModeOptions" @bind-Value="_beginnerMode" />
+
+        <div class="pa-setup__actions">
+            <button type="button" class="pl-btn pl-btn--primary" disabled="@(_busy || !CanStart)" @onclick="StartAsync">
+                @(_busy ? "Startet …" : "Training starten")
+            </button>
+        </div>
+    </div>
+}
+else if (!_state.IsFinished)
+{
+    var s = _state;
+    var player = CurrentPlayer!;
+
+    <div class="pa-play">
+        <div class="pa-play__info">
+            <PlayerScoreboard Label="@($"Runde {s.Round} / 21 · Ziel")" Value="@s.TargetLabel"
+                              Status="@($"{s.TargetValue} Punkte je Treffer · Fehlwurf: −{s.TargetValue}")"
+                              Tone="@(s.IsBeginnerMode ? null : player.Score <= s.TargetValue ? "danger" : null)" />
+            <PlayerStatGrid Stats="PlayerStats" />
+            @if (!s.IsBeginnerMode && player.Score <= s.TargetValue)
+            {
+                <p class="pa-section__hint">Achtung: Ohne Treffer ist @player.Name raus (@player.Score − @s.TargetValue ≤ 0).</p>
+            }
+        </div>
+
+        <div class="pa-bobs-input">
+            <p class="pa-bobs-input__who">
+                Am Wurf: <strong>@player.Name</strong> · Stand <strong>@player.Score</strong>
+            </p>
+            <div class="pa-bobs-input__hits" role="group" aria-label="Treffer auf @s.TargetLabel">
+                @for (var hits = 0; hits <= 3; hits++)
+                {
+                    var value = hits;
+                    var after = ScoreAfter(player.Score, value);
+                    <button type="button" class="pa-pad__key pa-bobs-input__key @(value == 0 ? "is-miss" : "")" disabled="@_busy"
+                            aria-label="@($"{value} Treffer, neuer Stand {after}")" @onclick="() => TurnAsync(value)">
+                        <strong>@value</strong>
+                        <small>@(value == 0 ? $"−{s.TargetValue}" : $"+{value * s.TargetValue}") → @after</small>
+                    </button>
+                }
+            </div>
+            <button type="button" class="pl-btn pl-btn--ghost" disabled="@(_busy || !s.CanUndo)" @onclick="UndoAsync">
+                ↶ Letzten Zug zurücknehmen
+            </button>
+            <Bobs27TurnList State="s" />
+        </div>
+    </div>
+}
+else
+{
+    var s = _state;
+
+    <div class="pa-result">
+        <PlayerScoreboard Label="@ResultLabel" Value="@ResultValue" Status="@ResultStatus" Tone="@ResultTone" />
+        <PlayerStatGrid Stats="ResultStats" />
+        <div class="pa-setup__actions">
+            <button type="button" class="pl-btn pl-btn--primary" @onclick="Restart">Neues Training</button>
+            @if (s.CanUndo)
+            {
+                <button type="button" class="pl-btn pl-btn--ghost" disabled="@_busy" @onclick="UndoAsync">↶ Letzten Zug zurücknehmen</button>
+            }
+            <a href="player/training" class="pl-btn pl-btn--ghost">Alle Trainings</a>
+        </div>
+        <Bobs27TurnList State="s" />
+    </div>
+}
+
+@code {
+    private const int MaxPlayers = 8;
+
+    private static readonly IReadOnlyList<PlayerChoice<bool>> ModeOptions =
+    [
+        new(false, "Normal", "Bei 0 oder weniger Punkten ist man raus"),
+        new(true, "Anfänger-Modus", "Kein Game Over, Weiterspielen im Minus")
+    ];
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+
+    private readonly List<string> _names = [];
+    private bool _beginnerMode;
+
+    private Bobs27TrainingState? _state;
+
+    private bool IsMultiplayer => _state is { Players.Count: > 1 };
+
+    private Bobs27PlayerResult? CurrentPlayer =>
+        _state?.Players.FirstOrDefault(p => p.Number == _state.CurrentPlayerNumber);
+
+    private bool CanStart => _names.Count is >= 1 and <= MaxPlayers && _names.All(n => n.Trim().Length is > 0 and <= 40);
+
+    private string Subtitle => _state is null
+        ? "Doubles von D1 bis D20 und Bull: Treffer bringen Punkte, ein Fehlversuch kostet den Wert des Doubles. Start mit 27 Punkten."
+        : $"{(_state.IsBeginnerMode ? "Anfänger-Modus" : "Bei 0 oder weniger Punkten ist man raus")} · Höchstwert {_state.MaxScore}";
+
+    /// <summary>Nur Anzeige auf den Knöpfen; gewertet wird auf dem Server (gleiche Regel: + Treffer × Wert, sonst − Wert).</summary>
+    private int ScoreAfter(int score, int hits) => hits > 0 ? score + hits * _state!.TargetValue : score - _state!.TargetValue;
+
+    private IReadOnlyList<PlayerStat> PlayerStats => _state is null ? [] : _state.Players.Select(p => new PlayerStat(
+        p.Name,
+        p.Score.ToString(),
+        Hint: p.IsEliminated ? $"raus in Runde {p.EliminatedInRound}" : $"{p.HitRate:0.#} % Treffer",
+        Highlight: p.Number == _state.CurrentPlayerNumber)).ToList();
+
+    private string ResultLabel => _state is null ? "" :
+        !IsMultiplayer ? (_state.Players[0].IsEliminated ? $"Raus in Runde {_state.Players[0].EliminatedInRound}" : "Alle 21 Runden geschafft")
+        : _state.Winners.Count > 1 ? "Unentschieden" : "Gewonnen";
+
+    private string ResultValue => _state is null ? "" :
+        !IsMultiplayer ? _state.Players[0].Score.ToString()
+        : string.Join(" & ", _state.Players.Where(p => _state.Winners.Contains(p.Number)).Select(p => p.Name));
+
+    private string ResultStatus => _state is null ? "" :
+        !IsMultiplayer ? $"Punkte (Höchstwert {_state.MaxScore})"
+        : string.Join(" · ", _state.Players.Where(p => _state.Winners.Contains(p.Number)).Select(p => $"{p.Score} Punkte"));
+
+    private string? ResultTone => _state is null ? null
+        : !IsMultiplayer && _state.Players[0].IsEliminated ? "danger"
+        : "success";
+
+    private IReadOnlyList<PlayerStat> ResultStats => _state is null ? [] : _state.Players
+        .OrderByDescending(p => _state.Winners.Contains(p.Number))
+        .ThenByDescending(p => p.EliminatedInRound ?? 22)
+        .ThenByDescending(p => p.Score)
+        .Select(p => new PlayerStat(
+            p.Name,
+            p.Score.ToString(),
+            Hint: $"{p.Hits} Treffer · {p.HitRate:0.#} %" + (p.IsEliminated ? $" · raus in Runde {p.EliminatedInRound}" : ""),
+            Highlight: _state.Winners.Contains(p.Number)))
+        .ToList();
+
+    // Offene Partie nach Reload oder Navigation fortsetzen, sonst Einstellungen zeigen.
+    protected override async Task OnInitializedAsync()
+    {
+        var profile = await Profile.EnsureLoadedAsync();
+        _names.Add(profile is null ? "Ich" : string.IsNullOrWhiteSpace(profile.DisplayName) ? profile.FirstName : profile.DisplayName);
+
+        var running = await TrainingApi.GetRunningBobs27Async();
+        _state = running.Value;
+        _error = running.IsSuccess ? null : running.Error;
+        _loading = false;
+    }
+
+    private void AddPlayer()
+    {
+        if (_names.Count < MaxPlayers)
+        {
+            _names.Add($"Spieler {_names.Count + 1}");
+        }
+    }
+
+    private Task StartAsync() => RunAsync(() => TrainingApi.StartBobs27Async(new StartBobs27TrainingModel
+    {
+        PlayerNames = _names.Select(n => n.Trim()).ToList(),
+        IsBeginnerMode = _beginnerMode
+    }));
+
+    private Task TurnAsync(int hits) => RunAsync(() => TrainingApi.AddBobs27TurnAsync(new Bobs27TrainingTurnModel
+    {
+        TrainingId = _state!.TrainingId,
+        TurnNumber = _state.NextTurnNumber,
+        Hits = hits
+    }));
+
+    private Task UndoAsync() => RunAsync(() => TrainingApi.UndoBobs27TurnAsync(new Bobs27TrainingUndoModel
+    {
+        TrainingId = _state!.TrainingId,
+        TurnNumber = _state.NextTurnNumber - 1
+    }));
+
+    /// <summary>Ein Aufruf zur Zeit; bei Fehler (z. B. 409 von einem zweiten Gerät) den aktuellen Stand neu laden.</summary>
+    private async Task RunAsync(Func<Task<ApiResult<Bobs27TrainingState>>> request)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        var result = await request();
+
+        if (result.IsSuccess)
+        {
+            _state = result.Value;
+        }
+        else
+        {
+            _error = result.Error;
+            if (_state is not null)
+            {
+                var reloaded = await TrainingApi.GetBobs27Async(_state.TrainingId);
+                _state = reloaded.Value ?? _state;
+            }
+        }
+
+        _busy = false;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (_state is null || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        var finished = await TrainingApi.FinishBobs27Async(_state.TrainingId);
+        if (!finished.IsSuccess)
+        {
+            _error = finished.Error;
+            _busy = false;
+            return;
+        }
+
+        var result = await TrainingApi.GetBobs27Async(_state.TrainingId);
+        _state = result.Value ?? _state;
+        _error = result.Error;
+        _busy = false;
+    }
+
+    private void Restart()
+    {
+        _state = null;
+        _error = null;
+    }
+}

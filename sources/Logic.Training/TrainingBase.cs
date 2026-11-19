@@ -78,6 +78,18 @@ namespace Logic.Training
             return trainingEntity ?? throw NotFound(trainingId);
         }
 
+        protected async Task<Bobs27TrainingEntity> LoadBobs27Training(int trainingId, int userId)
+        {
+            var trainingEntity = await UnitOfWork.DartTrainingUnitOfWork.Bobs27TrainingRepository.GetFirstOrDefaultAsync(
+                t => t.TrainingSessionId == trainingId && t.TrainingSession.UserId == userId,
+                include: q => q
+                    .Include(t => t.TrainingSession)
+                    .Include(t => t.Players)
+                    .Include(t => t.Turns));
+
+            return trainingEntity ?? throw NotFound(trainingId);
+        }
+
         /// <summary>Id der neuesten offenen Session dieser Art, sonst null.</summary>
         protected async Task<int?> FindRunningSessionIdAsync(int userId, TrainingTypeEnum trainingType)
         {

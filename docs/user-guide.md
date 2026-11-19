@@ -57,6 +57,7 @@ Unter **Training** gibt es vier Modi:
 | **Checkout** | Immer wieder denselben Zielwert auschecken (40, 81, 100, 121 oder 170); ein Versuch = bis zu 3 Darts, Double-Out | Checkout-Quote |
 | **Segment** | Ein Feld (Single, Double oder Triple einer Zahl oder Bull) über 5, 10 oder 20 Aufnahmen treffen | Trefferquote, Ø Treffer und Punkte je Aufnahme |
 | **Around the Clock** | Die Segmente 1–20 der Reihe nach treffen, dann 25 (Bull zählt auch) und zum Schluss das Bull | Trefferquote, Darts bis zum Ziel |
+| **Bob's 27** | Doubles D1 bis D20 und Bull, je Runde 3 Darts. Start mit 27 Punkten; jeder Treffer bringt den Wert des Doubles, ohne Treffer wird er abgezogen. Bei 0 oder weniger Punkten ist man raus (Anfänger-Modus: weiterspielen im Minus). Allein oder mit bis zu 7 Mitspielern am selben Gerät; eingegeben wird nur die Anzahl Treffer (0–3), ↶ nimmt den letzten Zug zurück. Höchstwert 1437 | Punkte, Trefferquote, Sieger |
 
 „Beenden“ schließt ein Training vorzeitig ab; das Ergebnis zählt trotzdem.
 

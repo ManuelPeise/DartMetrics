@@ -37,6 +37,10 @@ namespace Logic.Shared.UnitsOfWork
         public IRepositoryBase<AroundTheClockTrainingVisitEntity> AroundTheClockTrainingVisitRepository { get; }
         public IRepositoryBase<AroundTheClockTrainingThrowEntity> AroundTheClockTrainingThrowRepository { get; }
 
+        // Bob's 27
+        public IRepositoryBase<Bobs27TrainingEntity> Bobs27TrainingRepository { get; }
+        public IRepositoryBase<Bobs27TrainingTurnEntity> Bobs27TrainingTurnRepository { get; }
+
 
         public DartTrainingUnitOfWork(DartDatabaseContext dartDatabaseContext)
         {
@@ -54,6 +58,8 @@ namespace Logic.Shared.UnitsOfWork
             AroundTheClockTrainingRepository = new RepositoryBase<AroundTheClockTrainingEntity>(_dartDatabaseContext);
             AroundTheClockTrainingVisitRepository = new RepositoryBase<AroundTheClockTrainingVisitEntity>(_dartDatabaseContext);
             AroundTheClockTrainingThrowRepository = new RepositoryBase<AroundTheClockTrainingThrowEntity>(_dartDatabaseContext);
+            Bobs27TrainingRepository = new RepositoryBase<Bobs27TrainingEntity>(_dartDatabaseContext);
+            Bobs27TrainingTurnRepository = new RepositoryBase<Bobs27TrainingTurnEntity>(_dartDatabaseContext);
         }
     }
 }
